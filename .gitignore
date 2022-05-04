@@ -28,15 +28,8 @@
 /documentation/generated
 /documentation/images
 /Data
-
+/notebooks
 # log files
 *.log
 *.log.*
-
-#
-Trials
-.vscode
-.ipynb
-notebooks/
-notebooks/.ipynb_checkpoints/
-SLM_Examples/
+notebooks/APS100.ipynb

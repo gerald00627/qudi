@@ -600,6 +600,7 @@ class ODMRLogic(GenericLogic):
         """
 
         clock_status = self._odmr_counter.set_up_odmr_clock(clock_frequency=self.clock_frequency)
+
         if clock_status < 0:
             return -1
 
@@ -675,6 +676,7 @@ class ODMRLogic(GenericLogic):
                  len(self._odmr_counter.get_odmr_channels()),
                  self.odmr_plot_x.size]
             )
+            self._odmr_counter.set_odmr_length(self.odmr_plot_x.size)
             self.sigNextLine.emit()
             return 0
 
@@ -839,13 +841,17 @@ class ODMRLogic(GenericLogic):
         Execute the currently configured fit on the measurement data. Optionally on passed data
         """
         if (x_data is None) or (y_data is None):
-            x_data = self.frequency_lists[fit_range]
-            x_data_full_length = np.zeros(len(self.final_freq_list))
-            # how to insert the data at the right position?
-            start_pos = np.where(np.isclose(self.final_freq_list, self.mw_starts[fit_range]))[0][0]
-            x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
-            y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
-            y_data = self.odmr_plot_y[channel_index][y_args]
+            if fit_range >= 0:
+                x_data = self.frequency_lists[fit_range]
+                x_data_full_length = np.zeros(len(self.final_freq_list))
+                # how to insert the data at the right position?
+                start_pos = np.where(np.isclose(self.final_freq_list, self.mw_starts[fit_range]))[0][0]
+                x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
+                y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
+                y_data = self.odmr_plot_y[channel_index][y_args]
+            else:
+                x_data = self.final_freq_list
+                y_data = self.odmr_plot_y[channel_index]
         if fit_function is not None and isinstance(fit_function, str):
             if fit_function in self.get_fit_functions():
                 self.fc.set_current_fit(fit_function)
