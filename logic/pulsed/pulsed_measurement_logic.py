@@ -213,7 +213,7 @@ class PulsedMeasurementLogic(GenericLogic):
         # Connect internal signals
         self.sigStartTimer.connect(self.__analysis_timer.start, QtCore.Qt.QueuedConnection)
         self.sigStopTimer.connect(self.__analysis_timer.stop, QtCore.Qt.QueuedConnection)
-        self.sigStartSequence.connect(self.do_camera_seq_loop, QtCore.Qt.QueuedConnection)
+        # self.sigStartSequence.connect(self.do_camera_seq_loop, QtCore.Qt.QueuedConnection)
         return
 
     def on_deactivate(self):
@@ -307,7 +307,8 @@ class PulsedMeasurementLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
-        return self.fastcounter().start_measure(self._number_of_lasers)
+        #return self.fastcounter().start_measure(self._number_of_lasers) #Hanyi Lu @2022.04.26
+        return self.fastcounter().start_measure() #Hanyi Lu @2022.04.26
 
     def fast_counter_off(self):
         """Switching off the fast counter
@@ -482,8 +483,9 @@ class PulsedMeasurementLogic(GenericLogic):
 
     def pulse_generator_on(self):
         """Switching on the pulse generator. """
-        # self.pulsegenerator().pulse_streamer.setTrigger(start=ps.TriggerStart.HARDWARE_RISING)
-        err = self.pulsegenerator().pulser_on(trigger=True, laser=False, n=1, rearm=False)
+        #self.pulsegenerator().pulse_streamer.setTrigger(start=ps.TriggerStart.HARDWARE_RISING)
+        #err = self.pulsegenerator().pulser_on(trigger=True, laser=False, n=1, rearm=False) #Hanyi Lu @2022.04.26
+        err = self.pulsegenerator().pulser_on() #Hanyi Lu @2022.04.26 the line above did not work
         if err < 0:
             self.log.error('Failed to turn on pulse generator output.')
             self.sigPulserRunningUpdated.emit(False)
@@ -798,9 +800,9 @@ class PulsedMeasurementLogic(GenericLogic):
                 if self.__use_ext_microwave:
                     self.microwave_on()
                 # start pulse generator
-                # self.pulse_generator_on()
+                self.pulse_generator_on()  #Hanyi Lu @2022.04.27
                 # start fast counter
-                # self.fast_counter_on()
+                self.fast_counter_on()  #Hanyi Lu @2022.04.26
 
                 # initialize analysis_timer
                 self.__elapsed_time = 0.0
@@ -855,7 +857,7 @@ class PulsedMeasurementLogic(GenericLogic):
                 # Turn off fast counter
                 self._stop_requested = True
                 self.fast_counter_off()
-                self.fastcounter().pulsed_done()
+                #self.fastcounter().pulsed_done()    #Hanyi Lu @2022.04.18 [commented out]this is not implemented in the fastcounter interface
                 # Turn off pulse generator
                 self.pulse_generator_off()
                 # Turn off microwave source
