@@ -20,6 +20,10 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+"""Modified by Hanyi Lu @04.07.2022
+Start implementing the ODMRcounter interface for the sweep mode with timetagger
+"""
+
 import TimeTagger as tt
 import time
 import numpy as np
@@ -33,7 +37,7 @@ from interface.slow_counter_interface import CountingMode
 from interface.odmr_counter_interface import ODMRCounterInterface
 
 
-class TimeTaggerCounter(Base, SlowCounterInterface):
+class TimeTaggerCounter(Base, SlowCounterInterface, ODMRCounterInterface):
     """ Using the TimeTagger as a slow counter.
 
     Example config for copy-paste:
@@ -49,12 +53,15 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
     _sum_channels = ConfigOption('timetagger_sum_channels', False)
+    _trigger_channel = ConfigOption('timetagger_channel_trigger', None, missing = 'warn')
 
     def on_activate(self):
         """ Start up TimeTagger interface
         """
         self._tagger = tt.createTimeTagger()
         self._count_frequency = 50  # Hz
+        self._odmr_length = None
+        self._line_length = None
 
         if self._sum_channels and self._channel_apd_1 is None:
             self.log.error('Cannot sum channels when only one apd channel given')
@@ -221,8 +228,11 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         clock_frequency=clock_frequency,
         clock_channel=clock_channel)
 
-    def set_up_odmr(self, counter_channel=None, photon_source=None,
-                    clock_channel=None, odmr_trigger_channel=None):
+    def set_up_odmr(self, 
+                    counter_channel=None, 
+                    photon_source=None,
+                    clock_channel=None, 
+                    odmr_trigger_channel=None):
         """ Configures the actual counter with a given clock.
 
         @param str counter_channel: if defined, this is the physical channel of
@@ -236,7 +246,36 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+
+        # currently, parameters passed to this function are ignored -- the channels used and clock frequency are
+        # set at startup
+        
+        # Hanyi Lu @04.07.2022. 
+        # It seems that the combination of two APDs are not necessary so here
+        # I am not including the options for different APD modes.
+
+        # Hanyi Lu @04.13.2022
+        #The counters here are bypassed. The real one would be called in count_odmr
+
+        # if self._trigger_channel is None:
+        #     #Setting up bin counter
+        #     self.counter = tt.Counter(
+        #         self._tagger,
+        #         channels=[self._channel_apd_0],
+        #         binwidth=int((1 / self._count_frequency) * 1e12),
+        #         n_values=1
+        #     )
+        # else:
+        #     #Setting up pulsed counter
+        #     self.pulsed = tt.CounterBetweenMarkers(
+        #         self._tagger,
+        #         channels=[self._channel_apd_0],
+        #         begin_channel = [self._trigger_channel],
+        #         end_channel = [self._trigger_channel],
+        #         n_values=1 #not sure if this is the right config, need to check.
+        #     )
+        # self.log.info('set up counter with {0}'.format(self._count_frequency))
+        return 0
 
     def set_odmr_length(self, length=100):
         """Set up the trigger sequence for the ODMR and the triggered microwave.
@@ -245,7 +284,8 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        self._odmr_length = length
+        return 0
 
     def count_odmr(self, length = 100):
         """ Sweeps the microwave and returns the counts on that sweep.
@@ -254,28 +294,58 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return (bool, float[]): tuple: was there an error, the photon counts per second
         """
-        pass
+
+        odmr_length_to_set = length
+
+        #Hanyi Lu @04.13.2022
+        #The strategy here is really to create a counter with the same buffer
+        #size as the scan length. It would improve synchronization with the 
+        #microwave sweep. It should be compatible with pulsed method
+        #I have to put the counter creation here. But it should not cause much
+        #delay since the processing time for the counter creation was tested 
+        #to be around 0.05~0.1ms.
+        
+        self.ODMRcounter = tt.Counter(
+            self._tagger,
+            channels=[self._channel_apd_0],
+            binwidth=int((1 / self._count_frequency) * 1e12),
+            n_values=length
+        ) 
+        try:
+            # prepare array to return data
+            all_data = np.full((len(self.get_odmr_channels()), length),
+                                222,
+                                dtype=np.float64)
+
+            self.ODMRcounter.startFor(int(1e12*length/self._count_frequency), clear=True)
+            self.ODMRcounter.waitUntilFinished()
+
+            all_data = self.ODMRcounter.getDataNormalized()
+            return False, all_data
+        except:
+            self.log.exception('Error while counting for ODMR.')
+            return True, np.full((len(self.get_odmr_channels()), 1), [-1.])
 
     def close_odmr(self):
         """ Close the odmr and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        return 0
 
     def close_odmr_clock(self):
         """ Close the odmr and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        return 0
 
     def get_odmr_channels(self):
         """ Return a list of channel names.
 
         @return list(str): channels recorded during ODMR measurement
         """
-        pass
+        return [self._channel_apd_0]
 
     def oversampling(self):
         pass

@@ -45,15 +45,17 @@ class ODMRLogic(GenericLogic):
     microwave1 = Connector(interface='MicrowaveInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
+    pulsegenerator = Connector(interface='PulserInterface') #Hanyi Lu@2022.05.10
 
     # config option
     mw_scanmode = ConfigOption(
         'scanmode',
-        'SWEEP',
+        'LIST',
         missing='warn',
         converter=lambda x: MicrowaveMode[x.upper()])
 
     clock_frequency = StatusVar('clock_frequency', 200)
+
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
     cw_mw_power = StatusVar('cw_mw_power', -30)
     sweep_mw_power = StatusVar('sweep_mw_power', -30)
@@ -93,6 +95,7 @@ class ODMRLogic(GenericLogic):
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
+        self._pulsegenerator = self.pulsegenerator()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
@@ -440,6 +443,8 @@ class ODMRLogic(GenericLogic):
                     self.mw_stops.append(limits.frequency_in_range(stop))
                     if self.mw_scanmode == MicrowaveMode.LIST:
                         self.mw_steps.append(limits.list_step_in_range(step))
+                    elif self.mw_scanmode == MicrowaveMode.CW:
+                        self.mw_steps.append(limits.cw_step_in_range(step))
                     elif self.mw_scanmode == MicrowaveMode.SWEEP:
                         if self.ranges == 1:
                             self.mw_steps.append(limits.sweep_step_in_range(step))
@@ -527,6 +532,43 @@ class ODMRLogic(GenericLogic):
 
             self.sigParameterUpdated.emit(param_dict)
 
+        elif self.mw_scanmode == MicrowaveMode.CW:
+                final_freq_list = []
+                used_starts = []
+                used_steps = []
+                used_stops = []
+                for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
+                    num_steps = int(np.rint((mw_stop - mw_start) / mw_step))
+                    end_freq = mw_start + num_steps * mw_step
+                    freq_list = np.linspace(mw_start, end_freq, num_steps + 1)
+
+                    # adjust the end frequency in order to have an integer multiple of step size
+                    # The master module (i.e. GUI) will be notified about the changed end frequency
+                    final_freq_list.extend(freq_list)
+
+                    used_starts.append(mw_start)
+                    used_steps.append(mw_step)
+                    used_stops.append(end_freq)
+
+                final_freq_list = np.array(final_freq_list)
+                if len(final_freq_list) >= limits.list_maxentries:
+                    self.log.error('Number of frequency steps too large for microwave device.')
+                    mode, is_running = self._mw_device.get_status()
+                    self.sigOutputStateUpdated.emit(mode, is_running)
+                    return mode, is_running
+                freq_list, self.sweep_mw_power, mode = self._mw_device.set_cw_sweep(final_freq_list,
+                                                                                self.sweep_mw_power)
+
+
+                self.final_freq_list = np.array(freq_list)
+                self.mw_starts = used_starts
+                self.mw_stops = used_stops
+                self.mw_steps = used_steps
+                param_dict = {'mw_starts': used_starts, 'mw_stops': used_stops,
+                            'mw_steps': used_steps, 'sweep_mw_power': self.sweep_mw_power}
+
+                self.sigParameterUpdated.emit(param_dict)
+ 
         elif self.mw_scanmode == MicrowaveMode.SWEEP:
             if self.ranges == 1:
                 mw_stop = self.mw_stops[0]
@@ -550,18 +592,22 @@ class ODMRLogic(GenericLogic):
                 self.log.error('sweep mode only works for one frequency range.')
 
         else:
-            self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
+            self.log.error('Scanmode not supported. Please select SWEEP or LIST or CW.')
 
         self.sigParameterUpdated.emit(param_dict)
 
-        if mode != 'list' and mode != 'sweep':
-            self.log.error('Switching to list/sweep microwave output mode failed.')
+        if mode != 'list' and mode != 'sweep' and mode != 'cw':
+            self.log.error('Switching to list/sweep/cw microwave output mode failed.')
         elif self.mw_scanmode == MicrowaveMode.SWEEP:
             err_code = self._mw_device.sweep_on()
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
-        else:
+        elif self.mw_scanmode == MicrowaveMode.LIST:
             err_code = self._mw_device.list_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
+        elif self.mw_scanmode == MicrowaveMode.CW:
+            err_code = self._mw_device.cw_on()
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
 
@@ -577,6 +623,8 @@ class ODMRLogic(GenericLogic):
             self._mw_device.reset_sweeppos()
         elif self.mw_scanmode == MicrowaveMode.LIST:
             self._mw_device.reset_listpos()
+        elif self.mw_scanmode == MicrowaveMode.CW:
+            pass
         return
 
     def mw_off(self):
@@ -756,11 +804,19 @@ class ODMRLogic(GenericLogic):
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
 
+            #Hanyi Lu @2022.05.10
+            #configure the odmr length. Here used to set up counter.
+            self._odmr_counter.set_odmr_length(length=self.odmr_plot_x.size) 
+            #self._pulsegenerator.pulser_on()   
+
             # reset position so every line starts from the same frequency
             self.reset_sweep()
 
             # Acquire count data
             error, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
+
+            #Hanyi Lu @2022.05.10
+            #self._pulsegenerator.pulser_off()
 
             if error:
                 self.stopRequested = True
@@ -839,13 +895,17 @@ class ODMRLogic(GenericLogic):
         Execute the currently configured fit on the measurement data. Optionally on passed data
         """
         if (x_data is None) or (y_data is None):
-            x_data = self.frequency_lists[fit_range]
-            x_data_full_length = np.zeros(len(self.final_freq_list))
-            # how to insert the data at the right position?
-            start_pos = np.where(np.isclose(self.final_freq_list, self.mw_starts[fit_range]))[0][0]
-            x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
-            y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
-            y_data = self.odmr_plot_y[channel_index][y_args]
+            if fit_range >= 0:
+                x_data = self.frequency_lists[fit_range]
+                x_data_full_length = np.zeros(len(self.final_freq_list))
+                # how to insert the data at the right position?
+                start_pos = np.where(np.isclose(self.final_freq_list, self.mw_starts[fit_range]))[0][0]
+                x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
+                y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
+                y_data = self.odmr_plot_y[channel_index][y_args]
+            else:
+                x_data = self.final_freq_list
+                y_data = self.odmr_plot_y[channel_index]
         if fit_function is not None and isinstance(fit_function, str):
             if fit_function in self.get_fit_functions():
                 self.fc.set_current_fit(fit_function)

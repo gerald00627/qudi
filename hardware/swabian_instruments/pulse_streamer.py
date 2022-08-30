@@ -50,13 +50,9 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
 
     _pulsestreamer_ip = ConfigOption('pulsestreamer_ip', '192.168.1.100', missing='warn')
     _laser_channel = ConfigOption('laser_channel', 1, missing='warn')
-    _uw_x_channel = ConfigOption('uw_x_channel', 3, missing='warn')
-
-    _pixel_start = ConfigOption('pixel_start', 1, missing='warn')
-    _pixel_stop = ConfigOption('pixel_stop', 2, missing='warn')
-    _sync_in = ConfigOption('sync_in', 3, missing='warn')
-    _mw_switch = ConfigOption('mw_switch', 4, missing='info')
-    _mw_trig = ConfigOption('mw_trig', 5, missing='info')
+    _cam_channel = ConfigOption('cam_channel', 0, missing='warn')
+    _smiq_channel = ConfigOption('smiq_channel', 2, missing='warn')
+    _switch_channel = ConfigOption('switch_channel', 3, missing='warn')
 
     _use_external_clock = ConfigOption('use_external_clock', False, missing='info')
     _external_clock_option = ConfigOption('external_clock_option', 0, missing='info')
@@ -74,7 +70,7 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
         self.__currently_loaded_waveform = ''  # loaded and armed waveform name
         self.__samples_written = 0
         self._trigger = ps.TriggerStart.SOFTWARE
-        self._laser_mw_on_state = ps.OutputState([], 0, 0)
+        self._laser_mw_on_state = ps.OutputState([self._laser_channel], 0, 0)
 
     def on_activate(self):
         """ Establish connection to pulse streamer and tell it to cancel all operations """
@@ -211,15 +207,15 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
         constraints.d_ch_low.step = 0.0
         constraints.d_ch_low.default = 0.0
 
-        constraints.d_ch_high.min = 3.3
-        constraints.d_ch_high.max = 3.3
+        constraints.d_ch_high.min = 2.6
+        constraints.d_ch_high.max = 2.6
         constraints.d_ch_high.step = 0.0
-        constraints.d_ch_high.default = 3.3
+        constraints.d_ch_high.default = 2.6
 
         # sample file length max is not well-defined for PulseStreamer, which collates sequential identical pulses into
         # one. Total number of not-sequentially-identical pulses which can be stored: 1 M.
         constraints.waveform_length.min = 1
-        constraints.waveform_length.max = 13421772800
+        constraints.waveform_length.max = 134217728
         constraints.waveform_length.step = 1
         constraints.waveform_length.default = 1
 
@@ -233,7 +229,8 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
 
         return constraints
 
-    def pulser_on(self, trigger=False,  n=-1, rearm=False, final=ps.OutputState([], 0, 0), laser=False):
+    
+    def pulser_on(self, trigger=False, laser=False, n=-1, rearm=False):
         """ Switches the pulsing device on.
 
         @return int: error code (0:OK, -1:error)
@@ -245,17 +242,18 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
                 self.pulse_streamer.setTrigger(start=ps.TriggerStart.SOFTWARE)
             if rearm:
                 self.pulse_streamer.setTrigger(start=ps.TriggerStart.HARDWARE_RISING, rearm=ps.TriggerRearm.MANUAL)
-            self.pulse_streamer.stream(self._seq, n_runs = n, final = final)
+            self.pulse_streamer.stream(self._seq, n_runs = n)
             self.pulse_streamer.startNow()
             self.__current_status = 1
             return 0
         elif laser:
-            self.pulse_streamer.constant(ps.OutputState([self._laser_channel], 0, 0))
+            self.pulse_streamer.constant(self._laser_mw_on_state)
         else:
             self.log.error('no sequence/pulse pattern prepared for the pulse streamer')
             self.pulser_off()
             self.__current_status = -1
             return -1
+
     
     def pulser_off(self):
         """ Switches the pulsing device off.
@@ -788,10 +786,90 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
         @return: bool, True for yes, False for no.
         """
         return False
-    
-    def load_swabian_sequence(self, seq):
-        self._seq = self.pulse_streamer.createSequence()
 
-        for key in seq.keys():
-            if seq[key]:
-                self._seq.setDigital(key, seq[key])
+    def set_up_odmr_clock(self, clock_frequency, no_x):
+        """Sets up an ODMR clock for the contrast ODMR measurement using Prime95B ODMR logic.
+        """
+        exp_time = (1/clock_frequency)*1e9 + (25*1e6)
+        cam_patt = [(2e8, 0), (exp_time, 1), (2e8, 0), (exp_time, 1)]
+        smiq_patt = [(2e8, 0), (exp_time, 1), (2e8, 0), (exp_time, 0)]
+        switch_patt = [(2e8, 1), (exp_time, 0), (2e8, 0), (exp_time, 1)]
+        laser_patt = [(2e8, 1), (exp_time, 1), (2e8, 1), (exp_time, 1)]
+
+        self._seq = self.pulse_streamer.createSequence()
+        self._seq.setDigital(self._cam_channel, cam_patt)
+        self._seq.setDigital(self._smiq_channel, smiq_patt)
+        self._seq.setDigital(self._switch_channel, switch_patt)
+        self._seq.setDigital(self._laser_channel, laser_patt)
+
+        self._seq = self._seq * no_x
+
+        return 0
+    
+    def set_up_odmr(self, counter_channel=None, photon_source=None,
+                    clock_channel=None, odmr_trigger_channel=None):
+        """ Configures the actual counter with a given clock.
+
+        @param str counter_channel: if defined, this is the physical channel of
+                                    the counter
+        @param str photon_source: if defined, this is the physical channel where
+                                  the photons are to count from
+        @param str clock_channel: if defined, this specifies the clock for the
+                                  counter
+        @param str odmr_trigger_channel: if defined, this specifies the trigger
+                                         output for the microwave
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
+
+    def set_odmr_length(self, length=100):
+        """Set up the trigger sequence for the ODMR and the triggered microwave.
+
+        @param int length: length of microwave sweep in pixel
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
+
+    def count_odmr(self, length = 100):
+        """ Sweeps the microwave and returns the counts on that sweep.
+
+        @param int length: length of microwave sweep in pixel
+
+        @return (bool, float[]): tuple: was there an error, the photon counts per second
+        """
+        return self.pulser_on(trigger=True), 0
+    
+    def close_odmr(self):
+        """ Close the odmr and clean up afterwards.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        return self.pulser_off()
+            
+    def close_odmr_clock(self):
+        """ Close the odmr and clean up afterwards.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
+
+    def get_odmr_channels(self):
+        """ Return a list of channel names.
+
+        @return list(str): channels recorded during ODMR measurement
+        """
+        return list('Prime95B')
+
+    def oversampling(self):
+        pass
+
+    def oversampling(self, val):
+        pass
+
+    def lock_in_active(self):
+        pass
+
+    def lock_in_active(self, val):
+        pass

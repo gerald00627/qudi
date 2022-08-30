@@ -228,6 +228,11 @@ class MicrowaveLimits:
         self.min_power = -10
         self.max_power = 0
 
+        # cw limits, frequencies in Hz, entries are single steps
+        self.cw_minstep = 1
+        self.cw_maxstep = 1e9
+        self.cw_maxentries = 1e3
+
         # list limits, frequencies in Hz, entries are single steps
         self.list_minstep = 1
         self.list_maxstep = 1e9
@@ -250,6 +255,9 @@ class MicrowaveLimits:
 
     def list_step_in_range(self, step):
         return in_range(step, self.list_minstep, self.list_maxstep)
+
+    def cw_step_in_range(self, step):
+        return in_range(step, self.cw_minstep, self.cw_maxstep)
 
     def sweep_step_in_range(self, step):
         return in_range(step, self.sweep_minstep, self.sweep_maxstep)

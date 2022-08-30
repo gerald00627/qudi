@@ -19,6 +19,10 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+"""
+Modified by Hanyi Lu @2022.07.07 for implementing 3 curve T1
+"""
+
 from qtpy import QtCore
 from collections import OrderedDict
 import numpy as np
@@ -50,6 +54,7 @@ class PulsedMeasurementLogic(GenericLogic):
     fastcounter = Connector(interface='FastCounterInterface')
     microwave = Connector(interface='MicrowaveInterface')
     pulsegenerator = Connector(interface='PulserInterface')
+    microwave1 = Connector(interface='MicrowaveInterface')
 
     # Config options
     # Optional additional paths to import from
@@ -57,6 +62,7 @@ class PulsedMeasurementLogic(GenericLogic):
     analysis_import_path = ConfigOption(name='additional_analysis_path', default=None)
     # Optional file type descriptor for saving raw data to file
     _raw_data_save_type = ConfigOption(name='raw_data_save_type', default='text')
+    _three_curve_T1 = ConfigOption(name='three_curve_T1', default=0)
 
     # status variables
     # ext. microwave settings
@@ -727,6 +733,10 @@ class PulsedMeasurementLogic(GenericLogic):
                 if 'controlled_variable' in settings_dict:
                     self._controlled_variable = np.array(settings_dict.get('controlled_variable'),
                                                          dtype=float)
+                    # 3 curve modification
+                    if self._three_curve_T1 == 1:
+                        control_length = ceil(1/3*self._number_of_lasers)
+                        self._controlled_variable = self._controlled_variable[0:control_length]
                 if 'number_of_lasers' in settings_dict:
                     self._number_of_lasers = int(settings_dict.get('number_of_lasers'))
                     if self.fastcounter().is_gated():
@@ -1089,6 +1099,10 @@ class PulsedMeasurementLogic(GenericLogic):
         if 'controlled_variable' in self._measurement_information:
             self._controlled_variable = np.array(
                 self._measurement_information.get('controlled_variable'), dtype=float)
+            # modification for 3 curve implementaion
+            if self._three_curve_T1 == 1:
+                control_length = ceil(1/3*self._number_of_lasers)
+                self._controlled_variable = self._controlled_variable[0:control_length]
         else:
             self.log.error('Unable to invoke setting for "controlled_variable".\n'
                            'Measurement information container is incomplete/invalid.')
@@ -1113,11 +1127,21 @@ class PulsedMeasurementLogic(GenericLogic):
         if len(self._controlled_variable) < 1:
             self.log.error('Tried to set empty controlled variables array. This can not work.')
 
-        if self._alternating and (number_of_analyzed_lasers // 2) != len(self._controlled_variable):
+        # 3 curve modification
+        #if self._alternating and (number_of_analyzed_lasers // 2) != len(self._controlled_variable):
+        if self._alternating and (number_of_analyzed_lasers // 2) != len(self._controlled_variable) and self._three_curve_T1 != 1:
             self.log.error('Half of the number of laser pulses to analyze ({0}) does not match the '
                            'number of controlled_variable ticks ({1:d}).'
                            ''.format(number_of_analyzed_lasers // 2,
                                      len(self._controlled_variable)))
+
+        # 3 curve modification
+        elif self._alternating and (number_of_analyzed_lasers // 3) != len(self._controlled_variable) and self._three_curve_T1 == 1:
+            self.log.error('A third of the number of laser pulses to analyze ({0}) does not match the '
+                           'number of controlled_variable ticks ({1:d}).'
+                           ''.format(number_of_analyzed_lasers // 3,
+                                     len(self._controlled_variable)))
+
         elif not self._alternating and number_of_analyzed_lasers != len(self._controlled_variable):
             self.log.error('Number of laser pulses to analyze ({0:d}) does not match the number of '
                            'controlled_variable ticks ({1:d}).'
@@ -1154,14 +1178,27 @@ class PulsedMeasurementLogic(GenericLogic):
 
                 # order data according to alternating flag
                 if self._alternating:
-                    if len(self.signal_data[0]) != len(tmp_signal[::2]):
-                        self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
-                                       'pulses ({1}).'.format(len(self.signal_data[0]), len(tmp_signal[::2])))
-                        return
-                    self.signal_data[1] = tmp_signal[::2]
-                    self.signal_data[2] = tmp_signal[1::2]
-                    self.measurement_error[1] = tmp_error[::2]
-                    self.measurement_error[2] = tmp_error[1::2]
+                    #add section for 3 curve
+                    if self._three_curve_T1 == 1:
+                        if len(self.signal_data[0]) != len(tmp_signal[::3]):
+                            self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
+                                       'pulses ({1}).'.format(len(self.signal_data[0]), len(tmp_signal[::3])))
+                            return
+                        self.signal_data[1] = tmp_signal[::3]
+                        self.signal_data[2] = tmp_signal[1::3]
+                        self.signal_data[3] = tmp_signal[2::3]
+                        self.measurement_error[1] = tmp_error[::3]
+                        self.measurement_error[2] = tmp_error[1::3]
+                        self.measurement_error[3] = tmp_error[2::3]
+                    else:
+                        if len(self.signal_data[0]) != len(tmp_signal[::2]):
+                            self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
+                                        'pulses ({1}).'.format(len(self.signal_data[0]), len(tmp_signal[::2])))
+                            return
+                        self.signal_data[1] = tmp_signal[::2]
+                        self.signal_data[2] = tmp_signal[1::2]
+                        self.measurement_error[1] = tmp_error[::2]
+                        self.measurement_error[2] = tmp_error[1::2]
                 else:
                     if len(self.signal_data[0]) != len(tmp_signal):
                         self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
@@ -1256,7 +1293,10 @@ class PulsedMeasurementLogic(GenericLogic):
         Initializing the signal, error, laser and raw data arrays.
         """
         # Determine signal array dimensions
-        signal_dim = 3 if self._alternating else 2
+        if self._three_curve_T1 == 1:
+            signal_dim = 4
+        else:
+            signal_dim = 3 if self._alternating else 2
 
         self.signal_data = np.zeros((signal_dim, len(self._controlled_variable)), dtype=float)
         self.signal_data[0] = self._controlled_variable
@@ -1409,6 +1449,13 @@ class PulsedMeasurementLogic(GenericLogic):
                                      linestyle=':', linewidth=0.5, color=colors[3],
                                      ecolor=colors[4],  capsize=3, capthick=0.7,
                                      elinewidth=1.2, label='data trace 2')
+                    #add 3 curve implementation
+                    if self._three_curve_T1 == 1:
+                        ax1.errorbar(x=x_axis_scaled, y=self.signal_data[3],
+                                    yerr=self.measurement_error[3], fmt='-D',
+                                    linestyle=':', linewidth=0.5, color=colors[3],
+                                    ecolor=colors[4],  capsize=3, capthick=0.7,
+                                    elinewidth=1.2, label='data trace 2')
                 else:
                     ax1.plot(x_axis_scaled, self.signal_data[1], '-o', color=colors[0],
                              linestyle=':', linewidth=0.5, label='data trace 1')
@@ -1417,6 +1464,11 @@ class PulsedMeasurementLogic(GenericLogic):
                         ax1.plot(x_axis_scaled, self.signal_data[2], '-o',
                                  color=colors[3], linestyle=':', linewidth=0.5,
                                  label='data trace 2')
+                    #add 3 curve implementation
+                    if self._three_curve_T1 == 1:
+                        ax1.plot(x_axis_scaled, self.signal_data[3], '-o',
+                                color=colors[3], linestyle=':', linewidth=0.5,
+                                label='data trace 2')
 
                 # Do not include fit curve if there is no fit calculated.
                 if self.signal_fit_data.size != 0 and np.sum(np.abs(self.signal_fit_data[1])) > 0:

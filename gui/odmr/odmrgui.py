@@ -108,7 +108,6 @@ class ODMRGui(GUIBase):
 
         # Use the inherited class 'Ui_ODMRGuiUI' to create now the GUI element:
         self._mw = ODMRMainWindow()
-        self.restoreWindowPos(self._mw)
         self._sd = ODMRSettingDialog()
 
         # Create a QSettings object for the mainwindow and store the actual GUI layout
@@ -469,7 +468,6 @@ class ODMRGui(GUIBase):
         self._fsd.sigFitsUpdated.disconnect()
         self._mw.fit_range_SpinBox.editingFinished.disconnect()
         self._mw.action_FitSettings.triggered.disconnect()
-        self.saveWindowGeometry(self._mw)
         self._mw.close()
         return 0
 

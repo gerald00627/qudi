@@ -20,6 +20,10 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+"""Modified by Hanyi Lu @04.07.2022
+Start implementing the ODMRcounter interface for the sweep mode with timetagger
+"""
+
 import TimeTagger as tt
 import time
 import numpy as np
@@ -33,7 +37,7 @@ from interface.slow_counter_interface import CountingMode
 from interface.odmr_counter_interface import ODMRCounterInterface
 
 
-class TimeTaggerCounter(Base, SlowCounterInterface):
+class TimeTaggerCounter(Base, SlowCounterInterface, ODMRCounterInterface):
     """ Using the TimeTagger as a slow counter.
 
     Example config for copy-paste:
@@ -49,12 +53,21 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
     _sum_channels = ConfigOption('timetagger_sum_channels', False)
+    _trigger_channel = ConfigOption('timetagger_channel_trigger', None, missing = 'warn')
+    _frequency_channel = ConfigOption('timetagger_channel_frequency', None, missing = 'warn')
+    #Add the measurement type for the pulsed measurement option. The default is continuous 
+    #measurement, and the default value is selected if no config was specified.
+    _measure_type = ConfigOption('timetagger_measure_type', False)
+    _counter_duration = ConfigOption('counter_duration', False)
+    _sequence_repetition = ConfigOption('pulsed_sequence_repetition', False)
 
     def on_activate(self):
         """ Start up TimeTagger interface
         """
         self._tagger = tt.createTimeTagger()
         self._count_frequency = 50  # Hz
+        self._odmr_length = None
+        self._line_length = None
 
         if self._sum_channels and self._channel_apd_1 is None:
             self.log.error('Cannot sum channels when only one apd channel given')
@@ -221,8 +234,11 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
         clock_frequency=clock_frequency,
         clock_channel=clock_channel)
 
-    def set_up_odmr(self, counter_channel=None, photon_source=None,
-                    clock_channel=None, odmr_trigger_channel=None):
+    def set_up_odmr(self, 
+                    counter_channel=None, 
+                    photon_source=None,
+                    clock_channel=None, 
+                    odmr_trigger_channel=None):
         """ Configures the actual counter with a given clock.
 
         @param str counter_channel: if defined, this is the physical channel of
@@ -236,7 +252,36 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+
+        # currently, parameters passed to this function are ignored -- the channels used and clock frequency are
+        # set at startup
+        
+        # Hanyi Lu @04.07.2022. 
+        # It seems that the combination of two APDs are not necessary so here
+        # I am not including the options for different APD modes.
+
+        # Hanyi Lu @04.13.2022
+        #The counters here are bypassed. The real one would be called in count_odmr
+
+        # if self._trigger_channel is None:
+        #     #Setting up bin counter
+        #     self.counter = tt.Counter(
+        #         self._tagger,
+        #         channels=[self._channel_apd_0],
+        #         binwidth=int((1 / self._count_frequency) * 1e12),
+        #         n_values=1
+        #     )
+        # else:
+        #     #Setting up pulsed counter
+        #     self.pulsed = tt.CounterBetweenMarkers(
+        #         self._tagger,
+        #         channels=[self._channel_apd_0],
+        #         begin_channel = [self._trigger_channel],
+        #         end_channel = [self._trigger_channel],
+        #         n_values=1 #not sure if this is the right config, need to check.
+        #     )
+        # self.log.info('set up counter with {0}'.format(self._count_frequency))
+        return 0
 
     def set_odmr_length(self, length=100):
         """Set up the trigger sequence for the ODMR and the triggered microwave.
@@ -245,7 +290,36 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        self._odmr_length = length
+
+        if self._measure_type == 'pulsed':
+            self._bin_width = 1 #fixed 1ns binwidth
+            #self._channel_sync = 8 #fixed sync channel 8
+
+            self.pulsedcounter = tt.TimeDifferences(
+                tagger=self._tagger,
+                click_channel=self._channel_apd_0,
+                start_channel=self._trigger_channel,
+                next_channel=self._frequency_channel,
+                sync_channel=tt.CHANNEL_UNUSED,
+                binwidth=int(np.round(self._bin_width * 1000)),
+                n_bins=int(np.round(self._counter_duration / self._bin_width)),
+                n_histograms=length
+            )
+
+            #set the rollover value at 1. thus forcing the counter to stop
+            #collecting data once all histograms are filled.
+            self.pulsedcounter.setMaxCounts(1)
+        else:
+            self.ctscounter = tt.CountBetweenMarkers(
+                self._tagger,
+                click_channel=self._channel_apd_0,
+                begin_channel=self._trigger_channel,
+                end_channel=self._trigger_channel,
+                n_values=length
+            )
+
+        return 0
 
     def count_odmr(self, length = 100):
         """ Sweeps the microwave and returns the counts on that sweep.
@@ -254,28 +328,79 @@ class TimeTaggerCounter(Base, SlowCounterInterface):
 
         @return (bool, float[]): tuple: was there an error, the photon counts per second
         """
-        pass
+        #Hanyi Lu @2022.04.30
+        #Add the component for the pulsed ESR measurement
+        #The counter setup scheme is similar to the continuous ESR
+        if self._measure_type == 'pulsed':
+            #Hanyi Lu @05.09.2022
+            #Implemented the external trigger functionality for the SMB100B
+            #MW source, and therefore the synchronization of the frequency sweep
+            #could now be implemented using external trigger with pulse sequence.
+            #the functionality for pulsed ESR was also implemented
+            try:
+                # prepare array to return data
+                all_data = np.full((len(self.get_odmr_channels()), length),
+                                    222,
+                                    dtype=np.float64)
+
+                while not self.pulsedcounter.ready():
+                    time.sleep(5e-6) #check if the counter has been filled every 5us
+                else:
+                    all_data = self.pulsedcounter.getData()
+                    # convert the output data to the proper format/value.
+                    # the counter duration is defined during config.
+                    data_format = np.sum(all_data, axis=1)
+                    output_data = data_format*1e9/(self._counter_duration*self._sequence_repetition)
+
+                    return False, output_data
+            except:
+                self.log.exception('Error while counting for ODMR.')
+                return True, np.full((len(self.get_odmr_channels()), 1), [-1.])
+        else:
+            #Hanyi Lu @05.01.2022
+            #Just implemented the external trigger functionality for the SMB100B
+            #MW source, and therefore the synchronization of the frequency sweep
+            #could now be implemented using external trigger with pulse sequence.
+            try:
+                # prepare array to return data
+                all_data = np.full((len(self.get_odmr_channels()), length),
+                                    222,
+                                    dtype=np.float64)
+
+                while not self.ctscounter.ready():
+                    time.sleep(5e-4) #check if the counter has been filled every 0.5ms
+                else:
+                    all_data = self.ctscounter.getData()
+                    # convert the output data to the proper format/value.
+                    # the counter duration is defined during config.
+                    #all_data_normalized = all_data*1e9/self._counter_duration
+                    output_data = np.array([all_data])
+
+                    return False, output_data
+            except:
+                self.log.exception('Error while counting for ODMR.')
+                return True, np.full((len(self.get_odmr_channels()), 1), [-1.])
 
     def close_odmr(self):
         """ Close the odmr and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        return 0
 
     def close_odmr_clock(self):
         """ Close the odmr and clean up afterwards.
 
         @return int: error code (0:OK, -1:error)
         """
-        pass
+        return 0
 
     def get_odmr_channels(self):
         """ Return a list of channel names.
 
         @return list(str): channels recorded during ODMR measurement
         """
-        pass
+        return [self._channel_apd_0]
 
     def oversampling(self):
         pass
