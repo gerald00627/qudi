@@ -124,7 +124,7 @@ class SPM_ASC500(Base, ScannerInterface):
         for key in axis_dict.keys():
             self._dev.base.setParameter(self._dev.base.getConst('ID_DAC_GEN_STEP'), axis_dict[key], axes[key])
 
-            self.log.info(f'{key} slew rate set to {axis_dict[key]}*466 uV/s')
+            self.log.info(f'{key} slew rate set to {axis_dict[key]*466/1e6} V/s')
             self.slew_rates[key]  = axis_dict[key]
 
     def _create_scanner_contraints(self):
@@ -132,22 +132,6 @@ class SPM_ASC500(Base, ScannerInterface):
         sc = self._SCANNER_CONSTRAINTS
 
         sc.max_detectors = 1
-        std_config = {
-            ScannerMode.OBJECTIVE_XY:  { 'plane'       : 'X2Y2', 
-                                         'scan_style'  : ScanStyle.LINE },
-
-            ScannerMode.OBJECTIVE_XZ:  { 'plane'       : 'X2Z2', 
-                                         'scan_style'  : ScanStyle.LINE },
-
-            ScannerMode.OBJECTIVE_YZ:  { 'plane'       : 'Y2Z2', 
-                                         'scan_style'  : ScanStyle.LINE },
-            
-            ScannerMode.OBJECTIVE_ZX:  { 'plane'       : 'Z2X2', 
-                                         'scan_style'  : ScanStyle.LINE },                                         
-
-            ScannerMode.PROBE_CONTACT: { 'plane'       : 'XY', 
-                                         'scan_style'  : ScanStyle.LINE }}
-
         # current modes, as implemented.  Enable others when available
         sc.scanner_modes = [ ScannerMode.PROBE_CONTACT,
                              ScannerMode.OBJECTIVE_XY,
@@ -198,8 +182,8 @@ class SPM_ASC500(Base, ScannerInterface):
         sm = self._SCANNER_MEASUREMENTS 
 
         sm.scanner_measurements = { 
-            'Height(Dac)' : {'measured_units' : 'm',
-                             'scale_fac': 1,    # multiplication factor to obtain SI units   
+            'Height(Dac)' : {'measured_units' : 'µm',
+                             'scale_fac': 1e-6,    # multiplication factor to obtain SI units   
                              'si_units': 'm', 
                              'nice_name': 'Height'}
 
@@ -218,9 +202,9 @@ class SPM_ASC500(Base, ScannerInterface):
             #                  'si_units': 'Hz', 
             #                  'nice_name': 'Tuning Fork Frequency'},
             
-            ,'counts' :        {'measured_units' : 'arb.', 
+            ,'counts' :        {'measured_units' : 'c/s', 
                              'scale_fac': 1,    
-                             'si_units': 'arb.', 
+                             'si_units': 'c/s', 
                              'nice_name': 'Counts'}
         }
 
@@ -275,6 +259,11 @@ class SPM_ASC500(Base, ScannerInterface):
         piezo_range = self._objective_piezo_act_range()
         u_lim = self._dev.base.getParameter(self._dev.base.getConst('ID_GENDAC_LIMIT_CT'), 0)/1e6  
         obj_volt_range = np.array([0, u_lim])
+        check_range = np.array([0.0 ,piezo_range[0]]) if xy else np.array([0.0 ,piezo_range[2]])
+        if not (pos>=check_range.min() and pos<=check_range.max()):
+            new_pos = piezo_range[0]/2 if xy else piezo_range[2]/2
+            self.log.warning(f'Position {pos} is outside range of piezo somehow. Setting to {new_pos}')
+            pos = new_pos
         pos_interp_xy = interp1d(np.array([0.0 ,piezo_range[0]]), obj_volt_range, kind='linear')
         pos_interp_z = interp1d(np.array([0.0 ,piezo_range[2]]), obj_volt_range, kind='linear')
         return pos_interp_xy(pos) if xy else pos_interp_z(pos)
@@ -312,24 +301,7 @@ class SPM_ASC500(Base, ScannerInterface):
         # since all measurements are gathered in a line format
         # however, the movement is determined by the ScanStyle, which determines
         # if a trigger signal will be produced for the recorder device 
-        std_config = {
-            ScannerMode.OBJECTIVE_XY:  { 'plane'       : 'X2Y2', 
-                                         'scan_style'  : ScanStyle.LINE },
-
-            ScannerMode.OBJECTIVE_XZ:  { 'plane'       : 'X2Z2', 
-                                         'scan_style'  : ScanStyle.LINE },
-
-            ScannerMode.OBJECTIVE_ZX:  { 'plane'       : 'Z2X2', 
-                                         'scan_style'  : ScanStyle.LINE },                                         
-
-            ScannerMode.OBJECTIVE_YZ:  { 'plane'       : 'Y2Z2', 
-                                         'scan_style'  : ScanStyle.LINE },
-
-            ScannerMode.PROBE_CONTACT: { 'plane'       : 'XY', 
-                                         'scan_style'  : ScanStyle.LINE },
-
-            # other configurations to be defined as they are implemented
-        }
+        # other configurations to be defined as they are implemented
 
         if not ((dev_state == ScannerState.UNCONFIGURED) or (dev_state == ScannerState.IDLE)):
             self.log.error(f'SPM cannot be configured in the '
@@ -463,6 +435,9 @@ class SPM_ASC500(Base, ScannerInterface):
             px=int((abs(line_corr0_stop-line_corr0_start))*1e9)
             sT=time_forward/self._line_points
             self._dev.base.setParameter(self._dev.base.getConst('ID_SCAN_PSPEED'), px/time_back, 0)
+            
+            while self._dev.base.getParameter(self._dev.base.getConst('ID_PATH_RUNNING'), 0)==1 or self._dev.base.getParameter(self._dev.base.getConst('ID_SCAN_STATUS'), 0)==2:
+                pass
             
             self._configureSamplePath(line_corr0_start, line_corr0_stop, 
                                     line_corr1_start, line_corr1_stop, self._line_points)
@@ -656,12 +631,13 @@ class SPM_ASC500(Base, ScannerInterface):
             return 0
 
         if self._spm_curr_mode == ScannerMode.PROBE_CONTACT:
-            self._dev.base.setParameter(self._dev.base.getConst('ID_SPEC_PATHPROCEED') ,1 ,0)
+
             while True:
-                if self._dev.base.getParameter(self._dev.base.getConst('ID_PATH_RUNNING'), 0)==1 or self._dev.base.getParameter(self._dev.base.getConst('ID_SCAN_STATUS'), 0)==2:
-                    pass
-                else:
+                if self._dev.base.getParameter(self._dev.base.getConst('ID_SPEC_PATHMANSTAT'), 0)==1:
+                    self._dev.base.setParameter(self._dev.base.getConst('ID_SPEC_PATHPROCEED') ,1 ,0)
                     break
+                else:
+                    pass
             
             self._poll_point_data()
             return self._polled_data
@@ -679,7 +655,7 @@ class SPM_ASC500(Base, ScannerInterface):
             
             self._dev.base.configureChannel(self._chn_no, # any Number between 0 and 13.
                                     self._dev.base.getConst(f'CHANCONN_SPEC_{self.spec_engine_dummy}'), # How you want to the data to be triggered - CHANCONN_PERMANENT is time triggered data
-                                    self._dev.base.getConst('CHANADC_AFMAMPL'), # The ADC channel you want to get the data from
+                                    self._dev.base.getConst('CHANADC_ZOUTINV'), # The ADC channel you want to get the data from
                                     1, # 0/1 -  if you want to switch on averaging
                                     sampTime) # Scanner sample time [s]
 

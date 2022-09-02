@@ -24,6 +24,9 @@ from gui.color_schemes.color_schemes import ColorScaleGen
 
 from gui.guibase import GUIBase
 
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QShortcut
+
 """
 Implementation Steps/TODOs:
 - add default saveview as a file, which should be saved in the gui.
@@ -271,6 +274,8 @@ class ProteusQGUI(GUIBase):
         self._qafm_logic.sigOptimizeScanFinished.connect(self.update_opti_crosshair)
 
         self._mw.actionOptimize_Pos.triggered.connect(self.start_optimize_clicked)
+        self.shortcut_opti = QShortcut(QKeySequence(('Alt+R')), self._mw)
+        self.shortcut_opti.activated.connect(self.start_optimize_clicked)
 
         self._qafm_logic.sigObjTargetReached.connect(self.enable_scan_actions)
         self._qafm_logic.sigAFMTargetReached.connect(self.enable_scan_actions)
@@ -312,11 +317,7 @@ class ProteusQGUI(GUIBase):
         self._mw.action_Quantitative_Measure.triggered.connect(self.openQuantiMeas)
         self._mw.action_Quantitative_Measure.setChecked(False)
         self._qm.sigQuantiMeasClose.connect(self.onCloseQuantiMeas)
-        self._qm.scan_dir_fw_bw_RadioButton.setEnabled(False)
-
-        self._mw.actionOpen_Pulsed_Measure.triggered[bool].connect(self.closePulsedMeas)
-        self._mw.actionOpen_Pulsed_Measure.setChecked(False)
-
+    
         # connect Quantitative signals 
         self._qm.Start_QM_PushButton.clicked.connect(self.start_quantitative_measure_clicked)
         self._qm.Continue_QM_PushButton.clicked.connect(self.continue_quantitative_measure_clicked)
@@ -324,6 +325,14 @@ class ProteusQGUI(GUIBase):
 
         self._qm.Start_QM_PushButton.clicked.connect(self.disable_scan_actions_quanti)
         self._qm.Continue_QM_PushButton.clicked.connect(self.disable_scan_actions_quanti)
+
+        self._qm.Start_Pulsed_PushButton.clicked.connect(self.start_pulsed_measure_clicked)
+        self._qm.Continue_Pulsed_PushButton.clicked.connect(self.continue_pulsed_measure_clicked)
+        self._qm.Stop_Pulsed_PushButton.clicked.connect(self.stop_pulsed_measure_clicked)
+
+        self._qm.Start_Pulsed_PushButton.clicked.connect(self.disable_scan_actions_quanti)
+        self._qm.Continue_Pulsed_PushButton.clicked.connect(self.disable_scan_actions_quanti)
+
         self._qafm_logic.sigQuantiScanFinished.connect(self.enable_scan_actions_quanti)
         self._qafm_logic.sigQuantiScanFinished.connect(self.autosave_quantitative_measurement)
 
@@ -388,14 +397,6 @@ class ProteusQGUI(GUIBase):
 
     def onCloseQuantiMeas(self):
         self._mw.action_Quantitative_Measure.setChecked(False)
-    
-    def openPulsedMeas(self):
-        self._mw.actionOpen_Pulsed_Measure.setChecked(True)
-        self._qafm_logic._sg_pulsed_measure_operation = True
-
-    def closePulsedMeas(self, checked=False):
-        self._mw.actionOpen_Pulsed_Measure.setChecked(checked)
-        self._qafm_logic._sg_pulsed_measure_operation = checked
 
     def initImmediateStopDialog(self):
         self._is = InitiateImmediateStopDialog()
@@ -2161,6 +2162,10 @@ class ProteusQGUI(GUIBase):
         res_x = self._qafm_logic._spm._find_spec_count(x_start, x_stop, res_x)
         self._mw.obj_x_num_SpinBox.setValue(res_x)
 
+        # vb = self._dockwidget_container['obj_xy']
+        # new_range = ((x_start, x_stop), (y_start, y_stop))
+        # vb.graphicsView_matrix.set_crosshair_range(new_range)
+
         self._qafm_logic.start_scan_area_obj_by_line(coord0_start=x_start,
                                                       coord0_stop=x_stop,
                                                       coord0_num=res_x,
@@ -2184,6 +2189,10 @@ class ProteusQGUI(GUIBase):
 
         res_x = self._qafm_logic._spm._find_spec_count(x_start, x_stop, res_x)
         self._mw.obj_x_num_SpinBox.setValue(res_x)
+
+        # vb = self._dockwidget_container['obj_xz']
+        # new_range = ((x_start, x_stop), (z_start, z_stop))
+        # vb.graphicsView_matrix.set_crosshair_range(new_range)
 
         self._qafm_logic.start_scan_area_obj_by_line(coord0_start=x_start,
                                                       coord0_stop=x_stop,
@@ -2209,6 +2218,10 @@ class ProteusQGUI(GUIBase):
 
         res_y = self._qafm_logic._spm._find_spec_count(y_start, y_stop, res_y)
         self._mw.obj_y_num_SpinBox.setValue(res_y)
+
+        # vb = self._dockwidget_container['obj_yz']
+        # new_range = ((y_start, y_stop), (z_start, z_stop))
+        # vb.graphicsView_matrix.set_crosshair_range(new_range)
 
         self._qafm_logic.start_scan_area_obj_by_line(coord0_start=y_start,
                                                       coord0_stop=y_stop,
@@ -2542,6 +2555,40 @@ class ProteusQGUI(GUIBase):
         self.start_quantitative_measure_clicked(continue_meas=True)
 
     def stop_quantitative_measure_clicked(self):
+        self.stop_any_scanning()
+    
+    def start_pulsed_measure_clicked(self, continue_meas=False):
+        self.disable_scan_actions_quanti()
+
+        x_start = self._mw.afm_x_min_DSpinBox.value()
+        x_stop = self._mw.afm_x_max_DSpinBox.value()
+        y_start = self._mw.afm_y_min_DSpinBox.value()
+        y_stop = self._mw.afm_y_max_DSpinBox.value()
+        res_x = self._mw.afm_x_num_SpinBox.value()
+        res_y = self._mw.afm_y_num_SpinBox.value()
+
+        meas_params = ['counts']
+        
+        # check only one button, this is sufficient
+        fw_scan = self._qm.scan_dir_fw_RadioButton_2.isChecked()
+
+        afm_int_time = self._qm.afm_int_time_DoubleSpinBox_2.value()
+        idle_move_time = self._qm.idle_move_time_QDoubleSpinBox_2.value()
+
+        esr_freq_start = self._qm.esr_freq_start_DoubleSpinBox_2.value()
+        esr_freq_stop = self._qm.esr_freq_stop_DoubleSpinBox_2.value()
+        esr_freq_num = self._qm.esr_freq_num_SpinBox_2.value()
+        esr_count_freq = self._qm.esr_count_freq_DoubleSpinBox.value()
+        esr_mw_power = self._qm.esr_mw_power_DoubleSpinBox.value()
+        mw_list_mode = self._qm.mw_list_mode_RadioButton.isChecked()
+
+        pass
+
+
+    def continue_pulsed_measure_clicked(self):
+        pass
+
+    def stop_pulsed_measure_clicked(self):
         self.stop_any_scanning()
 
     @staticmethod

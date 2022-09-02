@@ -21,6 +21,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import datetime
+from hashlib import new
 import numpy as np
 import os
 import pyqtgraph as pg
@@ -32,7 +33,7 @@ from matplotlib import cm
 import pyqtgraph.opengl as gl
 from core.connector import Connector
 from core.statusvariable import StatusVar
-from gui.colordefs import ColorScaleInferno
+from gui.colordefs import ColorScaleViridis
 from gui.guibase import GUIBase
 from gui.guiutils import ColorBar
 from qtpy import QtCore, QtGui
@@ -82,7 +83,6 @@ class _3DAlignmentImageItem():
             try:
                 self.parent_view.removeItem(item)
             except:
-                print('No items to remove')
                 return
     
     def make_face(self, index):
@@ -180,7 +180,6 @@ class _3DAxisItem():
             try:
                 self.parent_view.removeItem(item)
             except:
-                print('No items to remove')
                 return
                 
     def make_axis(self):
@@ -315,6 +314,8 @@ class MagnetGui(GUIBase):
         self._GLView = None
         self._3D_axis = None
         self._2d_alignment_ImageItem = None
+        self.new_vector_item = None
+        self.opt_vector_item = None
 
         # create all the needed control elements. They will manage the
         # connection with each other themselves. Note some buttons are also
@@ -323,6 +324,7 @@ class MagnetGui(GUIBase):
         self._create_axis_pos_disp()
         self._create_move_rel_control()
         self._create_move_abs_control()
+        self.last_pos = {'rho':0.0}
 
         self._create_meas_type_RadioButtons()
 
@@ -341,26 +343,6 @@ class MagnetGui(GUIBase):
         self._mw.align_2d_axis2_name_ComboBox.clear()
         self._mw.align_2d_axis2_name_ComboBox.addItems(['rho'])
         self._mw.align_2d_axis2_name_ComboBox.setCurrentIndex(0)
-        
-        self._mw.move_abs_axis_x_Slider.setEnabled(False)
-        self._mw.move_abs_axis_y_Slider.setEnabled(False)
-        self._mw.move_abs_axis_z_Slider.setEnabled(False)
-
-        self._mw.move_abs_axis_x_ScienDSpinBox.setEnabled(False)
-        self._mw.move_abs_axis_y_ScienDSpinBox.setEnabled(False)
-        self._mw.move_abs_axis_z_ScienDSpinBox.setEnabled(False)
-
-        self._mw.move_rel_axis_x_ScienDSpinBox.setEnabled(False)
-        self._mw.move_rel_axis_y_ScienDSpinBox.setEnabled(False)
-        self._mw.move_rel_axis_z_ScienDSpinBox.setEnabled(False)
-        
-        self._mw.move_rel_axis_x_p_PushButton.setEnabled(False)
-        self._mw.move_rel_axis_y_p_PushButton.setEnabled(False)
-        self._mw.move_rel_axis_z_p_PushButton.setEnabled(False)
-
-        self._mw.move_rel_axis_x_m_PushButton.setEnabled(False)
-        self._mw.move_rel_axis_y_m_PushButton.setEnabled(False)
-        self._mw.move_rel_axis_z_m_PushButton.setEnabled(False)
 
         # Setup dock widgets
         self._mw.centralwidget.hide()
@@ -390,12 +372,16 @@ class MagnetGui(GUIBase):
         curr_pos = self.update_pos()
         # update the values also of the absolute movement display:
         for axis_label in curr_pos:
+            if axis_label in ['x','y','z']:
+                continue
             dspinbox_move_abs_ref = self.get_ref_move_abs_ScienDSpinBox(axis_label)
             dspinbox_move_abs_ref.setValue(curr_pos[axis_label])
-            #slider_move_abs_ref = self.get_ref_move_abs_Slider(axis_label)
-            #slider_move_abs_ref.setValue(curr_pos[axis_label])
+            slider_move_abs_ref = self.get_ref_move_abs_Slider(axis_label)
+            slider_move_abs_ref.setValue(curr_pos[axis_label])
 
         self._magnet_logic.sigPosChanged.connect(self.update_pos)
+        self._mw.fitFluorescence_pushButton.clicked.connect(self._magnet_logic._set_optimized_xy_from_fit)
+        self._magnet_logic.sigFitFinished.connect(self.give_pos_to_update_GLView_opt_vector)
 
         # Connect alignment GUI elements:
 
@@ -403,8 +389,6 @@ class MagnetGui(GUIBase):
 
         self._mw.align_2d_axis0_name_ComboBox.currentIndexChanged.connect(self._update_limits_axis0)
         self._mw.align_2d_axis1_name_ComboBox.currentIndexChanged.connect(self._update_limits_axis1)
-        self._mw.align_2d_axis0_set_vel_CheckBox.stateChanged.connect(self._set_vel_display_axis0)
-        self._mw.align_2d_axis1_set_vel_CheckBox.stateChanged.connect(self._set_vel_display_axis1)
 
         self._mw.alignment_2d_cb_min_centiles_DSpinBox.valueChanged.connect(self._update_2d_graph_data)
         self._mw.alignment_2d_cb_max_centiles_DSpinBox.valueChanged.connect(self._update_2d_graph_data)
@@ -413,8 +397,6 @@ class MagnetGui(GUIBase):
 
         self._update_limits_axis0()
         self._update_limits_axis1()
-        self._set_vel_display_axis0()
-        self._set_vel_display_axis1()
 
         # self._2d_alignment_ImageItem = ScanImageItem(image=self._magnet_logic.get_2d_data_matrix())
         # self._mw.alignment_2d_GraphicsView.addItem(self._2d_alignment_ImageItem)
@@ -429,18 +411,18 @@ class MagnetGui(GUIBase):
         layout.addWidget(self._GLView)
         self._mw.frame.setLayout(layout)
         
-        my_colors = ColorScaleInferno()
+        my_colors = ColorScaleViridis()
         # self._2d_alignment_ImageItem.setLookupTable(my_colors.lut)
 
         # Set initial position for the crosshair, default is current magnet position
-        current_position = self._magnet_logic.get_pos()
-        current_2d_array = self._magnet_logic.get_2d_axis_arrays()
+        # current_position = self._magnet_logic.get_pos()
+        # _,current_2d_array = self._magnet_logic.get_2d_axis_arrays()
         # ini_pos_x_crosshair = current_position[self._magnet_logic.align_2d_axis0_name]
         # ini_pos_y_crosshair = current_position[self._magnet_logic.align_2d_axis1_name]
 
-        ini_width_crosshair = [
-            (current_2d_array[0][-1] - current_2d_array[0][0]) / len(current_2d_array[0]),
-            (current_2d_array[1][-1] - current_2d_array[1][0]) / len(current_2d_array[0])]
+        # ini_width_crosshair = [
+        #     (current_2d_array[0][-1] - current_2d_array[0][0]) / len(current_2d_array[0]),
+        #     (current_2d_array[1][-1] - current_2d_array[1][0]) / len(current_2d_array[0])]
         # self._mw.alignment_2d_GraphicsView.toggle_crosshair(True, movable=True)
         # self._mw.alignment_2d_GraphicsView.set_crosshair_pos((ini_pos_x_crosshair, ini_pos_y_crosshair))
         # self._mw.alignment_2d_GraphicsView.set_crosshair_size(ini_width_crosshair)
@@ -479,6 +461,7 @@ class MagnetGui(GUIBase):
         self._3D_axis.del_items()
         self._2d_alignment_ImageItem.del_items()
         self._init_GLView()
+        self._mw.alignment_2d_cb_high_centiles_DSpinBox.setValue(100)
 
 
         # Add save file tag input box
@@ -501,9 +484,15 @@ class MagnetGui(GUIBase):
         constraints=self._magnet_logic.get_hardware_constraints()
 
         for axis_label in list(constraints):
+            if axis_label in ['x','y','z']:
+                continue
             self.get_ref_move_rel_ScienDSpinBox(axis_label).setValue(self._magnet_logic.move_rel_dict[axis_label])
             self.get_ref_move_rel_ScienDSpinBox(axis_label).editingFinished.connect(self.move_rel_para_changed)
-            #print('self.get_ref_move_rel_ScienDSpinBox('+axis_label+').valueChanged.connect(lambda: self.move_rel_changed('+axis_label+'))')
+
+            dspinbox_move_abs_ref = self.get_ref_move_abs_ScienDSpinBox(axis_label)
+            dspinbox_move_abs_ref.editingFinished.connect(self.give_pos_to_update_GLView_new_vector)
+            slider_move_abs_ref = self.get_ref_move_abs_Slider(axis_label)
+            slider_move_abs_ref.sliderReleased.connect(self.give_pos_to_update_GLView_new_vector)
 
         # General 2d alignment:
         # index = self._mw.align_2d_axis0_name_ComboBox.findText(self._magnet_logic.align_2d_axis0_name)
@@ -515,8 +504,6 @@ class MagnetGui(GUIBase):
         self._mw.align_2d_axis0_range_DSpinBox.editingFinished.connect(self.update_roi_from_range)
         self._mw.align_2d_axis0_step_DSpinBox.setValue(self._magnet_logic.align_2d_axis0_step)
         self._mw.align_2d_axis0_step_DSpinBox.editingFinished.connect(self.align_2d_axis0_step_changed)
-        self._mw.align_2d_axis0_vel_DSpinBox.setValue(self._magnet_logic.align_2d_axis0_vel)
-        self._mw.align_2d_axis0_vel_DSpinBox.editingFinished.connect(self.align_2d_axis0_vel_changed)
 
         # index = self._mw.align_2d_axis1_name_ComboBox.findText(self._magnet_logic.align_2d_axis1_name)
         # self._mw.align_2d_axis1_name_ComboBox.setCurrentIndex(index)
@@ -526,8 +513,6 @@ class MagnetGui(GUIBase):
         self._mw.align_2d_axis1_range_DSpinBox.editingFinished.connect(self.update_roi_from_range)
         self._mw.align_2d_axis1_step_DSpinBox.setValue(self._magnet_logic.align_2d_axis1_step)
         self._mw.align_2d_axis1_step_DSpinBox.editingFinished.connect(self.align_2d_axis1_step_changed)
-        self._mw.align_2d_axis1_vel_DSpinBox.setValue(self._magnet_logic.align_2d_axis1_vel)
-        self._mw.align_2d_axis1_vel_DSpinBox.editingFinished.connect(self.align_2d_axis1_vel_changed)
 
         # index = self._mw.align_2d_axis2_name_ComboBox.findText(self._magnet_logic.align_2d_axis2_name)
         # self._mw.align_2d_axis2_name_ComboBox.setCurrentIndex(index)
@@ -537,59 +522,12 @@ class MagnetGui(GUIBase):
         self._mw.align_2d_axis2_range_DSpinBox.editingFinished.connect(self.update_roi_from_range)
         self._mw.align_2d_axis2_step_DSpinBox.setValue(self._magnet_logic.align_2d_axis2_step)
         # self._mw.align_2d_axis2_step_DSpinBox.editingFinished.connect(self.align_2d_axis2_step_changed)
-        self._mw.align_2d_axis2_vel_DSpinBox.setValue(self._magnet_logic.align_2d_axis2_vel)
-        # self._mw.align_2d_axis2_vel_DSpinBox.editingFinished.connect(self.align_2d_axis2_vel_changed)
 
         # for fluorescence alignment:
         self._mw.align_2d_fluorescence_optimize_freq_SpinBox.setValue(self._magnet_logic.get_optimize_pos_freq())
         self._mw.align_2d_fluorescence_integrationtime_DSpinBox.setValue(self._magnet_logic.get_fluorescence_integration_time())
         self._mw.align_2d_fluorescence_optimize_freq_SpinBox.editingFinished.connect(self.optimize_pos_freq_changed)
         self._mw.align_2d_fluorescence_integrationtime_DSpinBox.editingFinished.connect(self.fluorescence_integration_time_changed)
-
-        # for odmr alignment:
-        self._mw.meas_type_fluorescence_RadioButton.toggled.connect(self.set_measurement_type)
-        self._mw.meas_type_odmr_RadioButton.toggled.connect(self.set_measurement_type)
-        self._mw.meas_type_nuclear_spin_RadioButton.toggled.connect(self.set_measurement_type)
-        self.set_measurement_type()
-
-        # for odmr alignment:
-        self._mw.align_2d_odmr_low_fit_func_ComboBox.clear()
-        self._mw.align_2d_odmr_low_fit_func_ComboBox.addItems(self._magnet_logic.odmr_2d_low_fitfunction_list)
-        self._mw.align_2d_odmr_low_fit_func_ComboBox.setCurrentIndex(1)
-        self._mw.align_2d_odmr_low_center_freq_DSpinBox.setValue(self._magnet_logic.odmr_2d_low_center_freq)
-        self._mw.align_2d_odmr_low_range_freq_DSpinBox.setValue(self._magnet_logic.odmr_2d_low_range_freq)
-        self._mw.align_2d_odmr_low_step_freq_DSpinBox.setValue(self._magnet_logic.odmr_2d_low_step_freq)
-        self._mw.align_2d_odmr_low_power_DSpinBox.setValue(self._magnet_logic.odmr_2d_low_power)
-        self._mw.align_2d_odmr_low_runtime_DSpinBox.setValue(self._magnet_logic.odmr_2d_low_runtime)
-
-        self._mw.align_2d_odmr_high_fit_func_ComboBox.clear()
-        self._mw.align_2d_odmr_high_fit_func_ComboBox.addItems(self._magnet_logic.odmr_2d_high_fitfunction_list)
-        self._mw.align_2d_odmr_high_fit_func_ComboBox.setCurrentIndex(1)
-        self._mw.align_2d_odmr_high_center_freq_DSpinBox.setValue(self._magnet_logic.odmr_2d_high_center_freq)
-        self._mw.align_2d_odmr_high_range_freq_DSpinBox.setValue(self._magnet_logic.odmr_2d_high_range_freq)
-        self._mw.align_2d_odmr_high_step_freq_DSpinBox.setValue(self._magnet_logic.odmr_2d_high_step_freq)
-        self._mw.align_2d_odmr_high_power_DSpinBox.setValue(self._magnet_logic.odmr_2d_high_power)
-        self._mw.align_2d_odmr_high_runtime_DSpinBox.setValue(self._magnet_logic.odmr_2d_high_runtime)
-
-        self._mw.align_2d_odmr_save_after_measure_CheckBox.setChecked(self._magnet_logic.odmr_2d_save_after_measure)
-
-        self._mw.odmr_2d_single_trans_CheckBox.stateChanged.connect(self._odmr_single_trans_alignment_changed)
-
-        # peak shift for odmr:
-        self._mw.align_2d_axis0_shift_DSpinBox.setValue(self._magnet_logic.odmr_2d_peak_axis0_move_ratio/1e12)
-        self._mw.align_2d_axis1_shift_DSpinBox.setValue(self._magnet_logic.odmr_2d_peak_axis1_move_ratio/1e12)
-
-        # for single shot alignment of a nuclear spin:
-        self._mw.align_2d_nuclear_rabi_periode_DSpinBox.setValue(self._magnet_logic.nuclear_2d_rabi_periode)
-        self._mw.align_2d_nuclear_mw_freq_DSpinBox.setValue(self._magnet_logic.nuclear_2d_mw_freq)
-        self._mw.align_2d_nuclear_mw_channel_SpinBox.setValue(self._magnet_logic.nuclear_2d_mw_channel)
-        self._mw.align_2d_nuclear_mw_power_DSpinBox.setValue(self._magnet_logic.nuclear_2d_mw_power)
-        self._mw.align_2d_nuclear_laser_time_DSpinBox.setValue(self._magnet_logic.nuclear_2d_laser_time)
-        self._mw.align_2d_nuclear_laser_channel_SpinBox.setValue(self._magnet_logic.nuclear_2d_laser_channel)
-        self._mw.align_2d_nuclear_detect_channel_SpinBox.setValue(self._magnet_logic.nuclear_2d_detect_channel)
-        self._mw.align_2d_nuclear_idle_time_DSpinBox.setValue(self._magnet_logic.nuclear_2d_idle_time)
-        self._mw.align_2d_nuclear_reps_within_ssr_SpinBox.setValue(self._magnet_logic.nuclear_2d_reps_within_ssr)
-        self._mw.align_2d_nuclear_num_of_ssr_SpinBox.setValue(self._magnet_logic.nuclear_2d_num_ssr)
 
         # process signals from magnet_logic
 
@@ -598,16 +536,15 @@ class MagnetGui(GUIBase):
         self._magnet_logic.sig2DAxis0NameChanged.connect(self.update_align_2d_axis0_name)
         self._magnet_logic.sig2DAxis0RangeChanged.connect(self.update_align_2d_axis0_range)
         self._magnet_logic.sig2DAxis0StepChanged.connect(self.update_align_2d_axis0_step)
-        self._magnet_logic.sig2DAxis0VelChanged.connect(self.update_align_2d_axis0_vel)
 
         self._magnet_logic.sig2DAxis1NameChanged.connect(self.update_align_2d_axis1_name)
         self._magnet_logic.sig2DAxis1RangeChanged.connect(self.update_align_2d_axis1_range)
         self._magnet_logic.sig2DAxis1StepChanged.connect(self.update_align_2d_axis1_step)
-        self._magnet_logic.sig2DAxis1VelChanged.connect(self.update_align_2d_axis1_vel)
 
         self._magnet_logic.sigOptPosFreqChanged.connect(self.update_optimize_pos_freq)
         self._magnet_logic.sigFluoIntTimeChanged.connect(self.update_fluorescence_integration_time)
 
+        self.restoreWindowPos(self._mw)
         return 0
 
     def _activate_magnet_settings(self):
@@ -647,7 +584,7 @@ class MagnetGui(GUIBase):
         self._statusVariables['measurement_type'] = self.measurement_type
         self._alignment_2d_cb_label =  self._mw.alignment_2d_cb_GraphicsView.plotItem.axes['right']['item'].labelText
         self._alignment_2d_cb_units = self._mw.alignment_2d_cb_GraphicsView.plotItem.axes['right']['item'].labelUnits
-
+        self.saveWindowGeometry(self._mw)
         self._mw.close()
 
     def show(self):
@@ -735,16 +672,6 @@ class MagnetGui(GUIBase):
         self._mw.alignment_2d_ToolBar.addWidget(self._mw.meas_type_fluorescence_RadioButton)
         self._mw.meas_type_fluorescence_RadioButton.setText('Fluorescence')
 
-        self._mw.meas_type_odmr_RadioButton = QtWidgets.QRadioButton(parent=self._mw)
-        self._mw.alignment_2d_ButtonGroup.addButton(self._mw.meas_type_odmr_RadioButton)
-        self._mw.alignment_2d_ToolBar.addWidget(self._mw.meas_type_odmr_RadioButton)
-        self._mw.meas_type_odmr_RadioButton.setText('ODMR')
-
-        self._mw.meas_type_nuclear_spin_RadioButton = QtWidgets.QRadioButton(parent=self._mw)
-        self._mw.alignment_2d_ButtonGroup.addButton(self._mw.meas_type_nuclear_spin_RadioButton)
-        self._mw.alignment_2d_ToolBar.addWidget(self._mw.meas_type_nuclear_spin_RadioButton)
-        self._mw.meas_type_nuclear_spin_RadioButton.setText('Nuclear Spin')
-
         self._mw.meas_type_fluorescence_RadioButton.setChecked(True)
 
     def _create_axis_pos_disp(self):
@@ -819,7 +746,9 @@ class MagnetGui(GUIBase):
 
         # set the axis_labels in the curr_pos_DockWidget:
         for index, axis_label in enumerate(constraints):
-
+            if axis_label in ['x','y','z']:
+                continue
+            index-=3
             label_var_name = 'move_rel_axis_{0}_Label'.format(axis_label)
             setattr(self._mw, label_var_name, QtWidgets.QLabel(self._mw.move_rel_DockWidgetContents))
             label_var = getattr(self._mw, label_var_name) # get the reference
@@ -840,7 +769,7 @@ class MagnetGui(GUIBase):
             dspinbox_ref.setMinimum(constraints[axis_label]['pos_min'])
 
             # dspinbox_ref.setOpts(minStep=constraints[axis_label]['pos_step'])
-            dspinbox_ref.setSingleStep(0.001, dynamic_stepping=False)
+            # dspinbox_ref.setSingleStep(0.001, dynamic_stepping=False)
             dspinbox_ref.setSuffix(constraints[axis_label]['unit'])
 
             self._mw.move_rel_GridLayout.addWidget(dspinbox_ref, index, 1, 1, 1)
@@ -900,6 +829,9 @@ class MagnetGui(GUIBase):
         constraints = self._magnet_logic.get_hardware_constraints()
 
         for index, axis_label in enumerate(constraints):
+            if axis_label in ['x','y','z']:
+                continue
+            index-=3
 
             label_var_name = 'move_abs_axis_{0}_Label'.format(axis_label)
             setattr(self._mw, label_var_name, QtWidgets.QLabel(self._mw.move_abs_DockWidgetContents))
@@ -952,7 +884,7 @@ class MagnetGui(GUIBase):
             dspinbox_ref.setMinimum(constraints[axis_label]['pos_min'])
 
             # dspinbox_ref.setOpts(minStep=constraints[axis_label]['pos_step'])
-            dspinbox_ref.setSingleStep(0.001, dynamic_stepping=False)
+            # dspinbox_ref.setSingleStep(0.001, dynamic_stepping=False)
             dspinbox_ref.setSuffix(constraints[axis_label]['unit'])
 
             # set the horizontal size to 100 pixel:
@@ -977,7 +909,7 @@ class MagnetGui(GUIBase):
             # the editingFinished idea has to be implemented properly at first:
             dspinbox_ref.editingFinished.connect(update_func_slider_ref)
 
-        extension = len(constraints)
+        extension = len(constraints)-3
         self._mw.move_abs_GridLayout.addWidget(self._mw.move_abs_PushButton, 0, 3, extension, 1)
         self._mw.move_abs_PushButton.clicked.connect(self.move_abs)
         self._mw.move_abs_PushButton.clicked.connect(self.update_roi_from_abs_movement)
@@ -1139,6 +1071,8 @@ class MagnetGui(GUIBase):
             # create the move_abs dict
             move_abs = {}
             for label in constraints:
+                if label in ['x','y','z']:
+                    continue
                 move_abs[label] = self.get_ref_move_abs_ScienDSpinBox(label).value()
 
             self._magnet_logic.move_abs(move_abs)
@@ -1183,6 +1117,8 @@ class MagnetGui(GUIBase):
         return_dict = dict()
         axes = list(self._magnet_logic.get_hardware_constraints())
         for axis_label in axes:
+            if axis_label in ['x','y','z']:
+                continue
             dspinbox = self.get_ref_move_rel_ScienDSpinBox(axis_label)
             return_dict[axis_label]=dspinbox.value()
         self._magnet_logic.set_move_rel_para(return_dict)
@@ -1225,14 +1161,6 @@ class MagnetGui(GUIBase):
         self._magnet_logic.set_align_2d_axis0_step(step)
         return step
 
-    def align_2d_axis0_vel_changed(self):
-        """ Pass the current GUI value to the logic
-
-        @return float: Passed velocity
-        """
-        vel = self._mw.align_2d_axis0_vel_DSpinBox.value()
-        self._magnet_logic.set_align_2d_axis0_vel(vel)
-        return vel
 
     def align_2d_axis1_name_changed(self):
         """ Pass the current GUI value to the logic
@@ -1261,14 +1189,6 @@ class MagnetGui(GUIBase):
         self._magnet_logic.set_align_2d_axis1_step(step)
         return step
 
-    def align_2d_axis1_vel_changed(self):
-        """ Pass the current GUI value to the logic
-
-        @return float: Passed velocity
-        """
-        vel = self._mw.align_2d_axis1_vel_DSpinBox.value()
-        self._magnet_logic.set_align_2d_axis1_vel(vel)
-        return vel
 
     def optimize_pos_freq_changed(self):
         """ Pass the current GUI value to the logic
@@ -1313,7 +1233,8 @@ class MagnetGui(GUIBase):
         logic and the display is changed.
         """
         constraints = self._magnet_logic.get_hardware_constraints()
-        curr_pos = self._magnet_logic.get_pos()
+        curr_pos = self._magnet_logic.get_pos(list(constraints.keys()))
+        self.last_pos = curr_pos
         if (param_list is not None) and (type(param_list) is not bool):
             param_list = list(param_list)
             # param_list =list(param_list) # convert for safety to a list
@@ -1324,16 +1245,17 @@ class MagnetGui(GUIBase):
             dspinbox_pos_ref = self.get_ref_curr_pos_ScienDSpinBox(axis_label)
 
             dspinbox_pos_ref.setValue(curr_pos[axis_label])
+            
 
             # update the values also of the absolute movement display:
-            #dspinbox_move_abs_ref = self.get_ref_move_abs_ScienDSpinBox(axis_label)
-            #dspinbox_move_abs_ref.setValue(curr_pos[axis_label])
+            # if axis_label not in ['x','y','z']:
+            #     dspinbox_move_abs_ref = self.get_ref_move_abs_ScienDSpinBox(axis_label)
+            #     dspinbox_move_abs_ref.setValue(curr_pos[axis_label])
+                # slider_move_abs_ref = self.get_ref_move_abs_Slider(axis_label)
+                # slider_move_abs_ref.setValue(curr_pos[axis_label])
         
         self.update_GLView_vector(curr_pos)
-
-        # self._mw.alignment_2d_GraphicsView.set_crosshair_pos(
-        #     [curr_pos[self._magnet_logic.align_2d_axis0_name],
-        #      curr_pos[self._magnet_logic.align_2d_axis1_name]])
+        self.make_new_sphere(radius=curr_pos['rho'])
         return curr_pos
 
     def run_stop_2d_alignment(self, is_checked):
@@ -1369,91 +1291,6 @@ class MagnetGui(GUIBase):
 
             self._magnet_logic.fluorescence_integration_time = self._mw.align_2d_fluorescence_integrationtime_DSpinBox.value()
             self._mw.alignment_2d_cb_GraphicsView.setLabel('right', 'Fluorescence', units='c/s')
-
-        elif self.measurement_type == '2d_odmr':
-            self._magnet_logic.curr_alignment_method = self.measurement_type
-
-            self._magnet_logic.odmr_2d_low_center_freq = self._mw.align_2d_odmr_low_center_freq_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_range_freq = self._mw.align_2d_odmr_low_range_freq_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_step_freq = self._mw.align_2d_odmr_low_step_freq_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_power = self._mw.align_2d_odmr_low_power_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_runtime  = self._mw.align_2d_odmr_low_runtime_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_fitfunction = self._mw.align_2d_odmr_low_fit_func_ComboBox.currentText()
-
-            self._magnet_logic.odmr_2d_high_center_freq = self._mw.align_2d_odmr_high_center_freq_DSpinBox.value()
-            self._magnet_logic.odmr_2d_high_range_freq = self._mw.align_2d_odmr_high_range_freq_DSpinBox.value()
-            self._magnet_logic.odmr_2d_high_step_freq = self._mw.align_2d_odmr_high_step_freq_DSpinBox.value()
-            self._magnet_logic.odmr_2d_high_power = self._mw.align_2d_odmr_high_power_DSpinBox.value()
-            self._magnet_logic.odmr_2d_high_runtime = self._mw.align_2d_odmr_high_runtime_DSpinBox.value()
-            self._magnet_logic.odmr_2d_high_fitfunction = self._mw.align_2d_odmr_high_fit_func_ComboBox.currentText()
-
-            self._magnet_logic.odmr_2d_peak_axis0_move_ratio = self._mw.align_2d_axis0_shift_DSpinBox.value()*1e12
-            self._magnet_logic.odmr_2d_peak_axis1_move_ratio = self._mw.align_2d_axis1_shift_DSpinBox.value()*1e12
-
-            self._magnet_logic.odmr_2d_single_trans = self._mw.odmr_2d_single_trans_CheckBox.isChecked()
-
-            if self._mw.odmr_2d_single_trans_CheckBox.isChecked():
-                self._mw.alignment_2d_cb_GraphicsView.setLabel('right', 'ODMR transition contrast', units='%')
-            else:
-                self._mw.alignment_2d_cb_GraphicsView.setLabel('right', 'Half ODMR splitting', units='Hz')
-
-        elif self.measurement_type == '2d_nuclear':
-            self._magnet_logic.curr_alignment_method = self.measurement_type
-
-            # ODMR stuff:
-            self._magnet_logic.odmr_2d_low_center_freq = self._mw.align_2d_odmr_low_center_freq_DSpinBox.value()*1e6
-            self._magnet_logic.odmr_2d_low_step_freq = self._mw.align_2d_odmr_low_step_freq_DSpinBox.value()*1e6
-            self._magnet_logic.odmr_2d_low_range_freq = self._mw.align_2d_odmr_low_range_freq_DSpinBox.value()*1e6
-            self._magnet_logic.odmr_2d_low_power = self._mw.align_2d_odmr_low_power_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_runtime  = self._mw.align_2d_odmr_low_runtime_DSpinBox.value()
-            self._magnet_logic.odmr_2d_low_fitfunction = self._mw.align_2d_odmr_low_fit_func_ComboBox.currentText()
-
-            self._magnet_logic.odmr_2d_peak_axis0_move_ratio = self._mw.align_2d_axis0_shift_DSpinBox.value()*1e12
-            self._magnet_logic.odmr_2d_peak_axis1_move_ratio = self._mw.align_2d_axis1_shift_DSpinBox.value()*1e12
-
-            self._magnet_logic.odmr_2d_single_trans = self._mw.odmr_2d_single_trans_CheckBox.isChecked()
-
-            # nuclear ops:
-            self._magnet_logic.nuclear_2d_rabi_periode = self._mw.align_2d_nuclear_rabi_periode_DSpinBox.value()*1e-9
-            self._magnet_logic.nuclear_2d_mw_freq = self._mw.align_2d_nuclear_mw_freq_DSpinBox.value()*1e6
-            self._magnet_logic.nuclear_2d_mw_channel = self._mw.align_2d_nuclear_mw_channel_SpinBox.value()
-            self._magnet_logic.nuclear_2d_mw_power = self._mw.align_2d_nuclear_mw_power_DSpinBox.value()
-            self._magnet_logic.nuclear_2d_laser_time = self._mw.align_2d_nuclear_laser_time_DSpinBox.value()
-            self._magnet_logic.nuclear_2d_laser_channel = self._mw.align_2d_nuclear_laser_channel_SpinBox.value()
-            self._magnet_logic.nuclear_2d_detect_channel = self._mw.align_2d_nuclear_detect_channel_SpinBox.value()
-            self._magnet_logic.nuclear_2d_idle_time = self._mw.align_2d_nuclear_idle_time_DSpinBox.value()
-            self._magnet_logic.nuclear_2d_reps_within_ssr = self._mw.align_2d_nuclear_reps_within_ssr_SpinBox.value()
-            self._magnet_logic.nuclear_2d_num_ssr = self._mw.align_2d_nuclear_num_of_ssr_SpinBox.value()
-
-            self._mw.alignment_2d_cb_GraphicsView.setLabel('right', 'Single shot readout fidelity', units='%')
-
-        # constraints = self._magnet_logic.get_hardware_constraints()
-
-        # axis0_name = self._mw.align_2d_axis0_name_ComboBox.currentText()
-        # axis0_range = self._mw.align_2d_axis0_range_DSpinBox.value()
-        # axis0_step = self._mw.align_2d_axis0_step_DSpinBox.value()
-        #
-        # axis1_name = self._mw.align_2d_axis1_name_ComboBox.currentText()
-        # axis1_range = self._mw.align_2d_axis1_range_DSpinBox.value()
-        # axis1_step = self._mw.align_2d_axis1_step_DSpinBox.value()
-
-        # if axis0_name == axis1_name:
-        #     self.log.error('Fluorescence Alignment cannot be started since the '
-        #                 'same axis with name "{0}" was chosen for axis0 and '
-        #                 'axis1!\n'
-        #                 'Alignment will not be started. Change the '
-        #                 'settings!'.format(axis0_name))
-        #     return
-
-        # if self._mw.align_2d_axis0_set_vel_CheckBox.isChecked():
-        #     axis0_vel = self._mw.align_2d_axis0_vel_DSpinBox.value()
-        # else:
-        #     axis0_vel = None
-        #
-        # if self._mw.align_2d_axis1_set_vel_CheckBox.isChecked():
-        #     axis1_vel = self._mw.align_2d_axis1_vel_DSpinBox.value()
-        # else:
-        #     axis1_vel = None
 
         self._magnet_logic.start_2d_alignment(continue_meas=self._continue_2d_fluorescence_alignment)
 
@@ -1493,23 +1330,17 @@ class MagnetGui(GUIBase):
         # set the range constraints:
         self._mw.align_2d_axis0_range_DSpinBox.setMinimum(0)
         self._mw.align_2d_axis0_range_DSpinBox.setMaximum(constraints[axis0_name]['pos_max'])
-        self._mw.align_2d_axis0_range_DSpinBox.setSingleStep(constraints[axis0_name]['pos_step'],
-                                                             dynamic_stepping=False)
+        # self._mw.align_2d_axis0_range_DSpinBox.setSingleStep(constraints[axis0_name]['pos_step'],
+        #                                                      dynamic_stepping=False)
         self._mw.align_2d_axis0_range_DSpinBox.setSuffix(constraints[axis0_name]['unit'])
 
         # set the step constraints:
         self._mw.align_2d_axis0_step_DSpinBox.setMinimum(0)
         self._mw.align_2d_axis0_step_DSpinBox.setMaximum(constraints[axis0_name]['pos_max'])
-        self._mw.align_2d_axis0_step_DSpinBox.setSingleStep(constraints[axis0_name]['pos_step'],
-                                                            dynamic_stepping=False)
+        # self._mw.align_2d_axis0_step_DSpinBox.setSingleStep(constraints[axis0_name]['pos_step'],
+        #                                                     dynamic_stepping=False)
         self._mw.align_2d_axis0_step_DSpinBox.setSuffix(constraints[axis0_name]['unit'])
 
-        # set the velocity constraints:
-        self._mw.align_2d_axis0_vel_DSpinBox.setMinimum(constraints[axis0_name]['vel_min'])
-        self._mw.align_2d_axis0_vel_DSpinBox.setMaximum(constraints[axis0_name]['vel_max'])
-        self._mw.align_2d_axis0_vel_DSpinBox.setSingleStep(constraints[axis0_name]['vel_step'],
-                                                           dynamic_stepping=False)
-        self._mw.align_2d_axis0_vel_DSpinBox.setSuffix(constraints[axis0_name]['unit']+'/s')
 
     def _update_limits_axis1(self):
         """ Whenever a new axis name was chosen in axis0 config, the limits of the
@@ -1521,22 +1352,16 @@ class MagnetGui(GUIBase):
 
         self._mw.align_2d_axis1_range_DSpinBox.setMinimum(0)
         self._mw.align_2d_axis1_range_DSpinBox.setMaximum(constraints[axis1_name]['pos_max'])
-        self._mw.align_2d_axis1_range_DSpinBox.setSingleStep(constraints[axis1_name]['pos_step'],
-                                                             dynamic_stepping=False)
+        # self._mw.align_2d_axis1_range_DSpinBox.setSingleStep(constraints[axis1_name]['pos_step'],
+        #                                                      dynamic_stepping=False)
         self._mw.align_2d_axis1_range_DSpinBox.setSuffix(constraints[axis1_name]['unit'])
 
         self._mw.align_2d_axis1_step_DSpinBox.setMinimum(0)
         self._mw.align_2d_axis1_step_DSpinBox.setMaximum(constraints[axis1_name]['pos_max'])
-        self._mw.align_2d_axis1_step_DSpinBox.setSingleStep(constraints[axis1_name]['pos_step'],
-                                                            dynamic_stepping=False)
+        # self._mw.align_2d_axis1_step_DSpinBox.setSingleStep(constraints[axis1_name]['pos_step'],
+        #                                                     dynamic_stepping=False)
         self._mw.align_2d_axis1_step_DSpinBox.setSuffix(constraints[axis1_name]['unit'])
 
-        self._mw.align_2d_axis1_vel_DSpinBox.setMinimum(constraints[axis1_name]['vel_min'])
-        self._mw.align_2d_axis1_vel_DSpinBox.setMaximum(constraints[axis1_name]['vel_max'])
-        self._mw.align_2d_axis1_vel_DSpinBox.setSingleStep(constraints[axis1_name]['vel_step'],
-                                                           dynamic_stepping=False)
-        self._mw.align_2d_axis1_vel_DSpinBox.setSuffix(constraints[axis1_name]['unit']+'/s')
-    
     def _update_limits_axis2(self):
         """ Whenever a new axis name was chosen in axis0 config, the limits of the
             viewboxes will be adjusted.
@@ -1547,37 +1372,15 @@ class MagnetGui(GUIBase):
 
         self._mw.align_2d_axis2_range_DSpinBox.setMinimum(0)
         self._mw.align_2d_axis2_range_DSpinBox.setMaximum(constraints[axis2_name]['pos_max'])
-        self._mw.align_2d_axis2_range_DSpinBox.setSingleStep(constraints[axis2_name]['pos_step'],
-                                                             dynamic_stepping=False)
+        # self._mw.align_2d_axis2_range_DSpinBox.setSingleStep(constraints[axis2_name]['pos_step'],
+        #                                                      dynamic_stepping=False)
         self._mw.align_2d_axis2_range_DSpinBox.setSuffix(constraints[axis2_name]['unit'])
 
         self._mw.align_2d_axis2_step_DSpinBox.setMinimum(0)
         self._mw.align_2d_axis2_step_DSpinBox.setMaximum(constraints[axis2_name]['pos_max'])
-        self._mw.align_2d_axis2_step_DSpinBox.setSingleStep(constraints[axis2_name]['pos_step'],
-                                                            dynamic_stepping=False)
+        # self._mw.align_2d_axis2_step_DSpinBox.setSingleStep(constraints[axis2_name]['pos_step'],
+        #                                                     dynamic_stepping=False)
         self._mw.align_2d_axis2_step_DSpinBox.setSuffix(constraints[axis2_name]['unit'])
-
-        self._mw.align_2d_axis2_vel_DSpinBox.setMinimum(constraints[axis2_name]['vel_min'])
-        self._mw.align_2d_axis2_vel_DSpinBox.setMaximum(constraints[axis2_name]['vel_max'])
-        self._mw.align_2d_axis2_vel_DSpinBox.setSingleStep(constraints[axis2_name]['vel_step'],
-                                                           dynamic_stepping=False)
-        self._mw.align_2d_axis2_vel_DSpinBox.setSuffix(constraints[axis2_name]['unit']+'/s')
-
-    def _set_vel_display_axis0(self):
-        """ Set the visibility of the velocity display for axis 0. """
-
-        if self._mw.align_2d_axis0_set_vel_CheckBox.isChecked():
-            self._mw.align_2d_axis0_vel_DSpinBox.setVisible(True)
-        else:
-            self._mw.align_2d_axis0_vel_DSpinBox.setVisible(False)
-
-    def _set_vel_display_axis1(self):
-        """ Set the visibility of the velocity display for axis 1. """
-
-        if self._mw.align_2d_axis1_set_vel_CheckBox.isChecked():
-            self._mw.align_2d_axis1_vel_DSpinBox.setVisible(True)
-        else:
-            self._mw.align_2d_axis1_vel_DSpinBox.setVisible(False)
 
     def _update_2d_graph_axis(self):
 
@@ -1597,7 +1400,7 @@ class MagnetGui(GUIBase):
             self._3D_axis.del_items()
 
         # self._3D_axis = _3DAxisItem(rho=self._magnet_logic.get_pos(['rho'])['rho'], thetas=axis0_array, phis=axis1_array, n_ticks=5, view=self._GLView, axis=False)
-        self._3D_axis = _3DAxisItem(rho=1, thetas=axis0_array, phis=axis1_array, n_ticks=5, view=self._GLView, axis=False)
+        self._3D_axis = _3DAxisItem(rho=self.last_pos['rho'], thetas=axis0_array, phis=axis1_array, n_ticks=5, view=self._GLView, axis=False)
         # self._2d_alignment_ImageItem.set_image_extent([[axis0_array[0]-step0/2, axis0_array[-1]+step0/2],
         #                                                [axis1_array[0]-step1/2, axis1_array[-1]+step1/2]])
 
@@ -1635,8 +1438,8 @@ class MagnetGui(GUIBase):
         else:
             cb_min = self._mw.alignment_2d_cb_min_centiles_DSpinBox.value()
             cb_max = self._mw.alignment_2d_cb_max_centiles_DSpinBox.value()
-
-        cb_min, cb_max = 0, 100
+        
+        cb_min = 0 if cb_min>cb_max else cb_min
 
         self._2d_alignment_cb.refresh_colorbar(cb_min, cb_max)
         self._mw.alignment_2d_cb_GraphicsView.update()
@@ -1672,9 +1475,11 @@ class MagnetGui(GUIBase):
 
         if self._2d_alignment_ImageItem:
             self._2d_alignment_ImageItem.del_items()
+
+        cb_min = 0 if cb_min>cb_max else cb_min
             
         # self._3d_alignment_ImageItem = _3DAlignmentImageItem(rho=self._magnet_logic.get_pos(['rho'])['rho'], thetas=axis0_array, phis=axis1_array, view=self._GLView)
-        self._2d_alignment_ImageItem = _3DAlignmentImageItem(rho=1, thetas=axis0_array, phis=axis1_array, view=self._GLView)
+        self._2d_alignment_ImageItem = _3DAlignmentImageItem(rho=self.last_pos['rho'], thetas=axis0_array, phis=axis1_array, view=self._GLView)
         self._2d_alignment_ImageItem.setImage(matrix=matrix_data, levels=(cb_min, cb_max))
         self._update_2d_graph_axis()
 
@@ -1707,20 +1512,8 @@ class MagnetGui(GUIBase):
 
         if self._mw.meas_type_fluorescence_RadioButton.isChecked():
             self.measurement_type = '2d_fluorescence'
-        elif self._mw.meas_type_odmr_RadioButton.isChecked():
-            self.measurement_type = '2d_odmr'
-        elif self._mw.meas_type_nuclear_spin_RadioButton.isChecked():
-            self.measurement_type = '2d_nuclear'
         else:
             self.log.error('No measurement type specified in Magnet GUI!')
-
-    def _odmr_single_trans_alignment_changed(self):
-        """ Adjust the GUI display if only one ODMR transition is used. """
-
-        if self._mw.odmr_2d_single_trans_CheckBox.isChecked():
-            self._mw.odmr_2d_high_trans_GroupBox.setVisible(False)
-        else:
-            self._mw.odmr_2d_high_trans_GroupBox.setVisible(True)
 
     def update_from_roi_magnet(self, pos):
         """The user manually moved the XY ROI, adjust all other GUI elements accordingly
@@ -1817,18 +1610,6 @@ class MagnetGui(GUIBase):
         self._mw.align_2d_axis0_step_DSpinBox.blockSignals(False)
         return step
 
-    def update_align_2d_axis0_vel(self,vel):
-        """ The GUT is updated taking vel into account. Thereby no signal is triggered!
-
-        @params float: Velocity to update
-
-        @return float: Velocity to update
-         """
-        self._mw.align_2d_axis0_vel_DSpinBox.blockSignals(True)
-        self._mw.align_2d_axis0_vel_DSpinBox.setValue(vel)
-        self._mw.align_2d_axis0_vel_DSpinBox.blockSignals(False)
-        return vel
-
     def update_align_2d_axis1_name(self, axisname):
         """ The GUT is updated taking axisname into account. Thereby no signal is triggered!
 
@@ -1866,17 +1647,6 @@ class MagnetGui(GUIBase):
         self._mw.align_2d_axis1_step_DSpinBox.blockSignals(False)
         return step
 
-    def update_align_2d_axis1_vel(self,vel):
-        """ The GUT is updated taking vel into account. Thereby no signal is triggered!
-
-        @params float: Velocity to update
-
-        @return float: Velocity to update
-         """
-        self._mw.align_2d_axis1_vel_DSpinBox.blockSignals(True)
-        self._mw.align_2d_axis1_vel_DSpinBox.setValue(vel)
-        self._mw.align_2d_axis1_vel_DSpinBox.blockSignals(False)
-        return vel
 
     def update_optimize_pos_freq(self, freq):
         """ The GUT is updated taking freq into account. Thereby no signal is triggered!
@@ -1957,32 +1727,66 @@ class MagnetGui(GUIBase):
 
             return np.exp(-4*np.log(2) * ((x-x0)**2 + (y-y0)**2) / fwhm**2)
 
-        size = 30
-        thet = np.linspace(np.pi/4,3*np.pi/4,size)
-        ph = np.linspace(0,0.5*np.pi,size)
-        matrix = np.random.random((size,size))
-        matrix = makeGaussian(size, size/3)
-        rho = 0.7
+        # size = 30
+        # thet = np.linspace(np.pi/4,3*np.pi/4,size)
+        # ph = np.linspace(0,0.5*np.pi,size)
+        # matrix = np.random.random((size,size))
+        # matrix = makeGaussian(size, size/3)
+        # rho = 0.7
 
-        self._3D_axis = _3DAxisItem(rho, thet, ph, 5, self._GLView, False)
-        self._2d_alignment_ImageItem = _3DAlignmentImageItem(rho, thet, ph, self._GLView)
-        self._2d_alignment_ImageItem.setImage(matrix, (0,1))
-        self._GLView.update()
+        # self._3D_axis = _3DAxisItem(rho, thet, ph, 5, self._GLView, False)
+        # self._2d_alignment_ImageItem = _3DAlignmentImageItem(rho, thet, ph, self._GLView)
+        # self._2d_alignment_ImageItem.setImage(matrix, (0,1))
+        # self._GLView.update()
     
     def make_new_sphere(self, radius=1):
-        self._GLView.removeItem(self.sphere)
-        md = gl.MeshData.sphere(rows=20, cols=20, radius=radius)
-        m4 = gl.GLMeshItem(meshdata=md, smooth=True, drawFaces=False, drawEdges=True, edgeColor=(0.3,0.3,0.3,1))
-        m4.translate(0,0,0)
-        self.sphere = m4
-        self._GLView.addItem(self.sphere)
-        self._GLView.update()
+        if self._GLView:
+            self._GLView.removeItem(self.sphere)
+            md = gl.MeshData.sphere(rows=20, cols=20, radius=radius)
+            m4 = gl.GLMeshItem(meshdata=md, smooth=True, drawFaces=False, drawEdges=True, edgeColor=(0.3,0.3,0.3,1))
+            m4.translate(0,0,0)
+            self.sphere = m4
+            self._GLView.addItem(self.sphere)
+            self._GLView.update()
     
     def update_GLView_vector(self, curr_pos):
         if self._GLView:
             self._GLView.removeItem(self.vector_item)
             self.vector_item = gl.GLLinePlotItem(pos=np.array([[0,0,0],[curr_pos['x'],curr_pos['y'],curr_pos['z']]]), color=pg.glColor((255, 255, 255, 255)), width=5, antialias=True)
             self._GLView.addItem(self.vector_item)
-
-
-
+    
+    def update_GLView_new_vector(self, new_pos):
+        if self._GLView:
+            if self.new_vector_item:
+                self._GLView.removeItem(self.new_vector_item)
+            self.new_vector_item = gl.GLLinePlotItem(pos=np.array([[0,0,0],[new_pos['x'],new_pos['y'],new_pos['z']]]), color=pg.glColor((142, 199, 210, 255)), width=5, antialias=True)
+            self._GLView.addItem(self.new_vector_item)
+    
+    def update_GLView_opt_vector(self, new_pos):
+        if self._GLView:
+            if self.opt_vector_item:
+                self._GLView.removeItem(self.opt_vector_item)
+            self.opt_vector_item = gl.GLLinePlotItem(pos=np.array([[0,0,0],[new_pos['x'],new_pos['y'],new_pos['z']]]), color=pg.glColor((255, 195, 0, 255)), width=5, antialias=True)
+            self._GLView.addItem(self.opt_vector_item)
+    
+    def give_pos_to_update_GLView_new_vector(self):
+        constraints=self._magnet_logic.get_hardware_constraints()
+        new_pos_dict = {}
+        for axis_label in list(constraints):
+            if axis_label in ['x','y','z']:
+                continue
+            dspinbox_move_abs_ref = self.get_ref_move_abs_ScienDSpinBox(axis_label)
+            new_pos_dict[axis_label] = dspinbox_move_abs_ref.value()
+        new_pos = {}
+        new_pos['x'] = new_pos_dict['rho'] * np.sin(new_pos_dict['theta']) * np.cos(new_pos_dict['phi'])
+        new_pos['y'] = new_pos_dict['rho'] * np.sin(new_pos_dict['theta']) * np.sin(new_pos_dict['phi'])
+        new_pos['z'] = new_pos_dict['rho'] * np.cos(new_pos_dict['theta'])
+        self.update_GLView_new_vector(new_pos)
+    
+    def give_pos_to_update_GLView_opt_vector(self, new_pos_dict):
+        new_pos = {}
+        new_pos['x'] = new_pos_dict['rho'] * np.sin(new_pos_dict['theta']) * np.cos(new_pos_dict['phi'])
+        new_pos['y'] = new_pos_dict['rho'] * np.sin(new_pos_dict['theta']) * np.sin(new_pos_dict['phi'])
+        new_pos['z'] = new_pos_dict['rho'] * np.cos(new_pos_dict['theta'])
+        self._mw.fitResult_textBrowser.setText(new_pos_dict['fit_result'])
+        self.update_GLView_opt_vector(new_pos)
