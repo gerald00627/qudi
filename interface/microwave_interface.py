@@ -38,11 +38,13 @@ class MicrowaveMode(Enum):
     """ Modes for microwave generators:
         CW: continuous wave
         LIST: ouptut list of arbitrary frequencies, each step triggered by electrical input
+        COMMAND: output list of arbitrary frequencies, each step the frequency is set on the MW source with appropriate CW command
         SWEEP: frequency sweep from f1 to f2, each step triggered by electrical input
         ASWEEP: frequency sweep from f1 to f2, triggered only on the start of the sweep
     """
     CW = 0
     LIST = 1
+    COMMAND = 2
     SWEEP = 3
     ASWEEP = 4
 
@@ -83,6 +85,15 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
+    def set_power(self, power=None):
+        """ Sets the microwave source in CW mode, and sets the MW power.
+        Method ignores whether the output is on or off
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
+
+    @abstract_interface_method
     def get_frequency(self):
         """ Gets the frequency of the microwave output.
 
@@ -91,6 +102,15 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
         Returns single float value if the device is in cw mode.
         Returns list like [start, stop, step] if the device is in sweep mode.
         Returns list of frequencies if the device is in list mode.
+        """
+        pass
+
+    @abstract_interface_method
+    def set_frequency(self, frequency=None):
+        """ Sets the microwave source in CW mode, and sets the MW frequency.
+        Method ignores whether the output is on or off
+        
+        @return int: error code (0:OK, -1:error)
         """
         pass
 

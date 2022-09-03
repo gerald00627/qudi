@@ -28,7 +28,7 @@ from interface.odmr_counter_interface import ODMRCounterInterface
 from interface.microwave_interface import MicrowaveInterface
 from interface.microwave_interface import TriggerEdge
 
-class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
+class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
                                     MicrowaveInterface):
     """
     Interfuse to enable a software trigger of the microwave source but still
@@ -47,6 +47,8 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         self._lock_in_active = False
         self._oversampling = 10
         self._odmr_length = 100
+        self._frequencies = []
+        self._mw_power = []
 
 
     def on_activate(self):
@@ -113,11 +115,10 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         """
 
         counts = np.zeros((len(self.get_odmr_channels()), length))
-        # self.trigger()
         for i in range(length):
-            self.trigger()
+            self._mw_device.set_frequency(self.frequencies[i])
             counts[:, i] = self._sc_device.get_counter(samples=1)[0]
-        self.trigger()
+
         return False, counts
 
     def close_odmr(self):
@@ -173,6 +174,14 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         """
         return self._mw_device.get_power()
 
+    def set_power(self, power=None):
+        """ Sets the microwave source in CW mode, and sets the MW power.
+        Method ignores whether the output is on or off
+
+        @return int: error code (0:OK, -1:error)
+        """
+        return self._mw_device.set_power(power)
+
     def get_frequency(self):
         """
         Gets the frequency of the microwave output.
@@ -183,6 +192,14 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         @return [float, list]: frequency(s) currently set for this device in Hz
         """
         return self._mw_device.get_frequency()
+
+    def set_frequency(self, frequency=None):
+        """ Sets the microwave source in CW mode, and sets the MW frequency.
+        Method ignores whether the output is on or off
+        
+        @return int: error code (0:OK, -1:error)
+        """
+        return self._mw_device.set_frequency(frequency)
 
     def cw_on(self):
         """
@@ -205,6 +222,8 @@ class ODMRCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
             current power in dBm,
             current mode
         """
+        self._frequencies = frequency
+        self._mw_power = power
         return self._mw_device.set_cw(frequency=frequency, power=power)
 
     def list_on(self):
