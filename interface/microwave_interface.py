@@ -38,13 +38,11 @@ class MicrowaveMode(Enum):
     """ Modes for microwave generators:
         CW: continuous wave
         LIST: ouptut list of arbitrary frequencies, each step triggered by electrical input
-        COMMAND: output list of arbitrary frequencies, each step the frequency is set on the MW source with appropriate CW command
         SWEEP: frequency sweep from f1 to f2, each step triggered by electrical input
         ASWEEP: frequency sweep from f1 to f2, triggered only on the start of the sweep
     """
     CW = 0
     LIST = 1
-    COMMAND = 2
     SWEEP = 3
     ASWEEP = 4
 

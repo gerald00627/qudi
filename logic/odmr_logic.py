@@ -527,37 +527,6 @@ class ODMRLogic(GenericLogic):
 
             self.sigParameterUpdated.emit(param_dict)
 
-        elif self.mw_scanmode == MicrowaveMode.COMMAND:
-            final_freq_list = []
-            used_starts = []
-            used_steps = []
-            used_stops = []
-            for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
-                num_steps = int(np.rint((mw_stop - mw_start) / mw_step))
-                end_freq = mw_start + num_steps * mw_step
-                freq_list = np.linspace(mw_start, end_freq, num_steps + 1)
-
-                # adjust the end frequency in order to have an integer multiple of step size
-                # The master module (i.e. GUI) will be notified about the changed end frequency
-                final_freq_list.extend(freq_list)
-
-                used_starts.append(mw_start)
-                used_steps.append(mw_step)
-                used_stops.append(end_freq)
-
-            final_freq_list = np.array(final_freq_list)
-            freq_list, self.sweep_mw_power, mode = self._mw_device.set_cw(final_freq_list,
-                                                                            self.sweep_mw_power)
-
-            self.final_freq_list = np.array(freq_list)
-            self.mw_starts = used_starts
-            self.mw_stops = used_stops
-            self.mw_steps = used_steps
-            param_dict = {'mw_starts': used_starts, 'mw_stops': used_stops,
-                          'mw_steps': used_steps, 'sweep_mw_power': self.sweep_mw_power}
-
-            self.sigParameterUpdated.emit(param_dict)
-
         elif self.mw_scanmode == MicrowaveMode.SWEEP:
             if self.ranges == 1:
                 mw_stop = self.mw_stops[0]
@@ -581,25 +550,20 @@ class ODMRLogic(GenericLogic):
                 self.log.error('sweep mode only works for one frequency range.')
 
         else:
-            self.log.error('Scanmode not supported. Please select SWEEP or LIST or COMMAND.')
+            self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
 
         self.sigParameterUpdated.emit(param_dict)
 
-        if self.mw_scanmode == MicrowaveMode.COMMAND:
-            err_code = self._mw_device.cw_on()
-            if err_code < 0:
-                self.log.error('Activation of microwave output failed.')
-        elif self.mw_scanmode == MicrowaveMode.SWEEP and mode == 'sweep':
+        if mode != 'list' and mode != 'sweep':
+            self.log.error('Switching to list/sweep microwave output mode failed.')
+        elif self.mw_scanmode == MicrowaveMode.SWEEP:
             err_code = self._mw_device.sweep_on()
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
-        elif self.mw_scanmode == MicrowaveMode.LIST and mode == 'list':
+        else:
             err_code = self._mw_device.list_on()
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
-        else:
-            self.log.error('Activation of microwave output failed.')
-            
 
         mode, is_running = self._mw_device.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)

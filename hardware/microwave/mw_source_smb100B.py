@@ -40,8 +40,8 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
 
     Example config for copy-paste:
 
-    mw_source_sgs100A:
-        module.Class: 'microwave.mw_source_sgs100A.MicrowaveSGS100A'
+    mw_source_sgs100B:
+        module.Class: 'microwave.mw_source_sgs100B.MicrowaveSGS100B'
         tcpip_address: 'TCPIP0::172.16.27.118::inst0::INSTR'
         tcpip_timeout: 10
 
@@ -381,7 +381,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self._command_wait(':ABOR:SWE') # Hanyi Edit
+        self._command_wait(':SWEep:RESet:ALL')
         return 0
 
     def set_ext_trigger(self, pol, timing):
@@ -422,31 +422,8 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-
-        #start_freq = self.get_frequency()
         self._connection.write(':TRIGger:IMMediate')
         time.sleep(self._FREQ_SWITCH_SPEED)
-        #curr_freq = self.get_frequency()
-        #if start_freq == curr_freq:
-        #    self.log.error('Internal trigger for Agilent MW source did not work!')
-        #    return -1
-
-        return 0
-
-#This section below were added by Hanyi @03.25.2022
-#It is so that SMB100B could work with timetagger under the ODMR ESR scan framework.
-#Since at the moment of this modification the timetagger does not have ODMRcounter implementation
-
-    def set_cw_freq_PCIE(self,index=None):
-        """03.25 @Hanyi Lu This specific method is added to work with the 
-        odmr_counter_microwave_interfuse_smb100B.py
-        """
-        try:
-            self._connection.write(':FREQ {0:f}'.format(self.final_freq_list[index]))
-        except:
-            self.log.error('No index frequencies available')
-            raise
-        #time.sleep(self._FREQ_SWITCH_SPEED)  # that is the switching speed
         return 0
 
     def set_cw_sweep(self, frequency=None, power=None):
