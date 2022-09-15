@@ -27,7 +27,7 @@ from enum import Enum
 
 class TriggerEdge(Enum):
     """ On which electrical signal edge does a trigger occur?
-      So edgy!
+        So edgy!
     """
     RISING = 0
     FALLING = 1
@@ -43,6 +43,7 @@ class MicrowaveMode(Enum):
     """
     CW = 0
     LIST = 1
+    COMMAND = 2
     SWEEP = 3
     ASWEEP = 4
 

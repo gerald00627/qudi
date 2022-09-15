@@ -116,7 +116,7 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
 
         counts = np.zeros((len(self.get_odmr_channels()), length))
         for i in range(length):
-            self._mw_device.set_frequency(self.frequencies[i])
+            self._mw_device.set_frequency(self._frequencies[i])
             counts[:, i] = self._sc_device.get_counter(samples=1)[0]
 
         return False, counts
@@ -246,7 +246,8 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
         """
         self._frequencies = frequency
         self._mw_power = power
-        return frequency, power, 'LIST'
+        self._mw_device.set_cw(self._frequencies[0], self._mw_power)
+        return self._frequencies, power, 'list'
 
     def reset_listpos(self):
         """
@@ -261,7 +262,7 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._mw_device.sweep_on()
+        return self._mw_device.cw_on()
 
     def set_sweep(self, start=None, stop=None, step=None, power=None):
         """
@@ -274,8 +275,10 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
                                                  current power in dBm,
                                                  current mode
         """
-        return self._mw_device.set_sweep(start=start, stop=stop, step=step,
-                                         power=power)
+        self._frequencies = np.arange(start, stop + step, step)
+        self._mw_power = power
+        self._mw_device.set_cw(self._frequencies[0], self._mw_power)
+        return self._frequencies, power, 'sweep'
 
     def reset_sweeppos(self):
         """
@@ -283,7 +286,7 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._mw_device.reset_sweeppos()
+        return 0
 
     def set_ext_trigger(self, pol, timing):
         """ Set the external trigger for this device with proper polarization.
