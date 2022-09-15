@@ -233,7 +233,7 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._mw_device.list_on()
+        return self._mw_device.cw_on()
 
     def set_list(self, frequency=None, power=None):
         """
@@ -244,7 +244,9 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
 
         @return list, float, str: current frequencies in Hz, current power in dBm, current mode
         """
-        return self._mw_device.set_list(frequency=frequency, power=power)
+        self._frequencies = frequency
+        self._mw_power = power
+        return frequency, power, 'LIST'
 
     def reset_listpos(self):
         """
@@ -252,7 +254,7 @@ class ODMRSlowCounterMicrowaveInterfuse(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._mw_device.reset_listpos()
+        return 0
 
     def sweep_on(self):
         """ Switches on the sweep mode.
