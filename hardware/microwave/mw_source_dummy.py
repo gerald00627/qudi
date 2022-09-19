@@ -101,6 +101,28 @@ class MicrowaveDummy(Base, MicrowaveInterface):
             mode = 'sweep'
         return mode, self.output_active
 
+    def set_frequency(self, frequency=None):
+        """ Sets the microwave source in CW mode, and sets the MW power.
+        Method ignores whether the output is on or off
+
+        @param (float) frequency: frequency to set in Hz
+
+        @return int: error code (0:OK, -1:error)
+        """
+
+        return 0
+
+    def set_power(self, power=None):
+        """ Sets the microwave source in CW mode, and sets the MW power.
+        Method ignores whether the output is on or off
+
+        @param (float) power: power to set in dBm
+
+        @return int: error code (0:OK, -1:error)
+        """
+        
+        return 0
+
     def off(self):
         """ Switches off any microwave output.
 
