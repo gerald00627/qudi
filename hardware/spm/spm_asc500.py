@@ -25,14 +25,14 @@ import time
 import numpy as np
 from qtpy import QtCore
 from scipy.interpolate import interp1d
-from hardware.spm.spm_library.ASC500_Python_Control.lib.asc500_device import Device
+from hardware.spm.spm_library.ASC500_Python_Control.lib.asc500.asc500_device import Device
 
 from interface.scanner_interface import ScannerInterface, ScannerMode, ScanStyle, \
                                         ScannerState, ScannerConstraints, ScannerMeasurements  
 from core.configoption import ConfigOption
 
-_binPath = 'C:\\qudi\\proteusq-modules\\hardware\\spm\\spm_library\\ASC500_Python_Control\\Installer\\ASC500CL-V2.7.13'
-_dllPath = 'C:\\qudi\\proteusq-modules\\hardware\\spm\\spm_library\\ASC500_Python_Control\\64bit_lib\\ASC500CL-LIB-WIN64-V2.7.13\\daisybase\\lib\\'
+_binPath = 'C:\\Users\\Anvil\\Documents\\GitHub\\qudi\\hardware\\spm\\spm_library\\ASC500_Python_Control\\Installer\\ASC500CL-V2.7.13\\'
+_dllPath = 'C:\\Users\\Anvil\\Documents\\GitHub\\qudi\\hardware\\spm\\spm_library\\ASC500_Python_Control\\64bit_lib\\ASC500CL-LIB-WIN64-V2.7.13\\daisybase\\lib\\'
 
 class SPM_ASC500(Base, ScannerInterface):
     """SPM wrapper for the communication with the ASC500 module.
@@ -337,7 +337,7 @@ class SPM_ASC500(Base, ScannerInterface):
 
         self._dev.scanner.resetScannerCoordSystem()
         self._dev.scanner.setOutputsActive()
-        self._dev.scanner.setDataEnable(1)
+        self._dev.base.setDataEnable(1)
 
         if mode == ScannerMode.UNCONFIGURED:
             return -1   # nothing to do, mode is unconfigured, so we shouldn't continue

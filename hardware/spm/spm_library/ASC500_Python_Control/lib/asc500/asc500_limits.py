@@ -1,4 +1,4 @@
-from lib.asc500_base import ASC500Base
+from .asc500_base import ASC500Base
 
 
 class ASC500Limits(ASC500Base):
@@ -65,7 +65,7 @@ class ASC500Limits(ASC500Base):
         vLimAct : float
             Actual T-dependent voltage in [V]
         """
-        vLimAct = self.getParameter(self.getConst('ID_PIEZO_ACTVOLT_HX'))*305.2*1e-6
+        vLimAct = self.getParameter(self.getConst('ID_PIEZO_ACTVOLT_HX')*305.2*1e-6)
         return vLimAct
 
     def getYActualVoltageLimit(self):
@@ -81,8 +81,8 @@ class ASC500Limits(ASC500Base):
         vLimAct : float
             actual T-dependent voltage in [V]
         """
-        vLimAct =self.getParameter(self.getConst('ID_PIEZO_ACTVOLT_HY'))*305.2*1e-6
-        return vLimAct
+        vLimAct =self.getParameter(self.getConst('ID_PIEZO_ACTVOLT_HY')*305.2*1e-6)
+        return yLimAct
 
     def getZActualVoltageLimit(self):
         """
@@ -97,7 +97,7 @@ class ASC500Limits(ASC500Base):
         vLimAct : float
             actual T-dependent voltage in [V]
         """
-        vLimAct = self.getParameter(self.getConst('ID_REG_ZABS_LIM'))*19.07*1e-6
+        vLimAct = self.getParameter(self.getConst('ID_REG_ZABS_LIM')*19.07*1e-6)
         return vLimAct
 
     def setXVoltageLimit(self, vLim):
@@ -213,7 +213,7 @@ class ASC500Limits(ASC500Base):
         tLimAct : float
             actual T-dependent deflection limit in [m]
         """
-        tLimAct = self.getParameter(self.getConst('ID_PIEZO_ACTRG_X'))*1e-11
+        tLimAct = self.getParameter(self.getConst('ID_PIEZO_ACTRG_X')*1e-11)
         return tLimAct
 
     def getYActualTravelLimit(self):
@@ -229,7 +229,7 @@ class ASC500Limits(ASC500Base):
         tLimAct : float
             actual T-dependent deflection limit in [m]
         """
-        tLimAct = self.getParameter(self.getConst('ID_PIEZO_ACTRG_Y'))*1e-11
+        tLimAct = self.getParameter(self.getConst('ID_PIEZO_ACTRG_X')*1e-11)
         return tLimAct
     
     def getZActualTravelLimit(self):
@@ -245,7 +245,7 @@ class ASC500Limits(ASC500Base):
         tLimAct : float
             actual T-dependent deflection limit in [m]
         """
-        tLimAct = self.getParameter(self.getConst('ID_REG_ZABS_LIMM'))*1e-12
+        tLimAct = self.getParameter(self.getConst('ID_REG_ZABS_LIMM')*1e-12)
         return tLimAct
 
     def setXTravelLimit(self, tLim):
@@ -255,7 +255,7 @@ class ASC500Limits(ASC500Base):
         Parameters
         ----------
         tLim : list
-            [maxRT, maxLT] in [m]
+            [maxRT, maxLT] in [V]
 
         Returns
         -------
@@ -272,7 +272,7 @@ class ASC500Limits(ASC500Base):
         Parameters
         ----------
         tLim : list
-            [maxRT, maxLT] in [m]
+            [maxRT, maxLT] in [V]
 
         Returns
         -------
@@ -289,7 +289,7 @@ class ASC500Limits(ASC500Base):
         Parameters
         ----------
         tLim : list
-            [maxRT, maxLT] in [m]
+            [maxRT, maxLT] in [V]
 
         Returns
         -------
@@ -298,159 +298,6 @@ class ASC500Limits(ASC500Base):
         maxTravel = [(t*1e12) for t in tLim]
         self.setParameter(self.getConst('ID_REG_ZABS_LIMM_A'), maxTravel[0], index=0)
         self.setParameter(self.getConst('ID_REG_ZABS_LIMM_A'), maxTravel[1], index=1)
-
-    def getZFeedbackLimits(self):
-        """
-        This function retrieves the Z feedback limits.
-
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        limits : list
-            [limMin, limMax] Minimum and maximum feedback limits in [m]
-        """
-        limMin = self.getParameter(self.getConst('ID_REG_LIM_MINUSR_M'))*1e-12
-        limMax = self.getParameter(self.getConst('ID_REG_LIM_MAXUSR_M'))*1e-12
-        limits = [limMin, limMax]
-        return limits
     
-    def setZFeedbackLimits(self, limits):
-        """
-        This function sets the Z feedback limits.
-
-        Parameters
-        ----------
-        limits : list
-            [limMin, limMax] Minimum and Maximum feedback limits in [m]
-
-        Returns
-        -------
-        None
-        """
-        self.setParameter(self.getConst('ID_REG_LIM_MINUSR_M'), limits[0]*1e12)
-        self.setParameter(self.getConst('ID_REG_LIM_MAXUSR_M'), limits[1]*1e12)
     
-    def getTemperatureLimits(self):
-        """
-        Retrieves the temperature limits set for room and low temperature as a List [RT, LT] in [K]
-        
-        Parameters
-        ----------
-
-        Returns
-        -------
-        tempLim : list
-            [RT, LT] in [K]
-        None.
-        """
-        tempLim = self.setParameter(self.getConst('ID_PIEZO_T_LIM'))*1e-3
-        return tempLim
-
-    def setTemperatureLimits(self, tempLim):
-        """
-        Sets the temperature limits for room and low temperature, input is given as a List [RT, LT] in [K]
-        
-        Parameters
-        ----------
-        tempLim : list
-            [RT, LT] in [K]
-
-        Returns
-        -------
-        None.
-        """
-        self.setParameter(self.getConst('ID_PIEZO_T_LIM'), tempLim*1e3)
-    
-    def getTemperature(self):
-        """
-        Retrieves the currently set temperature value for interpolation.
-        
-        Parameters
-        ----------
-
-        Returns
-        -------
-        temp : float
-            Temperature in [K]
-        None.
-        """
-        temp = self.getParameter(self.getConst('ID_PIEZO_TEMP'))*1e-3
-        return temp
-    
-    def setTemperature(self, temp):
-        """
-        Sets the temperature value for interpolation.
-        
-        Parameters
-        ----------
-        temp : float
-            Temperature in [K]
-
-        Returns
-        -------
-        None.
-        """
-        self.setParameter(self.getConst('ID_PIEZO_TEMP'), temp*1e3)
-    
-
-    def getDACLimits(self, channel):
-        """
-        This function retrieves the output limits for the given DAC output.
-        
-        Parameters
-        ----------
-        channel : int
-            [0..5] DAC-Channel number
-
-        Returns
-        -------
-        limits : list
-            [limitRT, limitLT] DAC output limits
-        None.
-        """
-        limitRT = self.getParameter(self.getConst('ID_GENDAC_LIMIT_RT'), channel)*1e-6
-        limitLT = self.getParameter(self.getConst('ID_GENDAC_LIMIT_LT'), channel)*1e-6
-        limits = [limitRT, limitLT]
-        return limits
-    
-    def setDACLimits(self, channel, limits):
-        """
-        This function sets the output limits for the given DAC output.
-        
-        Parameters
-        ----------
-        channel : int
-            [0..5] DAC-Channel number
-
-        limits : list
-            [limitRT, limitLT] DAC output limits
-
-        Returns
-        -------
-        None.
-        """
-        [limitRT, limitLT] = limits
-        self.setParameter(self.getConst('ID_GENDAC_LIMIT_RT'), limitRT*1e6, channel)
-        self.setParameter(self.getConst('ID_GENDAC_LIMIT_LT'), limitLT*1e6, channel)
-    
-    def getDACLimitsCT(self, channel):
-        """
-        This function retrieves the output limit at the currently set temperature for the given DAC output.
-        
-        Parameters
-        ----------
-        channel : int
-            [0..5] DAC-Channel number
-
-        Returns
-        -------
-        limitCT : list
-            DAC output limits at current temp
-        None.
-        """
-        limitCT = self.getParameter(self.getConst('ID_GENDAC_LIMIT_CT'), channel)*1e-6
-        return limitCT
     

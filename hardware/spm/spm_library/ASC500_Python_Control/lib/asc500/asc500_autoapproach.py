@@ -8,7 +8,7 @@ import re
 import time
 import numpy as np
 import enum
-from lib.asc500_base import ASC500Base
+from .asc500_base import ASC500Base
 
 
 class ASC500AutoApproach(ASC500Base):
@@ -149,17 +149,13 @@ class ASC500AutoApproach(ASC500Base):
         threshold : float
             Threshold value in [V]
         """
-        unit_raw = self.getParameter(self.getConst('ID_GUI_UNIT_ZREG'))
+        unit = self.getParameter(self.getConst('ID_GUI_UNIT_ZREG'))
         scale = self.getParameter(self.getConst('ID_GUI_SCAL_ZREG'))
         offset = self.getParameter(self.getConst('ID_GUI_OFFS_ZREG'))
         raw_val = self.getParameter(self.getConst('ID_AAP_THRESHOLD'))
-        unit = self.convertUnitToFactor(unit_raw)
-
-
-
-        threshold = (raw_val + offset) / scale * unit
+        threshold = (raw_val + offset) / scale #* unit
         
-        return threshold
+        return threshold*1e-3
 
     def setAApThreshold(self, threshold):
         """
@@ -174,13 +170,12 @@ class ASC500AutoApproach(ASC500Base):
         -------
         None.
         """
-        unit_raw = self.getParameter(self.getConst('ID_GUI_UNIT_ZREG'))
+        unit = self.getParameter(self.getConst('ID_GUI_UNIT_ZREG'))
         scale = self.getParameter(self.getConst('ID_GUI_SCAL_ZREG'))
         offset = self.getParameter(self.getConst('ID_GUI_OFFS_ZREG'))
-        unit = self.convertUnitToFactor(unit_raw)
-        raw_val = (threshold * scale) * unit #) - offset
+        raw_val = (threshold * scale) # * unit) - offset
         
-        self.setParameter(self.getConst('ID_AAP_THRESHOLD'), raw_val)
+        self.setParameter(self.getConst('ID_AAP_THRESHOLD'), raw_val*1e3)
 
     def getAApStopCondition(self):
         """
@@ -257,7 +252,7 @@ class ASC500AutoApproach(ASC500Base):
         axis : int
             [0..2] or [0..7] depending on HW
         """
-        axis = self.getParameter(self.getConst('ID_AAP_AXIS'))
+        axis = self.getParamter(self.getConst('ID_AAP_AXIS'))
         return axis
     
     def setAApCoarseAxis(self, axis):
@@ -273,7 +268,7 @@ class ASC500AutoApproach(ASC500Base):
         -------
         None.
         """
-        self.setParameter(self.getConst('ID_AAP_AXIS'), axis)
+        self.setParamter(self.getConst('ID_AAP_AXIS'), axis)
     
     def getAApStepsPerApproach(self):
         """
@@ -445,40 +440,9 @@ class ASC500AutoApproach(ASC500Base):
         """
         self.setParameter(self.getConst('ID_AAP_CRS_HLDTIME'), time*1e6)
 
-    def getAApSwitchToGround(self):
-        """
-        This function retrieves if the amplifiers is switched to GND between the approaches.
-
-        Parameters
-        ----------
-        None.
-
-        Returns
-        -------
-        enabled : int
-            [0, 1] Switch to GND is [disabled/enabled]
-        """
-        enabled = self.getParameter(self.getConst('ID_AAP_GNDWHILEAP'))
-        return enabled
-
-    def setAApSwitchToGround(self, enable):
-        """
-        This function sets if the amplifiers is switched to GND between the approaches.
-
-        Parameters
-        ----------
-        enable : int
-            [0, 1] Switch to GND is [disabled/enabled]
-
-        Returns
-        -------
-        None.
-        """
-        self.setParameter(self.getConst('ID_AAP_GNDWHILEAP'), enable)
-
     def getAApCoarseDevice(self):
         """
-        This function retrieves which auto approach coarse divce is currently set.
+        This function retrieves the auto approach on/off.
 
         Parameters
         ----------
@@ -494,7 +458,7 @@ class ASC500AutoApproach(ASC500Base):
 
     def setAApCoarseDevice(self, device):
         """
-        This function sets the auto approach coarse device.
+        This function sets the auto approach on/off.
 
         Parameters
         ----------
