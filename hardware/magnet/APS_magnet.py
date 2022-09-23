@@ -184,18 +184,28 @@ class APSMagnet(Base, MagnetInterface):
                  'acc_max': None,
                  'acc_step': None}
         
-        axis4 = {'label': 'rho', 'unit': 'T', 'pos_min': 0, 'pos_max': self.rho_constr, 'pos_step': 1e-3,
-                 'vel_min': 0, 'vel_max': 1, 'vel_step': 1e-6}
+        axis4 = {'label': 'rho',
+                 'unit': 'T',
+                 'pos_min': 0,
+                 'pos_max': self.rho_constr,
+                 'pos_step': 1e-3,
+                 'vel_min': 0,
+                 'vel_max': 1,
+                 'vel_step': 1e-6}
 
         # In fact position constraints for rho is dependent on theta and phi, which would need
         # the use of an additional function to calculate
         # going to change the return value to a function rho_max_pos which needs the current theta and
         # phi position
         # get the constraints for the x axis:
-        axis5 = {'label': 'theta', 'unit': 'rad', 'pos_min': 0, 'pos_max': 2*np.pi, 'pos_step': 2*np.pi/100, 'vel_min': 0,
-                 'vel_max': 1, 'vel_step': 1e-6}
-
-        # assign the parameter container for x to a name which will identify it
+        axis5 = {'label': 'theta',
+                 'unit': 'rad',
+                 'pos_min': 0,
+                 'pos_max': 2*np.pi,
+                 'pos_step': 2*np.pi/100,
+                 'vel_min': 0,
+                 'vel_max': 1,
+                 'vel_step': 1e-6}
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -238,7 +248,7 @@ class APSMagnet(Base, MagnetInterface):
             internal_counter += 1
 
         if internal_counter == 0:
-            self.log.warning('no parameter_dict was given therefore the '
+            self.log.warning('no valid parameter_dict was given therefore the '
                     'function tell() call was useless')
             return -1
         else:
