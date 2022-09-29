@@ -21,6 +21,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import numpy as np
+import time
 
 from core.connector import Connector
 from core.configoption import ConfigOption
@@ -51,7 +52,10 @@ class CameraLogic(GenericLogic):
     sigVideoFinished = QtCore.Signal()
     timer = None
 
-    enabled = False
+    # Signal to run next loop
+    sigCountNextData = QtCore.Signal()
+
+    # Flag to stop the loop
 
     _exposure = 1.
     _gain = 1.
@@ -76,6 +80,12 @@ class CameraLogic(GenericLogic):
         self.timer = QtCore.QTimer()
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.loop)
+
+        self.stopRequested = False
+
+        # Connect signals
+        self.sigCountNextData.connect(self.loop,QtCore.Qt.QueuedConnection)
+
 
     def on_deactivate(self):
         """ Perform required deactivation. """
@@ -113,31 +123,64 @@ class CameraLogic(GenericLogic):
         """ Start the data recording loop.
         """
         self.enabled = True
+        self.stopRequested = False
+
         self.timer.start(1000*1/self._fps)
 
-        if self._hardware.support_live_acquisition():
-            self._hardware.start_live_acquisition()
-        else:
-            self._hardware.start_single_acquisition()
+        # while self.threadlock:
+
+        #     if self.stopRequested:
+        #         self.stopRequested = False
+        #         break
+
+        #     if self._hardware.support_live_acquisition():
+        #         self._hardware.start_live_acquisition()
+        #     else:
+        #         self._hardware.start_single_acquisition()
+
+        # if self.stopRequested:
+        #     self.stopRequested = False
+        #     break
+        
+        # Begin data taking loop
+        self.sigCountNextData.emit()
 
     def stop_loop(self):
         """ Stop the data recording loop.
         """
-        self.timer.stop()
-        self.enabled = False
-        self._hardware.stop_acquisition()
-        self.sigVideoFinished.emit()
-
+        with self.threadlock:
+            self.timer.stop()
+            self.enabled = False
+            self._hardware.stop_acquisition()
+            self.sigVideoFinished.emit()
+            self.stopRequested = True
 
     def loop(self):
         """ Execute step in the data recording loop: save one of each control and process values
         """
-        self._last_image = self._hardware.get_acquired_data()
-        self.sigUpdateDisplay.emit()
-        if self.enabled:
-            self.timer.start(1000 * 1 / self._fps)
-            if not self._hardware.support_live_acquisition():
-                self._hardware.start_single_acquisition()  # the hardware has to check it's not busy
+        with self.threadlock:
+
+            if self.stopRequested:
+                print('stop requested')
+            
+            if self._hardware.support_live_acquisition():
+                self._hardware.start_live_acquisition()
+            else:
+                self._hardware.start_single_acquisition()
+
+            self._last_image = self._hardware.get_acquired_data()
+            self.sigUpdateDisplay.emit()
+
+            # if self.enabled:
+            #     self.timer.start(1000 * 1 / self._fps)
+            #     if not self._hardware.support_live_acquisition():
+            #         self._hardware.start_single_acquisition()  # the hardware has to check it's not busy
+            
+        # Call this method again  
+        if self.stopRequested == False:
+            time.sleep(0.1)
+            self.sigCountNextData.emit()
+        return
 
     def get_last_image(self):
         """ Return last acquired image """

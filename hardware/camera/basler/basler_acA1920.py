@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Dummy implementation for camera_interface.
+Hardware module for Basler ace camera acA1920 155um
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,47 +20,60 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+from dataclasses import dataclass
 import numpy as np
+# import matplotlib.pyplot as plt
 import time
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.camera_interface import CameraInterface
+from qtpy import QtCore
+from core.connector import Connector
 
 
-class CameraDummy(Base, CameraInterface):
-    """ Dummy hardware for camera interface
+from pypylon import pylon
 
-    Example config for copy-paste:
+class BaslerCam(Base, CameraInterface):
 
-    camera_dummy:
-        module.Class: 'camera.camera_dummy.CameraDummy'
-        support_live: True
-        camera_name: 'Dummy camera'
-        resolution: (1280, 720)
-        exposure: 0.1
-        gain: 1.0
-    """
+    _camera_name = 'Basler_ace_acA1920_155um'                                                     
 
     _support_live = ConfigOption('support_live', True)
-    _camera_name = ConfigOption('camera_name', 'Dummy camera')
-    _resolution = ConfigOption('resolution', (1280, 720))  # High-definition !
+    _resolution = ConfigOption('resolution', (1936, 1216)) 
 
     _live = False
     _acquiring = False
-    _exposure = ConfigOption('exposure', .1)
-    # _gain = ConfigOption('gain', 1.)
+    _exposure = 1000
     _gain = 2
+    _num_img = 1
+    _trig_source = 'Line4'
+    _pixel_format = 'Mono12'
+
+    # setup signals
+    sigUpdateDisplay = QtCore.Signal()
+    sigAcquisitionFinished = QtCore.Signal()
+
+    # self.signal_scan_lines_next.connect(self._scan_line, QtCore.Qt.QueuedConnection)
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
+        # Create an instance of the camera object 
+        self.camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+        self.camera.Open()
+
+        # self.camera.TriggerSelector = "FrameStart"
+        # self.camera.TriggerSource = "Line1"
+        self.camera.PixelFormat.SetValue(self._pixel_format)
+    
+        
         pass
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
         self.stop_acquisition()
-
+        self.camera.Close()
+        
     def get_name(self):
         """ Retrieve an identifier of the camera that the GUI can print
 
@@ -87,32 +100,51 @@ class CameraDummy(Base, CameraInterface):
 
         @return bool: Success ?
         """
+        
         if self._support_live:
             self._live = True
             self._acquiring = False
+   
+        self.camera.StartGrabbingMax(self._num_img)
+        self._acquiring = self.camera.IsGrabbing()
+        self.grabResult = self.camera.RetrieveResult(100, pylon.TimeoutHandling_ThrowException)
+                    
+        if self._support_live:
+            self._live = False
+            self._acquiring = False
+
 
     def start_single_acquisition(self):
         """ Start a single acquisition
 
         @return bool: Success ?
         """
+        self.camera.StartGrabbingMax(self._num_img)
+
         if self._live:
             return False
         else:
-            self._acquiring = True
-            time.sleep(float(self._exposure+10/1000))
-            self._acquiring = False
-            return True
-
+            # Wait for image and retrieve. 5000ms timeout. 
+            self._acquiring = self.camera.IsGrabbing()
+            self.grabResult = self.camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+            if self.grabResult.GrabSucceeded():
+                # time.sleep(float(self._exposure+10/1000))
+                self._acquiring = False
+                return True
+            else:
+                print("Error: ", self.grabResult.ErrorCode, self.grabResult.ErrorDescription)
+                return False
+    
     def stop_acquisition(self):
         """ Stop/abort live or single acquisition
 
         @return bool: Success ?
         """
+
+        self.camera.StopGrabbing()
         self._live = False
         self._acquiring = False
-
-
+        
     def get_acquired_data(self):
         """ Return an array of last acquired image.
 
@@ -120,8 +152,13 @@ class CameraDummy(Base, CameraInterface):
 
         Each pixel might be a float, integer or sub pixels
         """
-        data = np.random.random(self._resolution)*self._exposure*self._gain
-        return data.transpose()
+        data = self.grabResult.Array
+        # print data.shape
+        
+        return data
+
+        # data = np.random.random(self._resolution)*self._exposure*self._gain
+        # return data.transpose()
 
     def set_exposure(self, exposure):
         """ Set the exposure time in seconds
@@ -138,6 +175,7 @@ class CameraDummy(Base, CameraInterface):
 
         @return float exposure time
         """
+        self._exposure = self.camera.ExposureTime.GetValue()
         return self._exposure
 
 
@@ -156,6 +194,8 @@ class CameraDummy(Base, CameraInterface):
 
         @return float: exposure gain
         """
+        self._gain = self.camera.Gain.GetValue()
+
         return self._gain
 
 

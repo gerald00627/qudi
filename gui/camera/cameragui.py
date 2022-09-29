@@ -214,6 +214,7 @@ class CameraGUI(GUIBase):
             self._mw.start_video_Action.setText('Stop Video')
             self.sigVideoStart.emit()
 
+
     def enable_start_image_action(self):
         self._mw.start_image_Action.setEnabled(True)
 
