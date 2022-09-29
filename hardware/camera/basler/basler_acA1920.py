@@ -70,6 +70,7 @@ class BaslerCam(Base, CameraInterface):
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
+        
         """
         self.stop_acquisition()
         self.camera.Close()
