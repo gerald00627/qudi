@@ -347,7 +347,7 @@ class MagnetLogic(GenericLogic):
         return param_dict
 
     def _create_1d_pathway(self, axis_name, axis_range, axis_step, axis_vel):
-        """  Create a path along with the magnet should move with one axis
+        """  Create a path along which the magnet should move with one axis
 
         @param str axis_name:
         @param float axis_range:
@@ -741,6 +741,7 @@ class MagnetLogic(GenericLogic):
 
         self.log.debug("I'm in _move_to_curr_pathway_index: {0}".format(move_dict_abs))
         # self.set_velocity(move_dict_vel)
+        print(move_dict_abs,"1")
         self._magnet_device.move_abs(move_dict_abs)
         # self.move_rel(move_dict_rel)
         while self._check_is_moving():
@@ -821,6 +822,7 @@ class MagnetLogic(GenericLogic):
 
             # commenting this out for now, because it is kind of useless for us
             # self.set_velocity(move_dict_vel)
+            print(move_dict_abs,"2")
             self._magnet_device.move_abs(move_dict_abs)
 
             while self._check_is_moving():
@@ -876,6 +878,7 @@ class MagnetLogic(GenericLogic):
         for axis_name in self._saved_pos_before_align:
             last_pos[axis_name] = self._backmap[self._pathway_index - 1][axis_name]
 
+        print(self._saved_pos_before_align,"3")
         self._magnet_device.move_abs(self._saved_pos_before_align)
 
         while self._check_is_moving():

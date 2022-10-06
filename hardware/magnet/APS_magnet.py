@@ -71,8 +71,8 @@ class APSMagnet(Base, MagnetInterface):
 
         @return int: (0: Ok, -1:error)
         """
-        self.ser_zx = serial.Serial(port=self.addr_zx, baudrate=9600, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
-        self.ser_y = serial.Serial(port=self.addr_y, baudrate=9600, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.ser_zx = serial.Serial(port=self.addr_zx, baudrate=19200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.ser_y = serial.Serial(port=self.addr_y, baudrate=19200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
         self.x_dir = 'ZERO'
         self.y_dir = 'ZERO'
@@ -747,7 +747,6 @@ class APSMagnet(Base, MagnetInterface):
                       position. Given in spheric coordinates with Units T, rad , rad.
         """
         mypos1 = {}
-        mypos2 = {}
 
         answ_dict = self.get_current_field()
         coord_list = [answ_dict['x'], answ_dict['y'], answ_dict['z']]
@@ -759,12 +758,8 @@ class APSMagnet(Base, MagnetInterface):
         mypos1['y'] = answ_dict['y']
         mypos1['z'] = answ_dict['z']
 
-        mypos2['rho'] = rho
-        mypos2['theta'] = theta
-        mypos2['phi'] = phi
-
         if param_list is None:
-            return mypos2
+            return mypos1
 
         else:
             return {i:mypos1[i] for i in param_list}
