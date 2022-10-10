@@ -486,7 +486,7 @@ class AFMConfocalLogic(GenericLogic):
 
     # Save scan automatically after it has finished
     _sg_auto_save_quanti = StatusVar(default=False)
-    _sg_auto_save_qafm = StatusVar(default=False)
+    _sg_auto_save_qafm = StatusVar(default=True)
 
     # Optimizer Settings
     _sg_optimizer_x_range = StatusVar(default=1.0e-6)
@@ -1888,7 +1888,7 @@ class AFMConfocalLogic(GenericLogic):
 
                 self._debug = self._spm.scan_point()
                 self._scan_point[2:] = self._debug 
-                
+
                 # obtain ESR measurement
                 esr_meas = self._counter.get_measurements()[0]
 
@@ -3889,13 +3889,13 @@ class AFMConfocalLogic(GenericLogic):
             block_1 = PulseBlock()
 
             d_ch = clear(d_ch)
-            d_ch[self._pulser._mw_trig] = True
             d_ch[self._pulser._laser_channel] = True
             d_ch[self._pulser._mw_switch] = True
             d_ch[self._pulser._pixel_start] = True
             block_1.append(init_length = int_time, channels = d_ch, repetition = 1)
 
             d_ch = clear(d_ch)
+            d_ch[self._pulser._mw_trig] = True
             d_ch[self._pulser._pixel_stop] = True
             d_ch[self._pulser._mw_switch] = True
             block_1.append(init_length = 1000e-6, channels = d_ch, repetition = 1)

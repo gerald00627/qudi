@@ -459,9 +459,9 @@ class ASC500Scanner(ASC500Base):
         # determine target position
         currPos = self.positionXYZRel
         if not absolute:
-            targetPos = [currPos[0] + delX, currPos[1] + delY]
+            targetPos = [currPos[0] + deltaX, currPos[1] + deltaY]
         else:
-            targetPos = [delX, delY]
+            targetPos = [deltaX, deltaY]
 
         targetPos = [round(p, 9) for p in targetPos]    # 1nm precision
 
@@ -511,8 +511,8 @@ class ASC500Scanner(ASC500Base):
         -------
         None.
         """
-        self.setParameter(self.getConst('ID_SCAN_OFFSET_X'), pos[0]*1e11)
-        self.setParameter(self.getConst('ID_SCAN_OFFSET_Y'), pos[1]*1e11)
+        self.setParameter(self.getConst('ID_SCAN_OFFSET_X'), position[0]*1e11)
+        self.setParameter(self.getConst('ID_SCAN_OFFSET_Y'), position[1]*1e11)
     
     def getPositioningSpeed(self):
         """

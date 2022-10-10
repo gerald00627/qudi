@@ -53,7 +53,7 @@ class ODMRLogic(GenericLogic):
         missing='warn',
         converter=lambda x: MicrowaveMode[x.upper()])
 
-    clock_frequency = StatusVar('clock_frequency', 200)
+    clock_frequency = StatusVar('clock_frequency', 100)
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
     cw_mw_power = StatusVar('cw_mw_power', -30)
     sweep_mw_power = StatusVar('sweep_mw_power', -30)
@@ -217,7 +217,7 @@ class ODMRLogic(GenericLogic):
 
         if type(self.final_freq_list) == list:
             self.final_freq_list = np.array(final_freq_list)
-
+        
         self.odmr_plot_x = np.array(self.final_freq_list)
         self.odmr_plot_y = np.zeros([len(self.get_odmr_channels()), self.odmr_plot_x.size])
 
@@ -500,11 +500,9 @@ class ODMRLogic(GenericLogic):
                 num_steps = int(np.rint((mw_stop - mw_start) / mw_step))
                 end_freq = mw_start + num_steps * mw_step
                 freq_list = np.linspace(mw_start, end_freq, num_steps + 1)
-
                 # adjust the end frequency in order to have an integer multiple of step size
                 # The master module (i.e. GUI) will be notified about the changed end frequency
                 final_freq_list.extend(freq_list)
-
                 used_starts.append(mw_start)
                 used_steps.append(mw_step)
                 used_stops.append(end_freq)
@@ -763,6 +761,7 @@ class ODMRLogic(GenericLogic):
 
             # Acquire count data
             error, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
+
 
             if error:
                 self.stopRequested = True

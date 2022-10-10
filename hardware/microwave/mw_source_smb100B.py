@@ -23,7 +23,7 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import visa
+import pyvisa as visa
 import time
 import numpy as np
 
@@ -51,6 +51,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
     # backward compatibility
     _address = ConfigOption('tcpip_address', missing='error')
     _timeout = ConfigOption('tcpip_timeout', 10, missing='warn')
+    _dwell_time = ConfigOption('dwell_time', 10000)
 
     # to limit the power to a lower value that the hardware can provide
     _max_power = ConfigOption('max_power', None)
@@ -286,8 +287,21 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.error('List mode not available for this microwave hardware!')
-        return -1
+        current_mode, is_running = self.get_status()
+        if is_running:
+            if current_mode == 'list':
+                return 0
+            else:
+                self.off()
+
+        # This needs to be done due to stupid design of the list mode (sweep is better)
+        self.cw_on()
+        self._command_wait(':FREQ:MODE LIST')
+        dummy, is_running = self.get_status()
+        while not is_running:
+            time.sleep(0.2)
+            dummy, is_running = self.get_status()
+        return 0
 
     def set_list(self, frequency=None, power=None):
         """
@@ -301,9 +315,45 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
             current power in dBm,
             current mode
         """
-        self.log.error('List mode not available for this microwave hardware!')
-        mode, dummy = self.get_status()
-        return self.get_frequency(), self.get_power(), mode
+        mode, is_running = self.get_status()
+        if is_running:
+            self.off()
+
+        # Cant change list parameters if in list mode
+        if mode != 'cw':
+            self.set_cw()
+
+        self._command_wait(":LIST:SEL '/var/user/QUDI.lsw'")
+
+        # Set list frequencies
+        if frequency is not None:
+            s = ''
+            dwell = ''
+            for f in frequency[:-1]:
+                s += ' {0:f} Hz,'.format(f)
+                dwell += ' {0:f},'.format(self._dwell_time)
+            s += ' {0:f} Hz'.format(frequency[-1])
+            dwell += ' {0:f}'.format(self._dwell_time)
+
+            self._command_wait(':LIST:FREQ' + s)
+            self._command_wait(':LIST:DWEL:LIST' + dwell)
+
+        if power is not None:
+            s = ''
+            for p in range(len(frequency[:-1])):
+                s += ' {0:f} dBm,'.format(power)
+            s += ' {0:f}'.format(power)
+
+            self._command_wait(':LIST:POW' + s)
+
+        self._command_wait(':LIST:MODE STEP')
+        self._command_wait(':TRIG1:LIST:SOUR EXT')
+        #FIXME: figure out how to set list mode without turning power on (maybe unnecessary)
+        # Also get frequency from device, instead of assuming things went well.
+        # Perhaps: actual_frequencies = self.query(':LIST:FREQ?')
+        # self._command_wait(':FREQ:MODE LIST')
+        # mode, dummy = self.get_status()
+        return frequency, self.get_power(), 'list'
 
     def reset_listpos(self):
         """
@@ -311,8 +361,8 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.log.error('List mode not available for this microwave hardware!')
-        return -1
+        self._command_wait(':LIST:RES')
+        return 0
 
     def sweep_on(self):
         """ Switches on the sweep mode.
@@ -408,7 +458,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         if edge is not None:
             #self._command_wait('PULM:TRIG1:EXT:SLOP {0}'.format(edge))
             self._command_wait('TRIG1:SLOP {0}'.format(edge))
-            self._command_wait(':SWEep:FREQuency:DWELl {}'.format(timing)) # Nathan Added
+            self._command_wait(':SWEep:FREQuency:DWEL {}'.format(timing)) # Nathan Added
 
         #polarity = self._connection.query('PULM:TRIG1:EXT:SLOP?')
         polarity = self._connection.query('TRIG1:SLOP?')

@@ -104,13 +104,13 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
         block_1 = PulseBlock()
 
         d_ch = clear(d_ch)
-        d_ch[self._pulser._mw_trig] = True
         d_ch[self._pulser._laser_channel] = True
         d_ch[self._pulser._mw_switch] = True
         d_ch[self._pulser._pixel_start] = True
         block_1.append(init_length = 1/clock_frequency, channels = d_ch, repetition = 1)
 
         d_ch = clear(d_ch)
+        d_ch[self._pulser._mw_trig] = True
         d_ch[self._pulser._laser_channel] = True
         d_ch[self._pulser._mw_switch] = True
         d_ch[self._pulser._pixel_stop] = True
@@ -163,12 +163,13 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
         @return float[]: the photon counts per second
         """
+        
         self._sc_device.start_recorder()
-
-        self._pulser.pulser_on(n=length+2) # not sure why n=length fails
-        counts = self._sc_device.get_measurements(['counts'])[0]
+        
+        self._pulser.pulser_on(n=length+5) # needs debugging: TT must be missing trigger signals
+        counts = self._sc_device.get_measurements(['counts'])
     
-        return False, counts
+        return False, counts[0]
 
     def close_odmr(self):
         """ Close the odmr and clean up afterwards.     

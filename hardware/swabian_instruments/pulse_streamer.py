@@ -25,7 +25,6 @@ from core.configoption import ConfigOption
 from core.statusvariable import  StatusVar
 from core.util.modules import get_home_dir
 from interface.pulser_interface import PulserInterface, PulserConstraints
-from interface.odmr_counter_interface import ODMRCounterInterface
 from collections import OrderedDict
 import numpy as np
 import time
@@ -33,7 +32,7 @@ import time
 import pulsestreamer as ps
 
 
-class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
+class PulseStreamer(Base, PulserInterface):
     """ Methods to control the Swabian Instruments Pulse Streamer 8/2
 
     Example config for copy-paste:
@@ -48,15 +47,15 @@ class PulseStreamer(Base, PulserInterface, ODMRCounterInterface):
         external_clock_option: 0
     """
 
-    _pulsestreamer_ip = ConfigOption('pulsestreamer_ip', '192.168.1.100', missing='warn')
-    _laser_channel = ConfigOption('laser_channel', 1, missing='warn')
-    _uw_x_channel = ConfigOption('uw_x_channel', 3, missing='warn')
+    _pulsestreamer_ip = ConfigOption('pulsestreamer_ip', '169.254.8.2', missing='warn')
+    _laser_channel = ConfigOption('laser_channel', 0, missing='warn')
+    _uw_x_channel = ConfigOption('uw_x_channel', 1, missing='warn')
 
-    _pixel_start = ConfigOption('pixel_start', 1, missing='warn')
-    _pixel_stop = ConfigOption('pixel_stop', 2, missing='warn')
-    _sync_in = ConfigOption('sync_in', 3, missing='warn')
-    _mw_switch = ConfigOption('mw_switch', 4, missing='info')
-    _mw_trig = ConfigOption('mw_trig', 5, missing='info')
+    _pixel_start = ConfigOption('pixel_start', 5, missing='warn')
+    _pixel_stop = ConfigOption('pixel_stop', 6, missing='warn')
+    _sync_in = ConfigOption('sync_in', 7, missing='warn')
+    _mw_switch = ConfigOption('mw_switch', 2, missing='info')
+    _mw_trig = ConfigOption('mw_trig', 3, missing='info')
 
     _use_external_clock = ConfigOption('use_external_clock', False, missing='info')
     _external_clock_option = ConfigOption('external_clock_option', 0, missing='info')
