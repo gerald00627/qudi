@@ -1,17 +1,24 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Qudi SJ5",
+            "name": "Python: Qudi",
             "type": "python",
             "request": "launch",
-            "cwd": "C:\\qudi\\sriharijayaram5-qudi",
+            "cwd": "C:\\Users\\Anvil\\Documents\\GitHub\\qudi",
             "program": "start.py",
-            "args": ["-c", "config\\labq-dummy-config.cfg"],
+            "args": [
+                "-c",
+                "config\\attodry2200_config.cfg"
+            ],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": true
         }
     ]
 }
