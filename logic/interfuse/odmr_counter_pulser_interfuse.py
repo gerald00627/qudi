@@ -163,7 +163,6 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
         @return float[]: the photon counts per second
         """
-        
         self._sc_device.start_recorder()
         
         self._pulser.pulser_on(n=length+5) # needs debugging: TT must be missing trigger signals
