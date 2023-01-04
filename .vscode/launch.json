@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Qudi SJ5",
+            "name": "Python: Qudi",
             "type": "python",
             "request": "launch",
-            "cwd": "C:\\qudi\\sriharijayaram5-qudi",
+            "cwd": "C:\\Users\\cduPC\\Documents\\GitHub\\qudi",
             "program": "start.py",
-            "args": ["-c", "config\\labq-dummy-config.cfg"],
+            "args": ["-c", "config\\Anvil_AWG_config.cfg"],
             "console": "integratedTerminal"
         }
     ]

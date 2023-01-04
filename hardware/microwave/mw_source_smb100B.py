@@ -104,7 +104,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         limits.supported_modes = (MicrowaveMode.CW, MicrowaveMode.SWEEP)
 
         limits.min_power = -145
-        limits.max_power = -1
+        limits.max_power = 20
 
         limits.min_frequency = 8e3
         limits.max_frequency = 6e9
@@ -279,6 +279,20 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         actual_freq = self.get_frequency()
         actual_power = self.get_power()
         return actual_freq, actual_power, mode
+
+    # Before pulser implemetation
+    def set_cw_freq_PCIE(self,index=None):
+        """03.25 @Hanyi Lu This specific method is added to work with the 
+        odmr_counter_microwave_interfuse_smb100B.py
+        """
+
+        try:
+            self._connection.write(':FREQ {0:f}'.format(self.final_freq_list[index]))
+        except:
+            self.log.error('No index frequencies available')
+            raise
+        #time.sleep(self._FREQ_SWITCH_SPEED)  # that is the switching speed
+        return 0
 
     def list_on(self):
         """

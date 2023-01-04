@@ -34,7 +34,7 @@ from interface.camera_interface import CameraInterface
 # from core.connector import Connector
 
 # from interface.odmr_counter_interface import ODMRCounterInterface
-# from interface.slow_counter_interface import SlowCounterInterface
+from interface.slow_counter_interface import SlowCounterInterface
 # from interface.slow_counter_interface import SlowCounterConstraints
 # from interface.slow_counter_interface import CountingMode
 
@@ -43,7 +43,7 @@ from qtpy import QtCore
 
 
 # class CameraBasler(Base, SlowCounterInterface, ODMRCounterInterface):
-class CameraBasler(Base, CameraInterface):
+class CameraBasler(Base, CameraInterface, SlowCounterInterface):
     """ Basler hardware for camera interface
 
     Example config for copy-paste:
@@ -223,83 +223,81 @@ class CameraBasler(Base, CameraInterface):
         return not (self._live or self._acquiring)
 
 
+######################################################################################
+########## SlowCounter Interface Implementation BEGIN ################################
+######################################################################################
+    
+    def set_up_clock(self, clock_frequency=None, clock_channel=None):
+        """ Configures the hardware clock of the TimeTagger for timing
 
+        @param float clock_frequency: if defined, this sets the frequency of
+                                      the clock
+        @param string clock_channel: if defined, this is the physical channel
+                                     of the clock
 
-    # ###### SlowCounter Interface Implementation BEGIN ######
+        @return int: error code (0:OK, -1:error)
+        """
+        return 0
 
-    # def set_up_clock(self, clock_frequency=None, clock_channel=None):
-    #     """ Configures the hardware clock of the TimeTagger for timing
+    def set_up_counter(self,
+                       counter_channels=None,
+                       sources=None,
+                       clock_channel=None,
+                       counter_buffer=None):
+        """ Configures the actual counter with a given clock.
 
-    #     @param float clock_frequency: if defined, this sets the frequency of
-    #                                   the clock
-    #     @param string clock_channel: if defined, this is the physical channel
-    #                                  of the clock
+        @param str counter_channel: optional, physical channel of the counter
+        @param str photon_source: optional, physical channel where the photons
+                                  are to count from
+        @param str counter_channel2: optional, physical channel of the counter 2
+        @param str photon_source2: optional, second physical channel where the
+                                   photons are to count from
+        @param str clock_channel: optional, specifies the clock channel for the
+                                  counter
+        @param int counter_buffer: optional, a buffer of specified integer
+                                   length, where in each bin the count numbers
+                                   are saved. test
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+        @return int: error code (0:OK, -1:error)
+        """
+        return 0
 
-    # def set_up_counter(self,
-    #                    counter_channels=None,
-    #                    sources=None,
-    #                    clock_channel=None,
-    #                    counter_buffer=None):
-    #     """ Configures the actual counter with a given clock.
+    def get_counter_channels(self):
+        return [1]
 
-    #     @param str counter_channel: optional, physical channel of the counter
-    #     @param str photon_source: optional, physical channel where the photons
-    #                               are to count from
-    #     @param str counter_channel2: optional, physical channel of the counter 2
-    #     @param str photon_source2: optional, second physical channel where the
-    #                                photons are to count from
-    #     @param str clock_channel: optional, specifies the clock channel for the
-    #                               counter
-    #     @param int counter_buffer: optional, a buffer of specified integer
-    #                                length, where in each bin the count numbers
-    #                                are saved. test
+    def get_constraints(self):
+        """ Get camera parameters
+        """
+        width = self.camera.Width.GetValue()
+        height = self.camera.Height.GetValue()
+        return width, height
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+    def get_counter(self, samples=None):
+        """ Returns an array of PL from the camera
+        """
+        self.camera.StartGrabbingMax(self._num_img)
+        while self.camera.IsGrabbing():
+            output = self.camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+            if output.GrabSucceeded():
+                img = output.Array
+        return img
 
-    # def get_counter_channels(self):
-    #     return [1]
+    def close_counter(self):
+        """ Closes the counter and cleans up afterwards.
 
-    # def get_constraints(self):
-    #     """ Get camera parameters
-    #     """
-    #     width = self._camera.Width.GetValue()
-    #     height = self._camera.Height.GetValue()
-    #     return width, height
+        @return int: error code (0:OK, -1:error)
+        """
+        self.camera.Close()
+        return 0
 
-    # def get_counter(self, samples=None):
-    #     """ Returns an array of PL from the camera
-    #     """
-    #     self._camera.StartGrabbingMax(self._num_images)
-    #     while self._camera.IsGrabbing():
-    #         output = self._camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
-    #         if output.GrabSucceeded():
-    #             img = output.Array
-    #     return img
+    def close_clock(self):
+        """ Closes the clock and cleans up afterwards.
 
-    # def close_counter(self):
-    #     """ Closes the counter and cleans up afterwards.
+        @return int: error code (0:OK, -1:error)
+        """
+        return 0
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     self._camera.Close()
-    #     return 0
-
-    # def close_clock(self):
-    #     """ Closes the clock and cleans up afterwards.
-
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
-
-    # ###### SlowCounter Interface Implementation END ######
-
-    # ###### ODMRCounterInterface Interface Implementation BEGIN ######
+    ##### ODMRCounterInterface Interface Implementation BEGIN ######
 
     # def set_up_odmr_clock(self, clock_frequency=None, clock_channel=None):
     #     """ Configures the hardware clock of the NiDAQ card to give the timing.
