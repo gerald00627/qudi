@@ -37,7 +37,6 @@ from core.util.math import compute_ft
 from logic.generic_logic import GenericLogic
 from logic.pulsed.pulse_extractor import PulseExtractor
 from logic.pulsed.pulse_analyzer import PulseAnalyzer
-import pulsestreamer as ps
 
 class PulsedMeasurementLogic(GenericLogic):
     """
@@ -483,9 +482,6 @@ class PulsedMeasurementLogic(GenericLogic):
 
     def pulse_generator_on(self):
         """Switching on the pulse generator. """
-        # self.pulsegenerator().pulse_streamer.setTrigger(start=ps.TriggerStart.HARDWARE_RISING)
-        #FIXME: Where is this trigger supposed to come from?
-        # err = self.pulsegenerator().pulser_on(trigger=True, laser=False, n=1, rearm=False)
         err = self.pulsegenerator().pulser_on()
         if err < 0:
             self.log.error('Failed to turn on pulse generator output.')
@@ -496,7 +492,6 @@ class PulsedMeasurementLogic(GenericLogic):
 
     def pulse_generator_off(self):
         """Switching off the pulse generator. """
-        # self.pulsegenerator().pulse_streamer.setTrigger(start=ps.TriggerStart.SOFTWARE)
         err = self.pulsegenerator().pulser_off()
         if err < 0:
             self.log.error('Failed to turn off pulse generator output.')
