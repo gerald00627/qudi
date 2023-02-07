@@ -46,6 +46,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', missing='info')
     _channel_detect = ConfigOption('timetagger_channel_detect', missing='error')
     _channel_next = ConfigOption('timetagger_channel_next', missing='error')
+    _channel_sync = ConfigOption('timetagger_channel_sync', missing='error')
     _channel_sequence = ConfigOption('timetagger_channel_sequence', missing='error')
     _sum_channels = ConfigOption('timetagger_sum_channels', True, missing='warn')
 
@@ -150,7 +151,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
             click_channel=self._channel_apd,
             start_channel=self._channel_detect,
             next_channel=self._channel_next,
-            sync_channel=tt.CHANNEL_UNUSED,
+            sync_channel=self._channel_sync,
             binwidth=int(np.round(self._bin_width * 1000)),
             n_bins=int(self._record_length),
             n_histograms=number_of_gates)

@@ -107,6 +107,7 @@ class PulsedMasterLogic(GenericLogic):
     sigGeneratorSettingsUpdated = QtCore.Signal(dict)
     sigSamplingSettingsUpdated = QtCore.Signal(dict)
     sigPredefinedSequenceGenerated = QtCore.Signal(object, bool)
+    sigMeasurementDictUpdated = QtCore.Signal(dict)
 
     def __init__(self, config, **kwargs):
         """ Create PulsedMasterLogic object with connectors.
@@ -217,6 +218,8 @@ class PulsedMasterLogic(GenericLogic):
         self.sigGeneratePredefinedSequence.connect(
             self.sequencegeneratorlogic().generate_predefined_sequence, QtCore.Qt.QueuedConnection)
 
+
+
         # Connect signals coming from SequenceGeneratorLogic
         self.sequencegeneratorlogic().sigBlockDictUpdated.connect(
             self.sigBlockDictUpdated, QtCore.Qt.QueuedConnection)
@@ -242,6 +245,10 @@ class PulsedMasterLogic(GenericLogic):
             self.loaded_asset_updated, QtCore.Qt.QueuedConnection)
         self.sequencegeneratorlogic().sigBenchmarkComplete.connect(
             self.benchmark_completed, QtCore.Qt.QueuedConnection)
+        self.sequencegeneratorlogic().sigMeasurementDictUpdated.connect(
+            self.set_measurement_settings, QtCore.Qt.QueuedConnection)
+
+
 
         return
 

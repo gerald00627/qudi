@@ -116,6 +116,8 @@ class SequenceGeneratorLogic(GenericLogic):
     sigAvailableSequencesUpdated = QtCore.Signal(list)
     sigBenchmarkComplete = QtCore.Signal()
 
+    sigMeasurementDictUpdated = QtCore.Signal(dict)
+
     sigPredefinedSequenceGenerated = QtCore.Signal(object, bool)
 
     def __init__(self, config, **kwargs):
@@ -1135,8 +1137,9 @@ class SequenceGeneratorLogic(GenericLogic):
                                ''.format(predefined_sequence_name))
             self.sigPredefinedSequenceGenerated.emit(None, False)
             return
-
-        # Save objects
+        
+            # self.sigMeasurementDictUpdated.emit(ensembles[-1].measurement_information)
+                # Save objects
         for block in blocks:
             self.save_block(block)
         for ensemble in ensembles:
