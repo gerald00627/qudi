@@ -445,6 +445,9 @@ class SPM_ASC500(Base, ScannerInterface):
             self._configurePathDataBuffering(sampTime=sT)
 
             if self._spm_curr_sstyle==ScanStyle.POINT:
+                while True:
+                    if self._dev.base.getParameter(self._dev.base.getConst('ID_SCAN_STATUS'), 0)==8: # should represent idle scan state
+                        break
                 self._dev.base.setParameter(self._dev.base.getConst('ID_SPEC_PATHCTRL'), -1, 0 ) # -1 is grid mode
                 self._dev.scanner.setRelativeOrigin(self.end_coords) # set after path or it will attempt going to origin for some reason
                 self._spm_curr_state =  ScannerState.PROBE_SCANNING
