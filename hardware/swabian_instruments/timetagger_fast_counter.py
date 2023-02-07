@@ -43,9 +43,9 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
     """
 
     _channel_apd_0 = ConfigOption('timetagger_channel_apd_0', missing='error')
-    _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', None, missing='warn')
-    _channel_next = ConfigOption('timetagger_channel_next', missing='error')
+    _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', missing='info')
     _channel_detect = ConfigOption('timetagger_channel_detect', missing='error')
+    _channel_next = ConfigOption('timetagger_channel_next', missing='error')
     _channel_sync = ConfigOption('timetagger_channel_sync', missing='error')
     _sum_channels = ConfigOption('timetagger_sum_channels', missing='error')
 
@@ -53,8 +53,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         """ Connect and configure the access to the FPGA.
         """
         self._tagger = tt.createTimeTagger()
-        self._tagger.reset()
-        self.pulsed = None
+        # self._tagger.reset()
 
         self._number_of_gates = int(100)
         self._bin_width = 1
@@ -120,11 +119,10 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
     def on_deactivate(self):
         """ Deactivate the Time Tagger.
         """
-        if self.pulsed is not None:
-            if self.module_state() == 'locked':
-                self.pulsed.stop()
-            self.pulsed.clear()
-            self.pulsed = None
+        if self.module_state() == 'locked':
+            self.pulsed.stop()
+        self.pulsed.clear()
+        self.pulsed = None
 
     def configure(self, bin_width_s, record_length_s, number_of_gates=0):
 
@@ -166,6 +164,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         self.module_state.lock()
         self.pulsed.clear()
         self.pulsed.start()
+        self._tagger.sync()
         self.statusvar = 2
         return 0
 
@@ -194,6 +193,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         """
         if self.module_state() == 'locked':
             self.pulsed.start()
+            self._tagger.sync()
             self.statusvar = 2
         return 0
 
@@ -217,8 +217,8 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         care of in this hardware class. A possible overflow of the histogram
         bins must be caught here and taken care of.
         """
-        info_dict = {'elapsed_sweeps': None,
-                     'elapsed_time': None}  # TODO : implement that according to hardware capabilities
+        info_dict = {'elapsed_sweeps': self.pulsed.getCounts(),
+                     'elapsed_time': None}  
         return np.array(self.pulsed.getData(), dtype='int64'), info_dict
 
 
@@ -238,4 +238,3 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         """ Returns the width of a single timebin in the timetrace in seconds. """
         width_in_seconds = self._bin_width * 1e-9
         return width_in_seconds
-
