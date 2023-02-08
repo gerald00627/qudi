@@ -75,7 +75,7 @@ class PulsedMeasurementLogic(GenericLogic):
     _invoke_settings_from_sequence = StatusVar(default=False)
     _number_of_lasers = StatusVar(default=50)
     _controlled_variable = StatusVar(default=list(range(50)))
-    _alternating = StatusVar(default=False)
+    _number_of_curves = StatusVar(default=1)
     _laser_ignore_list = StatusVar(default=list())
     _data_units = StatusVar(default=('s', ''))
     _data_labels = StatusVar(default=('Tau', 'Signal'))
@@ -529,7 +529,7 @@ class PulsedMeasurementLogic(GenericLogic):
                                                         dtype=float).copy()
         settings_dict['number_of_lasers'] = int(self._number_of_lasers)
         settings_dict['laser_ignore_list'] = list(self._laser_ignore_list).copy()
-        settings_dict['alternating'] = bool(self._alternating)
+        settings_dict['number_of_curves'] = int(self._number_of_curves)
         settings_dict['units'] = self._data_units
         settings_dict['labels'] = self._data_labels
         return settings_dict
@@ -550,7 +550,7 @@ class PulsedMeasurementLogic(GenericLogic):
         mand_params = ('number_of_lasers',
                        'controlled_variable',
                        'laser_ignore_list',
-                       'alternating',
+                       'number_of_curves',
                        'counting_length')
         if not isinstance(info_dict, dict) or not all(param in info_dict for param in mand_params):
             self.log.debug('The set measurement_information did not contain all the necessary '
@@ -729,8 +729,8 @@ class PulsedMeasurementLogic(GenericLogic):
                         self.set_fast_counter_settings(number_of_gates=self._number_of_lasers)
                 if 'laser_ignore_list' in settings_dict:
                     self._laser_ignore_list = sorted(settings_dict.get('laser_ignore_list'))
-                if 'alternating' in settings_dict:
-                    self._alternating = bool(settings_dict.get('alternating'))
+                if 'number_of_curves' in settings_dict:
+                    self._number_of_curves = int(settings_dict.get('number_of_curves'))
 
         # Perform sanity checks on settings
         self._measurement_settings_sanity_check()
@@ -973,11 +973,11 @@ class PulsedMeasurementLogic(GenericLogic):
         with self._threadlock:
             if alt_data_type != self.alternative_data_type:
                 self.do_fit('No Fit', True)
-            if alt_data_type == 'Delta' and not self._alternating:
+            if alt_data_type == 'Delta' and self._number_of_curves != 2:
                 if self._alternative_data_type == 'Delta':
                     self._alternative_data_type = None
-                self.log.error('Can not set "Delta" as alternative data calculation if measurement is '
-                               'not alternating.\n'
+                self.log.error('Can not set "Delta" as alternative data calculation if number of curves '
+                               'is not 2.\n'
                                'Setting to previous type "{0}".'.format(self.alternative_data_type))
             elif alt_data_type == 'None':
                 self._alternative_data_type = None
@@ -1075,10 +1075,10 @@ class PulsedMeasurementLogic(GenericLogic):
                            'Measurement information container is incomplete/invalid.')
             return
 
-        if 'alternating' in self._measurement_information:
-            self._alternating = bool(self._measurement_information.get('alternating'))
+        if 'number_of_curves' in self._measurement_information:
+            self._number_of_curves = bool(self._measurement_information.get('number_of_curves'))
         else:
-            self.log.error('Unable to invoke setting for "alternating".\n'
+            self.log.error('Unable to invoke setting for "number_of_curves".\n'
                            'Measurement information container is incomplete/invalid.')
             return
 
@@ -1109,16 +1109,11 @@ class PulsedMeasurementLogic(GenericLogic):
         if len(self._controlled_variable) < 1:
             self.log.error('Tried to set empty controlled variables array. This can not work.')
 
-        if self._alternating and (number_of_analyzed_lasers // 2) != len(self._controlled_variable):
-            self.log.error('Half of the number of laser pulses to analyze ({0}) does not match the '
+        if (number_of_analyzed_lasers // self._number_of_curves) != len(self._controlled_variable):
+            self.log.error('The number of laser pulses to analyze ({0}) does not match the '
                            'number of controlled_variable ticks ({1:d}).'
-                           ''.format(number_of_analyzed_lasers // 2,
+                           ''.format(number_of_analyzed_lasers // self._number_of_curves,
                                      len(self._controlled_variable)))
-        elif not self._alternating and number_of_analyzed_lasers != len(self._controlled_variable):
-            self.log.error('Number of laser pulses to analyze ({0:d}) does not match the number of '
-                           'controlled_variable ticks ({1:d}).'
-                           ''.format(number_of_analyzed_lasers, len(self._controlled_variable)))
-
         if self.fastcounter().is_gated() and self._number_of_lasers != self.__fast_counter_gates:
             self.log.error('Gated fast counter gate number ({0:d}) differs from number of laser pulses ({1:d})'
                            'configured in measurement settings.'.format(self._number_of_lasers,
@@ -1148,23 +1143,14 @@ class PulsedMeasurementLogic(GenericLogic):
                     tmp_signal = np.delete(tmp_signal, self._laser_ignore_list)
                     tmp_error = np.delete(tmp_error, self._laser_ignore_list)
 
-                # order data according to alternating flag
-                if self._alternating:
-                    if len(self.signal_data[0]) != len(tmp_signal[::2]):
-                        self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
-                                       'pulses ({1}).'.format(len(self.signal_data[0]), len(tmp_signal[::2])))
-                        return
-                    self.signal_data[1] = tmp_signal[::2]
-                    self.signal_data[2] = tmp_signal[1::2]
-                    self.measurement_error[1] = tmp_error[::2]
-                    self.measurement_error[2] = tmp_error[1::2]
-                else:
-                    if len(self.signal_data[0]) != len(tmp_signal):
-                        self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
-                                       'pulses ({1}).'.format(len(self.signal_data[0]), len(tmp_signal)))
-                        return
-                    self.signal_data[1] = tmp_signal
-                    self.measurement_error[1] = tmp_error
+                # order data according to number of curves
+                if len(self.signal_data[0]) != len(tmp_signal[::self._number_of_curves]):
+                    self.log.error('Length of controlled variable ({0}) does not match length of number of readout '
+                                    'pulses ({1}).'.format(len(self.signal_data[0]), len(tmp_signal[::self._number_of_curves])))
+                    return
+                for curve in range(self._number_of_curves):
+                    self.signal_data[curve+1] = tmp_signal[curve::self._number_of_curves]
+                    self.measurement_error[curve+1] = tmp_error[curve::self._number_of_curves]
 
                 # Compute alternative data array from signal
                 self._compute_alt_data()
@@ -1252,7 +1238,7 @@ class PulsedMeasurementLogic(GenericLogic):
         Initializing the signal, error, laser and raw data arrays.
         """
         # Determine signal array dimensions
-        signal_dim = 3 if self._alternating else 2
+        signal_dim = self._number_of_curves + 1
 
         self.signal_data = np.zeros((signal_dim, len(self._controlled_variable)), dtype=float)
         self.signal_data[0] = self._controlled_variable
@@ -1338,21 +1324,15 @@ class PulsedMeasurementLogic(GenericLogic):
             header_str = 'Controlled variable'
             if self._data_units[0]:
                 header_str += '({0})'.format(self._data_units[0])
-            header_str += '\tSignal'
-            if self._data_units[1]:
-                header_str += '({0})'.format(self._data_units[1])
-            if self._alternating:
-                header_str += '\tSignal2'
-                if self._data_units[1]:
-                    header_str += '({0})'.format(self._data_units[1])
-            if with_error:
-                header_str += '\tError'
-                if self._data_units[1]:
-                    header_str += '({0})'.format(self._data_units[1])
-                if self._alternating:
-                    header_str += '\tError2'
-                    if self._data_units[1]:
-                        header_str += '({0})'.format(self._data_units[1])
+
+            for curve in range(self._number_of_curves):
+                header_str += '\tSignal{}'.format(curve)
+                if self._data_units[curve + 1]:
+                    header_str += '({0})'.format(self._data_units[curve + 1])
+                if with_error:
+                    header_str += '\tError{}'.format(curve)
+                    if self._data_units[curve + 1]:
+                        header_str += '({0})'.format(self._data_units[curve + 1])
             data = OrderedDict()
             if with_error:
                 data[header_str] = np.vstack((self.signal_data, self.measurement_error[1:])).transpose()
@@ -1365,7 +1345,7 @@ class PulsedMeasurementLogic(GenericLogic):
             parameters['Measurement sweeps'] = self.__elapsed_sweeps
             parameters['Number of laser pulses'] = self._number_of_lasers
             parameters['Laser ignore indices'] = self._laser_ignore_list
-            parameters['alternating'] = self._alternating
+            parameters['number_of_curves'] = self._number_of_curves
             parameters['analysis parameters'] = self.analysis_settings
             parameters['extraction parameters'] = self.extraction_settings
             parameters['fast counter settings'] = self.fast_counter_settings
@@ -1393,26 +1373,17 @@ class PulsedMeasurementLogic(GenericLogic):
                     fig, ax1 = plt.subplots()
 
                 if with_error:
-                    ax1.errorbar(x=x_axis_scaled, y=self.signal_data[1],
-                                 yerr=self.measurement_error[1], fmt='-o',
-                                 linestyle=':', linewidth=0.5, color=colors[0],
+                    for curve in range(self._number_of_curves):
+                        ax1.errorbar(x=x_axis_scaled, y=self.signal_data[curve + 1],
+                                 yerr=self.measurement_error[curve + 1], fmt='-o',
+                                 linestyle=':', linewidth=0.5, color=colors[curve],
                                  ecolor=colors[1], capsize=3, capthick=0.9,
-                                 elinewidth=1.2, label='data trace 1')
-
-                    if self._alternating:
-                        ax1.errorbar(x=x_axis_scaled, y=self.signal_data[2],
-                                     yerr=self.measurement_error[2], fmt='-D',
-                                     linestyle=':', linewidth=0.5, color=colors[3],
-                                     ecolor=colors[4],  capsize=3, capthick=0.7,
-                                     elinewidth=1.2, label='data trace 2')
+                                 elinewidth=1.2, label='data trace {}'.format(curve + 1))
                 else:
-                    ax1.plot(x_axis_scaled, self.signal_data[1], '-o', color=colors[0],
-                             linestyle=':', linewidth=0.5, label='data trace 1')
+                    for curve in range(self._number_of_curves):
+                        ax1.plot(x_axis_scaled, self.signal_data[curve + 1], '-o', color=colors[curve],
+                             linestyle=':', linewidth=0.5, label='data trace {}'.format(curve + 1))
 
-                    if self._alternating:
-                        ax1.plot(x_axis_scaled, self.signal_data[2], '-o',
-                                 color=colors[3], linestyle=':', linewidth=0.5,
-                                 label='data trace 2')
 
                 # Do not include fit curve if there is no fit calculated.
                 if self.signal_fit_data.size != 0 and np.sum(np.abs(self.signal_fit_data[1])) > 0:
@@ -1505,14 +1476,12 @@ class PulsedMeasurementLogic(GenericLogic):
 
                         ft_label = '{0} of data traces'.format(self._alternative_data_type)
 
-                    ax2.plot(x_axis_ft_scaled, self.signal_alt_data[1], '-o',
-                             linestyle=':', linewidth=0.5, color=colors[0],
-                             label=ft_label)
-                    if self._alternating and len(self.signal_alt_data) > 2:
-                        ax2.plot(x_axis_ft_scaled, self.signal_alt_data[2], '-D',
-                                 linestyle=':', linewidth=0.5, color=colors[3],
-                                 label=ft_label.replace('1', '2'))
-
+                    for curve in range(self._number_of_curves):
+                        ax2.plot(x_axis_ft_scaled, self.signal_alt_data[curve + 1], '-o',
+                             linestyle=':', linewidth=0.5, color=colors[curve],
+                             label=ft_label.replace('1',curve + 1))
+                        if len(self.signal_alt_data) > 2:
+                            break
                     ax2.set_xlabel(x_axis_ft_label)
                     ax2.set_ylabel(y_axis_ft_label)
                     ax2.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2,
@@ -1609,7 +1578,7 @@ class PulsedMeasurementLogic(GenericLogic):
         parameters['record length (s)'] = self.__fast_counter_record_length
         parameters['gated counting'] = self.fast_counter_settings['is_gated']
         parameters['Number of laser pulses'] = self._number_of_lasers
-        parameters['alternating'] = self._alternating
+        parameters['number_of_curves'] = self._number_of_curves
         parameters['Controlled variable'] = list(self.signal_data[0])
         parameters['Approx. measurement time (s)'] = self.__elapsed_time
         parameters['Measurement sweeps'] = self.__elapsed_sweeps

@@ -382,7 +382,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.connect(self.microwave_settings_changed)
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.connect(self.measurement_settings_changed)
-        self._pa.ana_param_alternating_CheckBox.stateChanged.connect(self.measurement_settings_changed)
+        self._pa.ana_param_num_curves_SpinBox.stateChanged.connect(self.measurement_settings_changed)
         self._pa.ana_param_ignore_first_CheckBox.stateChanged.connect(self.measurement_settings_changed)
         self._pa.ana_param_ignore_last_CheckBox.stateChanged.connect(self.measurement_settings_changed)
         self._pa.ana_param_x_axis_start_ScienDSpinBox.editingFinished.connect(self.measurement_settings_changed)
@@ -540,7 +540,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.disconnect()
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.disconnect()
-        self._pa.ana_param_alternating_CheckBox.stateChanged.disconnect()
+        self._pa.ana_param_num_curves_SpinBox.stateChanged.disconnect()
         self._pa.ana_param_ignore_first_CheckBox.stateChanged.disconnect()
         self._pa.ana_param_ignore_last_CheckBox.stateChanged.disconnect()
         self._pa.ana_param_x_axis_start_ScienDSpinBox.editingFinished.disconnect()
@@ -777,7 +777,7 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ana_param_fc_bins_ComboBox.setEnabled(False)
             self._pa.ana_param_ignore_first_CheckBox.setEnabled(False)
             self._pa.ana_param_ignore_last_CheckBox.setEnabled(False)
-            self._pa.ana_param_alternating_CheckBox.setEnabled(False)
+            self._pa.ana_param_num_curves_SpinBox.setEnabled(False)
             self._pa.ana_param_invoke_settings_CheckBox.setEnabled(False)
             self._pg.load_ensemble_PushButton.setEnabled(False)
             self._pg.curr_ensemble_del_all_PushButton.setEnabled(False)
@@ -816,7 +816,7 @@ class PulsedMeasurementGui(GUIBase):
             if not self._pa.ana_param_invoke_settings_CheckBox.isChecked():
                 self._pa.ana_param_ignore_first_CheckBox.setEnabled(True)
                 self._pa.ana_param_ignore_last_CheckBox.setEnabled(True)
-                self._pa.ana_param_alternating_CheckBox.setEnabled(True)
+                self._pa.ana_param_num_curves_SpinBox.setEnabled(True)
                 self._pa.ana_param_x_axis_start_ScienDSpinBox.setEnabled(True)
                 self._pa.ana_param_x_axis_inc_ScienDSpinBox.setEnabled(True)
                 self._pa.ana_param_num_laser_pulse_SpinBox.setEnabled(True)
@@ -2657,14 +2657,14 @@ class PulsedMeasurementGui(GUIBase):
             settings_dict['laser_ignore_list'].append(0)
         if self._pa.ana_param_ignore_last_CheckBox.isChecked():
             settings_dict['laser_ignore_list'].append(-1)
-        settings_dict['alternating'] = self._pa.ana_param_alternating_CheckBox.isChecked()
+        settings_dict['number_of_curves'] = self._pa.ana_param_num_curves_SpinBox.isChecked()
         settings_dict['number_of_lasers'] = self._pa.ana_param_num_laser_pulse_SpinBox.value()
         vals_start = self._pa.ana_param_x_axis_start_ScienDSpinBox.value()
         vals_incr = self._pa.ana_param_x_axis_inc_ScienDSpinBox.value()
         num_of_ticks = max(1, settings_dict['number_of_lasers'] - len(
             settings_dict['laser_ignore_list']))
-        if settings_dict['alternating'] and num_of_ticks > 1:
-            num_of_ticks //= 2
+        if num_of_ticks > 1:
+            num_of_ticks //= settings_dict['number_of_curves']
         controlled_variable = np.arange(num_of_ticks, dtype=float)
         settings_dict['controlled_variable'] = controlled_variable * vals_incr + vals_start
 
@@ -2680,7 +2680,7 @@ class PulsedMeasurementGui(GUIBase):
         # block signals
         self._pa.ana_param_ignore_first_CheckBox.blockSignals(True)
         self._pa.ana_param_ignore_last_CheckBox.blockSignals(True)
-        self._pa.ana_param_alternating_CheckBox.blockSignals(True)
+        self._pa.ana_param_num_curves_SpinBox.blockSignals(True)
         self._pa.ana_param_num_laser_pulse_SpinBox.blockSignals(True)
         self._pa.ana_param_x_axis_start_ScienDSpinBox.blockSignals(True)
         self._pa.ana_param_x_axis_inc_ScienDSpinBox.blockSignals(True)
@@ -2698,9 +2698,8 @@ class PulsedMeasurementGui(GUIBase):
             self._pe.laserpulses_ComboBox.addItem('sum')
             self._pe.laserpulses_ComboBox.addItems(
                 [str(i) for i in range(1, settings_dict['number_of_lasers'] + 1)])
-        if 'alternating' in settings_dict:
-            self._pa.ana_param_alternating_CheckBox.setChecked(settings_dict['alternating'])
-            # self.toggle_alternating_plots(settings_dict['alternating'])
+        if 'number_of_curves' in settings_dict:
+            self._pa.ana_param_num_curves_SpinBox.setValue(settings_dict['number_of_curves'])
         if 'laser_ignore_list' in settings_dict:
             self._pa.ana_param_ignore_first_CheckBox.setChecked(
                 0 in settings_dict['laser_ignore_list'])
@@ -2751,7 +2750,7 @@ class PulsedMeasurementGui(GUIBase):
         self._as.ana_param_y_axis_unit_LineEdit.blockSignals(False)
         self._pa.ana_param_ignore_first_CheckBox.blockSignals(False)
         self._pa.ana_param_ignore_last_CheckBox.blockSignals(False)
-        self._pa.ana_param_alternating_CheckBox.blockSignals(False)
+        self._pa.ana_param_num_curves_SpinBox.blockSignals(False)
         self._pa.ana_param_num_laser_pulse_SpinBox.blockSignals(False)
         self._pa.ana_param_x_axis_start_ScienDSpinBox.blockSignals(False)
         self._pa.ana_param_x_axis_inc_ScienDSpinBox.blockSignals(False)
@@ -2804,7 +2803,7 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ana_param_record_length_DoubleSpinBox.setEnabled(False)
             self._pa.ana_param_ignore_first_CheckBox.setEnabled(False)
             self._pa.ana_param_ignore_last_CheckBox.setEnabled(False)
-            self._pa.ana_param_alternating_CheckBox.setEnabled(False)
+            self._pa.ana_param_num_curves_SpinBox.setEnabled(False)
         else:
             self._pa.ana_param_x_axis_start_ScienDSpinBox.setEnabled(True)
             self._pa.ana_param_x_axis_inc_ScienDSpinBox.setEnabled(True)
@@ -2812,7 +2811,7 @@ class PulsedMeasurementGui(GUIBase):
             self._pa.ana_param_record_length_DoubleSpinBox.setEnabled(True)
             self._pa.ana_param_ignore_first_CheckBox.setEnabled(True)
             self._pa.ana_param_ignore_last_CheckBox.setEnabled(True)
-            self._pa.ana_param_alternating_CheckBox.setEnabled(True)
+            self._pa.ana_param_num_curves_SpinBox.setEnabled(True)
         return
 
     @QtCore.Slot(bool)

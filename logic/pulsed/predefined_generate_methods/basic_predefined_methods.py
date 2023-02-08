@@ -187,7 +187,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
 
-    def generate_rabi(self, name='rabi', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=50, alternating=False):
+    def generate_rabi(self, name='rabi', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=50, reference=False):
         """
 
         """
@@ -217,7 +217,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         rabi_block.append(laser_element)
         rabi_block.append(delay_element)
         rabi_block.append(waiting_element)
-        if alternating:
+        if reference:
             rabi_block.append(mw_wait_element)
             rabi_block.append(laser_element)
             rabi_block.append(delay_element)
@@ -232,8 +232,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        number_of_lasers = 2 * num_of_points if alternating else num_of_points
-        block_ensemble.measurement_information['alternating'] = alternating
+        number_of_lasers = 2 * num_of_points if reference else num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -287,7 +287,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        block_ensemble.measurement_information['alternating'] = False
+        block_ensemble.measurement_information['number_of_curves'] = False
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = freq_array
         block_ensemble.measurement_information['units'] = ('Hz', '')
@@ -365,7 +365,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # add metadata to invoke settings later on
         number_of_lasers = 2 * num_of_points if alternating else num_of_points
-        block_ensemble.measurement_information['alternating'] = alternating
+        block_ensemble.measurement_information['number_of_curves'] = 2 if alternating else 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -449,7 +449,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # add metadata to invoke settings later on
         number_of_lasers = 2 * len(tau_array) if alternating else len(tau_array)
-        block_ensemble.measurement_information['alternating'] = alternating
+        block_ensemble.measurement_information['number_of_curves'] = 2 if alternating else 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -535,7 +535,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # add metadata to invoke settings later on
         number_of_lasers = 2 * num_of_points if alternating else num_of_points
-        block_ensemble.measurement_information['alternating'] = alternating
+        block_ensemble.measurement_information['number_of_curves'] = 2 if alternating else 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -628,7 +628,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # add metadata to invoke settings later on
         number_of_lasers = 2 * num_of_points if alternating else num_of_points
-        block_ensemble.measurement_information['alternating'] = alternating
+        block_ensemble.measurement_information['number_of_curves'] = 2 if alternating else 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -641,7 +641,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         return created_blocks, created_ensembles, created_sequences
 
     def generate_t1(self, name='T1', tau_start=1.0e-6, tau_step=1.0e-6,
-                    num_of_points=50, alternating=False):
+                    num_of_points=50, reference=False):
         """
 
         """
@@ -660,7 +660,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         delay_element = self._get_delay_gate_element()
         mw_wait_element = self._get_idle_element(length=self.rabi_period, increment=0)
 
-        if alternating:  # get pi element
+        if reference:  # get pi element
             pi_element = self._get_mw_element(length=self.rabi_period / 2,
                                               increment=0,
                                               amp=self.microwave_amplitude,
@@ -669,13 +669,13 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         tau_element = self._get_idle_element(length=tau_start, increment=tau_step)
         t1_block = PulseBlock(name=name)
-        t1_block.append(mw_wait_element)
+        t1_block.append(pi_element)
         t1_block.append(tau_element)
         t1_block.append(laser_element)
         t1_block.append(delay_element)
         t1_block.append(waiting_element)
-        if alternating:
-            t1_block.append(pi_element)
+        if reference:
+            t1_block.append(mw_wait_element)
             t1_block.append(tau_element)
             t1_block.append(laser_element)
             t1_block.append(delay_element)
@@ -690,8 +690,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        number_of_lasers = 2 * num_of_points if alternating else num_of_points
-        block_ensemble.measurement_information['alternating'] = alternating
+        number_of_lasers = 2 * num_of_points if reference else num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 2 if reference else 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -705,7 +705,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         return created_blocks, created_ensembles, created_sequences
 
     def generate_t1_exponential(self, name='T1_exp', tau_start=1.0e-6, tau_end=1.0e-6,
-                                num_of_points=50, alternating=False):
+                                num_of_points=50, reference=False):
         """
 
         """
@@ -728,7 +728,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         delay_element = self._get_delay_gate_element()
         mw_wait_element = self._get_idle_element(length=self.rabi_period, increment=0)
 
-        if alternating:  # get pi element
+        if reference:  # get pi element
             pi_element = self._get_mw_element(length=self.rabi_period / 2,
                                               increment=0,
                                               amp=self.microwave_amplitude,
@@ -737,13 +737,13 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         t1_block = PulseBlock(name=name)
         for tau in tau_array:
             tau_element = self._get_idle_element(length=tau, increment=0.0)
-            t1_block.append(mw_wait_element)
+            t1_block.append(pi_element)
             t1_block.append(tau_element)
             t1_block.append(laser_element)
             t1_block.append(delay_element)
             t1_block.append(waiting_element)
-            if alternating:
-                t1_block.append(pi_element)
+            if reference:
+                t1_block.append(mw_wait_element)
                 t1_block.append(tau_element)
                 t1_block.append(laser_element)
                 t1_block.append(delay_element)
@@ -758,8 +758,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        number_of_lasers = 2 * num_of_points if alternating else num_of_points
-        block_ensemble.measurement_information['alternating'] = alternating
+        number_of_lasers = 2 * num_of_points if reference else num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = reference
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -837,7 +837,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        block_ensemble.measurement_information['alternating'] = True
+        block_ensemble.measurement_information['number_of_curves'] = 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = amp_array
         block_ensemble.measurement_information['units'] = ('V', '')
@@ -915,7 +915,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        block_ensemble.measurement_information['alternating'] = True
+        block_ensemble.measurement_information['number_of_curves'] = 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -997,7 +997,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
 
         # add metadata to invoke settings later on
-        block_ensemble.measurement_information['alternating'] = False
+        block_ensemble.measurement_information['number_of_curves'] = 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = steps_array
         block_ensemble.measurement_information['units'] = ('#', '')
@@ -1095,7 +1095,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         t1_sequence.refresh_parameters()
 
         # add metadata to invoke settings later on
-        t1_sequence.measurement_information['alternating'] = False
+        t1_sequence.measurement_information['number_of_curves'] = 2
         t1_sequence.measurement_information['laser_ignore_list'] = list()
         t1_sequence.measurement_information['controlled_variable'] = tau_array
         t1_sequence.measurement_information['units'] = ('s', '')
@@ -1203,7 +1203,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                 approx_transfer_eff_perfect_adiab))
 
         # add metadata to invoke settings later on
-        block_ensemble.measurement_information['alternating'] = False
+        block_ensemble.measurement_information['number_of_curves'] = 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = freq_array
         block_ensemble.measurement_information['labels'] = ('Frequency', '')
@@ -1331,7 +1331,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                 approx_transfer_eff_perfect_adiab_ae))
 
         # add metadata to invoke settings later on
-        block_ensemble.measurement_information['alternating'] = False
+        block_ensemble.measurement_information['number_of_curves'] = 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = freq_array
         block_ensemble.measurement_information['labels'] = ('Frequency', '')
