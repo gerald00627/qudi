@@ -655,7 +655,6 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_blocks = list()
         created_ensembles = list()
         created_sequences = list()
-
         # get tau array for measurement ticks
         tau_array = tau_start + np.arange(num_of_points) * tau_step
 
@@ -711,7 +710,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         return created_blocks, created_ensembles, created_sequences
 
-    def generate_t1_exponential(self, name='T1_exp', tau_start=1.0e-6, tau_end=1.0e-5,
+    def generate_t1_exponential(self, name='T1exp', tau_start=1.0e-6, tau_end=1.0e-5,
                                 num_of_points=10, alternating=False):
         """
 
