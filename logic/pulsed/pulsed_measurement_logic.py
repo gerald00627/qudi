@@ -1076,7 +1076,7 @@ class PulsedMeasurementLogic(GenericLogic):
             return
 
         if 'number_of_curves' in self._measurement_information:
-            self._number_of_curves = bool(self._measurement_information.get('number_of_curves'))
+            self._number_of_curves = int(self._measurement_information.get('number_of_curves'))
         else:
             self.log.error('Unable to invoke setting for "number_of_curves".\n'
                            'Measurement information container is incomplete/invalid.')
