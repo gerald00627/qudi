@@ -382,7 +382,7 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.connect(self.microwave_settings_changed)
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.connect(self.measurement_settings_changed)
-        self._pa.ana_param_num_curves_SpinBox.stateChanged.connect(self.measurement_settings_changed)
+        self._pa.ana_param_num_curves_SpinBox.editingFinished.connect(self.measurement_settings_changed)
         self._pa.ana_param_ignore_first_CheckBox.stateChanged.connect(self.measurement_settings_changed)
         self._pa.ana_param_ignore_last_CheckBox.stateChanged.connect(self.measurement_settings_changed)
         self._pa.ana_param_x_axis_start_ScienDSpinBox.editingFinished.connect(self.measurement_settings_changed)
@@ -2657,7 +2657,7 @@ class PulsedMeasurementGui(GUIBase):
             settings_dict['laser_ignore_list'].append(0)
         if self._pa.ana_param_ignore_last_CheckBox.isChecked():
             settings_dict['laser_ignore_list'].append(-1)
-        settings_dict['number_of_curves'] = self._pa.ana_param_num_curves_SpinBox.isChecked()
+        settings_dict['number_of_curves'] = self._pa.ana_param_num_curves_SpinBox.value()
         settings_dict['number_of_lasers'] = self._pa.ana_param_num_laser_pulse_SpinBox.value()
         vals_start = self._pa.ana_param_x_axis_start_ScienDSpinBox.value()
         vals_incr = self._pa.ana_param_x_axis_inc_ScienDSpinBox.value()
