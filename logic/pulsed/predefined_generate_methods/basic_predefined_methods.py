@@ -648,6 +648,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_blocks = list()
         created_ensembles = list()
         created_sequences = list()
+
         # get tau array for measurement ticks
         tau_array = tau_start + np.arange(num_of_points) * tau_step
 
