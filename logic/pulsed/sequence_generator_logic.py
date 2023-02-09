@@ -83,10 +83,14 @@ class SequenceGeneratorLogic(GenericLogic):
     _generation_parameters = StatusVar(default=OrderedDict([('laser_channel', 'd_ch1'),
                                                             ('sync_channel', ''),
                                                             ('gate_channel', ''),
-                                                            ('microwave_channel', 'a_ch1'),
-                                                            ('microwave_frequency', 2.87e9),
-                                                            ('microwave_amplitude', 0.0),
-                                                            ('rabi_period', 100e-9),
+                                                            ('microwave1_channel', 'a_ch1'),
+                                                            ('microwave1_frequency', 2.87e9),
+                                                            ('microwave1_amplitude', 0.0),
+                                                            ('microwave2_channel', 'a_ch2'),
+                                                            ('microwave2_frequency', 2.87e9),
+                                                            ('microwave2_amplitude', 0.0),
+                                                            ('rabi_period1', 100e-9),
+                                                            ('rabi_period2', 100e-9),
                                                             ('laser_length', 3e-6),
                                                             ('laser_delay', 500e-9),
                                                             ('wait_time', 1e-6),
@@ -711,13 +715,21 @@ class SequenceGeneratorLogic(GenericLogic):
                                    ''.format(settings_dict['gate_channel'],
                                              self.__activation_config[1]))
                     del settings_dict['gate_channel']
-            if settings_dict.get('microwave_channel'):
-                if settings_dict['microwave_channel'] not in self.__activation_config[1]:
-                    self.log.error('Unable to set microwave channel "{0}".\nChannel to set is not '
+            if settings_dict.get('microwave1_channel'):
+                if settings_dict['microwave1_channel'] not in self.__activation_config[1]:
+                    self.log.error('Unable to set microwave1 channel "{0}".\nChannel to set is not '
                                    'part of the current channel activation config ({1}).'
-                                   ''.format(settings_dict['microwave_channel'],
+                                   ''.format(settings_dict['microwave1_channel'],
                                              self.__activation_config[1]))
-                    del settings_dict['microwave_channel']
+                    del settings_dict['microwave1_channel']
+
+            if settings_dict.get('microwave2_channel'):
+                if settings_dict['microwave2_channel'] not in self.__activation_config[1]:
+                    self.log.error('Unable to set microwave2 channel "{0}".\nChannel to set is not '
+                                   'part of the current channel activation config ({1}).'
+                                   ''.format(settings_dict['microwave2_channel'],
+                                             self.__activation_config[1]))
+                    del settings_dict['microwave2_channel']
 
             # update settings dict
             self._generation_parameters.update(settings_dict)

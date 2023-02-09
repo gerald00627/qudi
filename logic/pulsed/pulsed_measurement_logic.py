@@ -47,7 +47,8 @@ class PulsedMeasurementLogic(GenericLogic):
     fitlogic = Connector(interface='FitLogic')
     savelogic = Connector(interface='SaveLogic')
     fastcounter = Connector(interface='FastCounterInterface')
-    microwave = Connector(interface='MicrowaveInterface')
+    microwave1 = Connector(interface='MicrowaveInterface')
+    microwave2 = Connector(interface='MicrowaveInterface')
     pulsegenerator = Connector(interface='PulserInterface')
 
     # Config options
@@ -59,9 +60,13 @@ class PulsedMeasurementLogic(GenericLogic):
 
     # status variables
     # ext. microwave settings
-    __microwave_power = StatusVar(default=-30.0)
-    __microwave_freq = StatusVar(default=2870e6)
-    __use_ext_microwave = StatusVar(default=False)
+    __microwave1_power = StatusVar(default=-30.0)
+    __microwave1_freq = StatusVar(default=2870e6)
+    __use_ext_microwave1 = StatusVar(default=False)
+
+    __microwave2_power = StatusVar(default=-30.0)
+    __microwave2_freq = StatusVar(default=2870e6)
+    __use_ext_microwave2 = StatusVar(default=False)
 
     # fast counter settings
     __fast_counter_record_length = StatusVar(default=3.0e-6)
@@ -102,8 +107,10 @@ class PulsedMeasurementLogic(GenericLogic):
     sigFitUpdated = QtCore.Signal(str, np.ndarray, object, bool)
     sigMeasurementStatusUpdated = QtCore.Signal(bool, bool)
     sigPulserRunningUpdated = QtCore.Signal(bool)
-    sigExtMicrowaveRunningUpdated = QtCore.Signal(bool)
-    sigExtMicrowaveSettingsUpdated = QtCore.Signal(dict)
+    sigExtMicrowave1RunningUpdated = QtCore.Signal(bool)
+    sigExtMicrowave1SettingsUpdated = QtCore.Signal(dict)
+    sigExtMicrowave2RunningUpdated = QtCore.Signal(bool)
+    sigExtMicrowave2SettingsUpdated = QtCore.Signal(dict)
     sigFastCounterSettingsUpdated = QtCore.Signal(dict)
     sigMeasurementSettingsUpdated = QtCore.Signal(dict)
     sigAnalysisSettingsUpdated = QtCore.Signal(dict)
@@ -194,11 +201,17 @@ class PulsedMeasurementLogic(GenericLogic):
         self.set_fast_counter_settings()
 
         # Check and configure external microwave
-        if self.__use_ext_microwave:
-            self.microwave_off()
-            self.set_microwave_settings(frequency=self.__microwave_freq,
-                                        power=self.__microwave_power,
-                                        use_ext_microwave=True)
+        if self.__use_ext_microwave1:
+            self.microwave1_off()
+            self.set_microwave1_settings(frequency=self.__microwave1_freq,
+                                        power=self.__microwave1_power,
+                                        use_ext_microwave1=True)
+
+        if self.__use_ext_microwave2:
+            self.microwave2_off()
+            self.set_microwave2_settings(frequency=self.__microwave2_freq,
+                                        power=self.__microwave2_power,
+                                        use_ext_microwave2=True)
 
         # Convert controlled variable list into numpy.ndarray
         self._controlled_variable = np.array(self._controlled_variable, dtype=float)
@@ -370,68 +383,173 @@ class PulsedMeasurementLogic(GenericLogic):
     # External microwave control methods and properties
     ############################################################################
     @property
-    def ext_microwave_settings(self):
+    def ext_microwave1_settings(self):
         settings_dict = dict()
-        settings_dict['power'] = float(self.__microwave_power)
-        settings_dict['frequency'] = float(self.__microwave_freq)
-        settings_dict['use_ext_microwave'] = bool(self.__use_ext_microwave)
+        settings_dict['power1'] = float(self.__microwave1_power)
+        settings_dict['frequency1'] = float(self.__microwave1_freq)
+        settings_dict['use_ext_microwave1'] = bool(self.__use_ext_microwave1)
         return settings_dict
 
-    @ext_microwave_settings.setter
-    def ext_microwave_settings(self, settings_dict):
+    @property
+    def ext_microwave2_settings(self):
+        settings_dict = dict()
+        settings_dict['power2'] = float(self.__microwave2_power)
+        settings_dict['frequency2'] = float(self.__microwave2_freq)
+        settings_dict['use_ext_microwave2'] = bool(self.__use_ext_microwave2)
+        return settings_dict
+
+    
+
+    @ext_microwave1_settings.setter
+    def ext_microwave1_settings(self, settings_dict):
         if isinstance(settings_dict, dict):
-            self.set_microwave_settings(settings_dict)
+            self.set_microwave1_settings(settings_dict)
+        return
+    
+    @ext_microwave2_settings.setter
+    def ext_microwave1_settings(self, settings_dict):
+        if isinstance(settings_dict, dict):
+            self.set_microwave2_settings(settings_dict)
         return
 
     @property
-    def ext_microwave_constraints(self):
-        return self.microwave().get_limits()
+    def ext_microwave1_constraints(self):
+        return self.microwave1().get_limits()
 
-    def microwave_on(self):
+    @property
+    def ext_microwave2_constraints(self):
+        return self.microwave2().get_limits()
+
+    def microwave1_on(self):
         """
-        Turns the external (CW) microwave output on.
+        Turns the external (CW) microwave1 output on.
 
         :return int: error code (0:OK, -1:error)
         """
-        err = self.microwave().cw_on()
+        err = self.microwave1().cw_on()
         if err < 0:
-            self.log.error('Failed to turn on external CW microwave output.')
-        self.sigExtMicrowaveRunningUpdated.emit(self.microwave().get_status()[1])
+            self.log.error('Failed to turn on external CW microwave1 output.')
+        self.sigExtMicrowave1RunningUpdated.emit(self.microwave1().get_status()[1])
         return err
 
-    def microwave_off(self):
+    def microwave2_on(self):
         """
-        Turns the external (CW) microwave output off.
+        Turns the external (CW) microwave2 output on.
 
         :return int: error code (0:OK, -1:error)
         """
-        err = self.microwave().off()
+        err = self.microwave2().cw_on()
         if err < 0:
-            self.log.error('Failed to turn off external CW microwave output.')
-        self.sigExtMicrowaveRunningUpdated.emit(self.microwave().get_status()[1])
+            self.log.error('Failed to turn on external CW microwave2 output.')
+        self.sigExtMicrowave2RunningUpdated.emit(self.microwave2().get_status()[1])
+        return err
+
+    def microwave1_off(self):
+        """
+        Turns the external (CW) microwave1 output off.
+
+        :return int: error code (0:OK, -1:error)
+        """
+        err = self.microwave1().off()
+        if err < 0:
+            self.log.error('Failed to turn off external CW microwave1 output.')
+        self.sigExtMicrowave1RunningUpdated.emit(self.microwave1().get_status()[1])
+        return err
+
+    def microwave2_off(self):
+        """
+        Turns the external (CW) microwave2 output off.
+
+        :return int: error code (0:OK, -1:error)
+        """
+        err = self.microwave2().off()
+        if err < 0:
+            self.log.error('Failed to turn off external CW microwave2 output.')
+        self.sigExtMicrowave2RunningUpdated.emit(self.microwave2().get_status()[1])
         return err
 
     @QtCore.Slot(bool)
-    def toggle_microwave(self, switch_on):
+    def toggle_microwave1(self, switch_on):
         """
-        Turn the external microwave output on/off.
+        Turn the external microwave1 output on/off.
 
-        :param switch_on: bool, turn microwave on (True) or off (False)
+        :param switch_on: bool, turn microwave1 on (True) or off (False)
         :return int: error code (0:OK, -1:error)
         """
         if not isinstance(switch_on, bool):
             return -1
 
         if switch_on:
-            err = self.microwave_on()
+            err = self.microwave1_on()
         else:
-            err = self.microwave_off()
+            err = self.microwave1_off()
+        return err
+
+    @QtCore.Slot(bool)
+    def toggle_microwave2(self, switch_on):
+        """
+        Turn the external microwave2 output on/off.
+
+        :param switch_on: bool, turn microwave2 on (True) or off (False)
+        :return int: error code (0:OK, -1:error)
+        """
+        if not isinstance(switch_on, bool):
+            return -1
+
+        if switch_on:
+            err = self.microwave2_on()
+        else:
+            err = self.microwave2_off()
         return err
 
     @QtCore.Slot(dict)
-    def set_microwave_settings(self, settings_dict=None, **kwargs):
+    def set_microwave1_settings(self, settings_dict=None, **kwargs):
         """
-        Apply new settings to the external microwave device.
+        Apply new settings to the external microwave1 device.
+        Either accept a settings dictionary as positional argument or keyword arguments.
+        If both are present both are being used by updating the settings_dict with kwargs.
+        The keyword arguments take precedence over the items in settings_dict if there are
+        conflicting names.
+
+        @param settings_dict:
+        @param kwargs:
+        @return:
+        """
+        # Check if microwave1 is running and do nothing if that is the case
+        if self.microwave1().get_status()[1]:
+            self.log.warning('Microwave1 device is running.\nUnable to apply new settings.')
+        else:
+            # Determine complete settings dictionary
+            if not isinstance(settings_dict, dict):
+                settings_dict = kwargs
+            else:
+                settings_dict.update(kwargs)
+
+            # Set parameters if present
+            if 'power1' in settings_dict:
+                self.__microwave1_power = float(settings_dict['power1'])
+            if 'frequency1' in settings_dict:
+                self.__microwave1_freq = float(settings_dict['frequency1'])
+            if 'use_ext_microwave1' in settings_dict:
+                self.__use_ext_microwave1 = bool(settings_dict['use_ext_microwave1'])
+
+            if self.__use_ext_microwave1:
+                # Apply the settings to hardware
+                self.__microwave1_freq, \
+                self.__microwave1_power, \
+                dummy = self.microwave1().set_cw(frequency=self.__microwave1_freq,
+                                                power=self.__microwave1_power)
+
+        # emit update signal for master (GUI or other logic module)
+        self.sigExtMicrowave1SettingsUpdated.emit({'power1': self.__microwave1_power,
+                                                  'frequency1': self.__microwave1_freq,
+                                                  'use_ext_microwave1': self.__use_ext_microwave1})
+        return self.__microwave1_freq, self.__microwave1_power, self.__use_ext_microwave1
+
+    @QtCore.Slot(dict)
+    def set_microwave2_settings(self, settings_dict=None, **kwargs):
+        """
+        Apply new settings to the external microwave2 device.
         Either accept a settings dictionary as positional argument or keyword arguments.
         If both are present both are being used by updating the settings_dict with kwargs.
         The keyword arguments take precedence over the items in settings_dict if there are
@@ -442,8 +560,8 @@ class PulsedMeasurementLogic(GenericLogic):
         @return:
         """
         # Check if microwave is running and do nothing if that is the case
-        if self.microwave().get_status()[1]:
-            self.log.warning('Microwave device is running.\nUnable to apply new settings.')
+        if self.microwave2().get_status()[1]:
+            self.log.warning('Microwave2 device is running.\nUnable to apply new settings.')
         else:
             # Determine complete settings dictionary
             if not isinstance(settings_dict, dict):
@@ -452,25 +570,25 @@ class PulsedMeasurementLogic(GenericLogic):
                 settings_dict.update(kwargs)
 
             # Set parameters if present
-            if 'power' in settings_dict:
-                self.__microwave_power = float(settings_dict['power'])
-            if 'frequency' in settings_dict:
-                self.__microwave_freq = float(settings_dict['frequency'])
-            if 'use_ext_microwave' in settings_dict:
-                self.__use_ext_microwave = bool(settings_dict['use_ext_microwave'])
+            if 'power2' in settings_dict:
+                self.__microwave2_power = float(settings_dict['power2'])
+            if 'frequency2' in settings_dict:
+                self.__microwave2_freq = float(settings_dict['frequency2'])
+            if 'use_ext_microwave2' in settings_dict:
+                self.__use_ext_microwave2 = bool(settings_dict['use_ext_microwave2'])
 
-            if self.__use_ext_microwave:
+            if self.__use_ext_microwave2:
                 # Apply the settings to hardware
-                self.__microwave_freq, \
-                self.__microwave_power, \
-                dummy = self.microwave().set_cw(frequency=self.__microwave_freq,
-                                                power=self.__microwave_power)
+                self.__microwave2_freq, \
+                self.__microwave2_power, \
+                dummy = self.microwave2().set_cw(frequency=self.__microwave2_freq,
+                                                power=self.__microwave2_power)
 
         # emit update signal for master (GUI or other logic module)
-        self.sigExtMicrowaveSettingsUpdated.emit({'power': self.__microwave_power,
-                                                  'frequency': self.__microwave_freq,
-                                                  'use_ext_microwave': self.__use_ext_microwave})
-        return self.__microwave_freq, self.__microwave_power, self.__use_ext_microwave
+        self.sigExtMicrowave2SettingsUpdated.emit({'power2': self.__microwave2_power,
+                                                  'frequency2': self.__microwave2_freq,
+                                                  'use_ext_microwave2': self.__use_ext_microwave2})
+        return self.__microwave2_freq, self.__microwave2_power, self.__use_ext_microwave2
     ############################################################################
 
     ############################################################################
@@ -792,9 +910,13 @@ class PulsedMeasurementLogic(GenericLogic):
                 else:
                     self._recalled_raw_data_tag = None
 
-                # start microwave source
-                if self.__use_ext_microwave:
-                    self.microwave_on()
+                # start microwave1 source
+                if self.__use_ext_microwave1:
+                    self.microwave1_on()
+
+                if self.__use_ext_microwave2:
+                    self.microwave2_on()
+
                 # start pulse generator
                 self.pulse_generator_on()
                 # start fast counter
@@ -856,9 +978,13 @@ class PulsedMeasurementLogic(GenericLogic):
                 # self.fastcounter().pulsed_done()
                 # Turn off pulse generator
                 self.pulse_generator_off()
-                # Turn off microwave source
-                if self.__use_ext_microwave:
-                    self.microwave_off()
+                # Turn off microwave1 source
+                if self.__use_ext_microwave1:
+                    self.microwave1_off()
+
+                # Turn off microwave2 source
+                if self.__use_ext_microwave2:
+                    self.microwave2_off()
 
                 # stash raw data if requested
                 if stash_raw_data_tag:
@@ -901,8 +1027,11 @@ class PulsedMeasurementLogic(GenericLogic):
 
                 self.fast_counter_pause()
                 self.pulse_generator_off()
-                if self.__use_ext_microwave:
-                    self.microwave_off()
+                if self.__use_ext_microwave1:
+                    self.microwave1_off()
+
+                if self.__use_ext_microwave2:
+                    self.microwave2_off()
 
                 # Set measurement paused flag
                 self.__is_paused = True
@@ -921,8 +1050,11 @@ class PulsedMeasurementLogic(GenericLogic):
         """
         with self._threadlock:
             if self.module_state() == 'locked':
-                if self.__use_ext_microwave:
-                    self.microwave_on()
+                if self.__use_ext_microwave1:
+                    self.microwave1_on()
+
+                if self.__use_ext_microwave2:
+                    self.microwave2_on()
                 # self.pulse_generator_on()
                 # self.fast_counter_continue()
                 
