@@ -28,7 +28,7 @@ class ODMRCounterInterface(metaclass=InterfaceMetaclass):
 
     @abstract_interface_method
     def set_up_odmr_clock(self, clock_frequency=None, clock_channel=None):
-        """ Configures the hardware clock of the NiDAQ card to give the timing.
+        """ Configures the hardware clock to give the timing.
 
         @param float clock_frequency: if defined, this sets the frequency of the
                                       clock

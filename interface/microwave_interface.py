@@ -27,7 +27,7 @@ from enum import Enum
 
 class TriggerEdge(Enum):
     """ On which electrical signal edge does a trigger occur?
-      So edgy!
+        So edgy!
     """
     RISING = 0
     FALLING = 1
@@ -43,6 +43,7 @@ class MicrowaveMode(Enum):
     """
     CW = 0
     LIST = 1
+    COMMAND = 2
     SWEEP = 3
     ASWEEP = 4
 
@@ -83,6 +84,15 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
+    def set_power(self, power=None):
+        """ Sets the microwave source in CW mode, and sets the MW power.
+        Method ignores whether the output is on or off
+
+        @return int: error code (0:OK, -1:error)
+        """
+        pass
+
+    @abstract_interface_method
     def get_frequency(self):
         """ Gets the frequency of the microwave output.
 
@@ -91,6 +101,15 @@ class MicrowaveInterface(metaclass=InterfaceMetaclass):
         Returns single float value if the device is in cw mode.
         Returns list like [start, stop, step] if the device is in sweep mode.
         Returns list of frequencies if the device is in list mode.
+        """
+        pass
+
+    @abstract_interface_method
+    def set_frequency(self, frequency=None):
+        """ Sets the microwave source in CW mode, and sets the MW frequency.
+        Method ignores whether the output is on or off
+        
+        @return int: error code (0:OK, -1:error)
         """
         pass
 
