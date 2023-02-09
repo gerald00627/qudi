@@ -377,9 +377,13 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.fit_param_PushButton.clicked.connect(self.fit_clicked)
         self._pa.alt_fit_param_PushButton.clicked.connect(self.fit_clicked)
 
-        self._pa.ext_control_use_mw_CheckBox.stateChanged.connect(self.microwave_settings_changed)
-        self._pa.ext_control_mw_freq_DoubleSpinBox.editingFinished.connect(self.microwave_settings_changed)
-        self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.connect(self.microwave_settings_changed)
+        self._pa.ext_control_use_mw1_CheckBox.stateChanged.connect(self.microwave1_settings_changed)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.editingFinished.connect(self.microwave1_settings_changed)
+        self._pa.ext_control_mw1_power_DoubleSpinBox.editingFinished.connect(self.microwave1_settings_changed)
+
+        self._pa.ext_control_use_mw2_CheckBox.stateChanged.connect(self.microwave2_settings_changed)
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.editingFinished.connect(self.microwave2_settings_changed)
+        self._pa.ext_control_mw2_power_DoubleSpinBox.editingFinished.connect(self.microwave2_settings_changed)
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.connect(self.measurement_settings_changed)
         self._pa.ana_param_num_curves_SpinBox.editingFinished.connect(self.measurement_settings_changed)
@@ -424,8 +428,10 @@ class PulsedMeasurementGui(GUIBase):
         self.pulsedmasterlogic().sigFitUpdated.connect(self.fit_data_updated)
         self.pulsedmasterlogic().sigMeasurementStatusUpdated.connect(self.measurement_status_updated)
         self.pulsedmasterlogic().sigPulserRunningUpdated.connect(self.pulser_running_updated)
-        self.pulsedmasterlogic().sigExtMicrowaveRunningUpdated.connect(self.microwave_running_updated)
-        self.pulsedmasterlogic().sigExtMicrowaveSettingsUpdated.connect(self.microwave_settings_updated)
+        self.pulsedmasterlogic().sigExtMicrowave1RunningUpdated.connect(self.microwave1_running_updated)
+        self.pulsedmasterlogic().sigExtMicrowave1SettingsUpdated.connect(self.microwave1_settings_updated)
+        self.pulsedmasterlogic().sigExtMicrowave2RunningUpdated.connect(self.microwave2_running_updated)
+        self.pulsedmasterlogic().sigExtMicrowave2SettingsUpdated.connect(self.microwave2_settings_updated)
         self.pulsedmasterlogic().sigFastCounterSettingsUpdated.connect(self.fast_counter_settings_updated)
         self.pulsedmasterlogic().sigMeasurementSettingsUpdated.connect(self.measurement_settings_updated)
         self.pulsedmasterlogic().sigAnalysisSettingsUpdated.connect(self.analysis_settings_updated)
@@ -535,12 +541,16 @@ class PulsedMeasurementGui(GUIBase):
         # Connect pulse analysis tab signals
         self._pa.fit_param_PushButton.clicked.disconnect()
         self._pa.alt_fit_param_PushButton.clicked.disconnect()
-        self._pa.ext_control_use_mw_CheckBox.stateChanged.disconnect()
-        self._pa.ext_control_mw_freq_DoubleSpinBox.editingFinished.disconnect()
-        self._pa.ext_control_mw_power_DoubleSpinBox.editingFinished.disconnect()
+        self._pa.ext_control_use_mw1_CheckBox.stateChanged.disconnect()
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._pa.ext_control_mw1_power_DoubleSpinBox.editingFinished.disconnect()
+
+        self._pa.ext_control_use_mw2_CheckBox.stateChanged.disconnect()
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._pa.ext_control_mw2_power_DoubleSpinBox.editingFinished.disconnect()
 
         self._pa.ana_param_invoke_settings_CheckBox.stateChanged.disconnect()
-        self._pa.ana_param_num_curves_SpinBox.stateChanged.disconnect()
+        self._pa.ana_param_num_curves_SpinBox.editingFinished.disconnect()
         self._pa.ana_param_ignore_first_CheckBox.stateChanged.disconnect()
         self._pa.ana_param_ignore_last_CheckBox.stateChanged.disconnect()
         self._pa.ana_param_x_axis_start_ScienDSpinBox.editingFinished.disconnect()
@@ -589,8 +599,10 @@ class PulsedMeasurementGui(GUIBase):
         self.pulsedmasterlogic().sigFitUpdated.disconnect()
         self.pulsedmasterlogic().sigMeasurementStatusUpdated.disconnect()
         self.pulsedmasterlogic().sigPulserRunningUpdated.disconnect()
-        self.pulsedmasterlogic().sigExtMicrowaveRunningUpdated.disconnect()
-        self.pulsedmasterlogic().sigExtMicrowaveSettingsUpdated.disconnect()
+        self.pulsedmasterlogic().sigExtMicrowave1RunningUpdated.disconnect()
+        self.pulsedmasterlogic().sigExtMicrowave1SettingsUpdated.disconnect()
+        self.pulsedmasterlogic().sigExtMicrowave2RunningUpdated.disconnect()
+        self.pulsedmasterlogic().sigExtMicrowave2SettingsUpdated.disconnect()
         self.pulsedmasterlogic().sigFastCounterSettingsUpdated.disconnect()
         self.pulsedmasterlogic().sigMeasurementSettingsUpdated.disconnect()
         self.pulsedmasterlogic().sigAnalysisSettingsUpdated.disconnect()
@@ -767,13 +779,16 @@ class PulsedMeasurementGui(GUIBase):
             for label, widget1, widget2 in self._digital_chnl_setting_widgets.values():
                 widget1.setEnabled(False)
                 widget2.setEnabled(False)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(False)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
             self._pa.ana_param_x_axis_start_ScienDSpinBox.setEnabled(False)
             self._pa.ana_param_x_axis_inc_ScienDSpinBox.setEnabled(False)
             self._pa.ana_param_num_laser_pulse_SpinBox.setEnabled(False)
             self._pa.ana_param_record_length_DoubleSpinBox.setEnabled(False)
-            self._pa.ext_control_use_mw_CheckBox.setEnabled(False)
+            self._pa.ext_control_use_mw1_CheckBox.setEnabled(False)
+            self._pa.ext_control_use_mw1_CheckBox.setEnabled(False)
             self._pa.ana_param_fc_bins_ComboBox.setEnabled(False)
             self._pa.ana_param_ignore_first_CheckBox.setEnabled(False)
             self._pa.ana_param_ignore_last_CheckBox.setEnabled(False)
@@ -800,9 +815,12 @@ class PulsedMeasurementGui(GUIBase):
             for label, widget1, widget2 in self._digital_chnl_setting_widgets.values():
                 widget1.setEnabled(True)
                 widget2.setEnabled(True)
-            self._pa.ext_control_use_mw_CheckBox.setEnabled(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(True)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_use_mw1_CheckBox.setEnabled(True)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_use_mw2_CheckBox.setEnabled(True)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
             self._pa.ana_param_fc_bins_ComboBox.setEnabled(True)
             self._pg.load_ensemble_PushButton.setEnabled(True)
             self._pg.curr_ensemble_del_all_PushButton.setEnabled(True)
@@ -2336,7 +2354,8 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.ana_param_record_length_DoubleSpinBox.setMaximum(np.inf)
         self._pa.time_param_ana_periode_DoubleSpinBox.setMinimum(0)
         self._pa.time_param_ana_periode_DoubleSpinBox.setMinimalStep(1)
-        self._pa.ext_control_mw_freq_DoubleSpinBox.setMinimum(0)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.setMinimum(0)
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.setMinimum(0)
         self._pa.ana_param_x_axis_start_ScienDSpinBox.setMaximum(np.inf)
         self._pa.ana_param_x_axis_start_ScienDSpinBox.setMinimum(-np.inf)
         self._pa.ana_param_x_axis_inc_ScienDSpinBox.setMaximum(np.inf)
@@ -2354,7 +2373,8 @@ class PulsedMeasurementGui(GUIBase):
         # Update measurement, microwave and fast counter settings from logic
         self.measurement_settings_updated(self.pulsedmasterlogic().measurement_settings)
         self.fast_counter_settings_updated(self.pulsedmasterlogic().fast_counter_settings)
-        self.microwave_settings_updated(self.pulsedmasterlogic().ext_microwave_settings)
+        self.microwave1_settings_updated(self.pulsedmasterlogic().ext_microwave1_settings)
+        self.microwave2_settings_updated(self.pulsedmasterlogic().ext_microwave2_settings)
         # Update analysis interval from logic
         self._pa.time_param_ana_periode_DoubleSpinBox.setValue(
             self.pulsedmasterlogic().timer_interval)
@@ -2375,23 +2395,32 @@ class PulsedMeasurementGui(GUIBase):
         Retrieve the constraints from pulser and fast counter hardware and apply these constraints
         to the analysis tab GUI elements.
         """
-        mw_constraints = self.pulsedmasterlogic().ext_microwave_constraints
+        mw1_constraints = self.pulsedmasterlogic().ext_microwave1_constraints
+        mw2_constraints = self.pulsedmasterlogic().ext_microwave2_constraints
         fc_constraints = self.pulsedmasterlogic().fast_counter_constraints
         # block signals
-        self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(True)
-        self._pa.ext_control_mw_power_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_mw1_power_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_mw2_power_DoubleSpinBox.blockSignals(True)
         self._pa.ana_param_fc_bins_ComboBox.blockSignals(True)
         # apply constraints
-        self._pa.ext_control_mw_freq_DoubleSpinBox.setRange(mw_constraints.min_frequency,
-                                                            mw_constraints.max_frequency)
-        self._pa.ext_control_mw_power_DoubleSpinBox.setRange(mw_constraints.min_power,
-                                                             mw_constraints.max_power)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.setRange(mw1_constraints.min_frequency,
+                                                            mw1_constraints.max_frequency)
+        self._pa.ext_control_mw1_power_DoubleSpinBox.setRange(mw1_constraints.min_power,
+                                                             mw1_constraints.max_power)
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.setRange(mw2_constraints.min_frequency,
+                                                            mw2_constraints.max_frequency)
+        self._pa.ext_control_mw2_power_DoubleSpinBox.setRange(mw2_constraints.min_power,
+                                                             mw2_constraints.max_power)
         self._pa.ana_param_fc_bins_ComboBox.clear()
         for binwidth in fc_constraints['hardware_binwidth_list']:
             self._pa.ana_param_fc_bins_ComboBox.addItem(str(binwidth))
         # unblock signals
-        self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(False)
-        self._pa.ext_control_mw_power_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_mw1_power_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_mw2_power_DoubleSpinBox.blockSignals(False)
         self._pa.ana_param_fc_bins_ComboBox.blockSignals(False)
         return
 
@@ -2512,87 +2541,175 @@ class PulsedMeasurementGui(GUIBase):
         return
 
     @QtCore.Slot()
-    def microwave_settings_changed(self):
+    def microwave1_settings_changed(self):
         """ Shows or hides input widgets which are necessary if an external mw is turned on"""
         if self._mw.action_run_stop.isChecked():
             return
 
-        use_ext_microwave = self._pa.ext_control_use_mw_CheckBox.isChecked()
+        use_ext_microwave1 = self._pa.ext_control_use_mw1_CheckBox.isChecked()
 
         settings_dict = dict()
-        settings_dict['use_ext_microwave'] = use_ext_microwave
-        settings_dict['frequency'] = self._pa.ext_control_mw_freq_DoubleSpinBox.value()
-        settings_dict['power'] = self._pa.ext_control_mw_power_DoubleSpinBox.value()
+        settings_dict['use_ext_microwave1'] = use_ext_microwave1
+        settings_dict['frequency1'] = self._pa.ext_control_mw1_freq_DoubleSpinBox.value()
+        settings_dict['power1'] = self._pa.ext_control_mw1_power_DoubleSpinBox.value()
 
-        if use_ext_microwave and not self._pa.ext_control_mw_freq_DoubleSpinBox.isVisible():
-            self._pa.ext_control_mw_freq_Label.setVisible(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(True)
-            self._pa.ext_control_mw_power_Label.setVisible(True)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(True)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(True)
-        elif not use_ext_microwave and self._pa.ext_control_mw_freq_DoubleSpinBox.isVisible():
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(False)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(False)
-            self._pa.ext_control_mw_freq_Label.setVisible(False)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(False)
-            self._pa.ext_control_mw_power_Label.setVisible(False)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(False)
+        if use_ext_microwave1 and not self._pa.ext_control_mw1_freq_DoubleSpinBox.isVisible():
+            self._pa.ext_control_mw1_freq_Label.setVisible(True)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw1_power_Label.setVisible(True)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
+        elif not use_ext_microwave1 and self._pa.ext_control_mw1_freq_DoubleSpinBox.isVisible():
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw1_freq_Label.setVisible(False)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setVisible(False)
+            self._pa.ext_control_mw1_power_Label.setVisible(False)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setVisible(False)
 
-        self.pulsedmasterlogic().set_ext_microwave_settings(settings_dict)
+        self.pulsedmasterlogic().set_ext_microwave1_settings(settings_dict)
+        return
+
+    @QtCore.Slot()
+    def microwave2_settings_changed(self):
+        """ Shows or hides input widgets which are necessary if an external mw is turned on"""
+        if self._mw.action_run_stop.isChecked():
+            return
+
+        use_ext_microwave2 = self._pa.ext_control_use_mw2_CheckBox.isChecked()
+
+        settings_dict = dict()
+        settings_dict['use_ext_microwave2'] = use_ext_microwave2
+        settings_dict['frequency2'] = self._pa.ext_control_mw2_freq_DoubleSpinBox.value()
+        settings_dict['power2'] = self._pa.ext_control_mw2_power_DoubleSpinBox.value()
+
+        if use_ext_microwave2 and not self._pa.ext_control_mw2_freq_DoubleSpinBox.isVisible():
+            self._pa.ext_control_mw2_freq_Label.setVisible(True)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw2_power_Label.setVisible(True)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
+        elif not use_ext_microwave2 and self._pa.ext_control_mw2_freq_DoubleSpinBox.isVisible():
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw2_freq_Label.setVisible(False)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setVisible(False)
+            self._pa.ext_control_mw2_power_Label.setVisible(False)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setVisible(False)
+
+        self.pulsedmasterlogic().set_ext_microwave2_settings(settings_dict)
         return
 
     @QtCore.Slot(dict)
-    def microwave_settings_updated(self, settings_dict):
+    def microwave1_settings_updated(self, settings_dict):
         """
 
         @param dict settings_dict:
         """
         # block signals
-        self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(True)
-        self._pa.ext_control_mw_power_DoubleSpinBox.blockSignals(True)
-        self._pa.ext_control_use_mw_CheckBox.blockSignals(True)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_mw1_power_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_use_mw1_CheckBox.blockSignals(True)
 
-        if 'use_ext_microwave' in settings_dict:
-            use_ext_microwave = settings_dict['use_ext_microwave']
-            self._pa.ext_control_use_mw_CheckBox.setChecked(use_ext_microwave)
+        if 'use_ext_microwave1' in settings_dict:
+            use_ext_microwave1 = settings_dict['use_ext_microwave1']
+            self._pa.ext_control_use_mw1_CheckBox.setChecked(use_ext_microwave1)
             # Set visibility
-            self.toggle_microwave_settings_editor(settings_dict['use_ext_microwave'])
-        if 'frequency' in settings_dict:
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setValue(settings_dict['frequency'])
-        if 'power' in settings_dict:
-            self._pa.ext_control_mw_power_DoubleSpinBox.setValue(settings_dict['power'])
+            self.toggle_microwave1_settings_editor(settings_dict['use_ext_microwave1'])
+        if 'frequency1' in settings_dict:
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setValue(settings_dict['frequency1'])
+        if 'power1' in settings_dict:
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setValue(settings_dict['power1'])
 
         # unblock signals
-        self._pa.ext_control_mw_freq_DoubleSpinBox.blockSignals(False)
-        self._pa.ext_control_mw_power_DoubleSpinBox.blockSignals(False)
-        self._pa.ext_control_use_mw_CheckBox.blockSignals(False)
+        self._pa.ext_control_mw1_freq_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_mw1_power_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_use_mw1_CheckBox.blockSignals(False)
         return
 
-    def toggle_microwave_settings_editor(self, show_editor):
+    @QtCore.Slot(dict)
+    def microwave2_settings_updated(self, settings_dict):
+        """
+
+        @param dict settings_dict:
+        """
+        # block signals
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_mw2_power_DoubleSpinBox.blockSignals(True)
+        self._pa.ext_control_use_mw2_CheckBox.blockSignals(True)
+
+        if 'use_ext_microwave2' in settings_dict:
+            use_ext_microwave2 = settings_dict['use_ext_microwave2']
+            self._pa.ext_control_use_mw2_CheckBox.setChecked(use_ext_microwave2)
+            # Set visibility
+            self.toggle_microwave2_settings_editor(settings_dict['use_ext_microwave2'])
+        if 'frequency2' in settings_dict:
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setValue(settings_dict['frequency2'])
+        if 'power2' in settings_dict:
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setValue(settings_dict['power2'])
+
+        # unblock signals
+        self._pa.ext_control_mw2_freq_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_mw2_power_DoubleSpinBox.blockSignals(False)
+        self._pa.ext_control_use_mw2_CheckBox.blockSignals(False)
+        return
+
+    def toggle_microwave1_settings_editor(self, show_editor):
         """
 
         @param show_editor:
         @return:
         """
         if show_editor:
-            self._pa.ext_control_mw_freq_Label.setVisible(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(True)
-            self._pa.ext_control_mw_power_Label.setVisible(True)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(True)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(True)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw1_freq_Label.setVisible(True)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw1_power_Label.setVisible(True)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
         else:
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setEnabled(False)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setEnabled(False)
-            self._pa.ext_control_mw_freq_Label.setVisible(False)
-            self._pa.ext_control_mw_freq_DoubleSpinBox.setVisible(False)
-            self._pa.ext_control_mw_power_Label.setVisible(False)
-            self._pa.ext_control_mw_power_DoubleSpinBox.setVisible(False)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw1_freq_Label.setVisible(False)
+            self._pa.ext_control_mw1_freq_DoubleSpinBox.setVisible(False)
+            self._pa.ext_control_mw1_power_Label.setVisible(False)
+            self._pa.ext_control_mw1_power_DoubleSpinBox.setVisible(False)
+        return
+
+    def toggle_microwave2_settings_editor(self, show_editor):
+        """
+
+        @param show_editor:
+        @return:
+        """
+        if show_editor:
+            self._pa.ext_control_mw2_freq_Label.setVisible(True)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw2_power_Label.setVisible(True)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setVisible(True)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
+        else:
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
+            self._pa.ext_control_mw2_freq_Label.setVisible(False)
+            self._pa.ext_control_mw2_freq_DoubleSpinBox.setVisible(False)
+            self._pa.ext_control_mw2_power_Label.setVisible(False)
+            self._pa.ext_control_mw2_power_DoubleSpinBox.setVisible(False)
         return
 
     @QtCore.Slot(bool)
-    def microwave_running_updated(self, is_running):
+    def microwave1_running_updated(self, is_running):
+        """
+
+        @return:
+        """
+        pass
+
+    @QtCore.Slot(bool)
+    def microwave2_running_updated(self, is_running):
         """
 
         @return:

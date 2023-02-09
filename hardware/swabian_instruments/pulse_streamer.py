@@ -49,12 +49,12 @@ class PulseStreamer(Base, PulserInterface):
     _pulsestreamer_ip = ConfigOption('pulsestreamer_ip', '192.168.1.100', missing='warn')
     _laser_channel = ConfigOption('laser_channel', 1, missing='warn')
     _laser_analog_channel = ConfigOption('laser_analog_channel', 0, missing='warn')
-    _uw_x_channel = ConfigOption('uw_x_channel', 3, missing='warn')
+    _mw1_switch = ConfigOption('mw1_switch', 3, missing='warn')
 
     _pixel_start = ConfigOption('pixel_start', 1, missing='warn')
     _pixel_stop = ConfigOption('pixel_stop', 2, missing='warn')
     _sync_in = ConfigOption('sync_in', 3, missing='warn')
-    _mw_switch = ConfigOption('mw_switch', 4, missing='info')
+    _mw2_switch = ConfigOption('mw2_switch', 4, missing='info')
     _mw_trig = ConfigOption('mw_trig', 5, missing='info')
 
     _use_external_clock = ConfigOption('use_external_clock', False, missing='info')
@@ -94,8 +94,6 @@ class PulseStreamer(Base, PulserInterface):
         self.pulsed_trigger = False
         self._regular_seq = None
         self._sync_final_state = ps.OutputState([self._laser_channel,self._sync_in], self._laser_power_voltage, 0)
-        self._mw_trig_final_state = ps.OutputState([self._uw_x_channel, self._pixel_stop, self._laser_channel], self._laser_power_voltage, 0)
-        self._mw_trig_sync_final_state = ps.OutputState([self._uw_x_channel, self._pixel_stop, self._laser_channel, self._sync_in], self._laser_power_voltage, 0)
         self._final_state = ps.OutputState([self._laser_channel], self._laser_power_voltage, 0)
 
     def on_deactivate(self):

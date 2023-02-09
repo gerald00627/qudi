@@ -3354,20 +3354,20 @@ class AFMConfocalLogic(GenericLogic):
             channels[d_ch(self._pulser._laser_channel)] = 1.0
             channels[a_ch(self._pulser._laser_analog_channel)] = self._pulser._laser_power_voltage
             channels[d_ch(self._pulser._pixel_start)] = 1.0
-            channels[d_ch(self._pulser._mw_switch)] = 1.0
+            channels[d_ch(self._pulser._mw1_switch)] = 1.0
             block_1.append(init_length = 1e-6, channels = channels, repetition = 1)
 
             channels = clear(channels)
             channels[d_ch(self._pulser._laser_channel)] = 1.0
             channels[a_ch(self._pulser._laser_analog_channel)] = self._pulser._laser_power_voltage
-            channels[d_ch(self._pulser._mw_switch)] = 1.0
+            channels[d_ch(self._pulser._mw1_switch)] = 1.0
             block_1.append(init_length = int_time, channels = channels, repetition = 1)
 
             channels = clear(channels)
             channels[d_ch(self._pulser._laser_channel)] = 1.0
             channels[a_ch(self._pulser._laser_analog_channel)] = self._pulser._laser_power_voltage
             channels[d_ch(self._pulser._pixel_stop)] = 1.0
-            channels[d_ch(self._pulser._mw_switch)] = 1.0
+            channels[d_ch(self._pulser._mw1_switch)] = 1.0
             channels[d_ch(self._pulser._sync_in)] = 1.0
             block_1.append(init_length = 1e-6, channels = channels, repetition = 1)
 
@@ -3388,7 +3388,7 @@ class AFMConfocalLogic(GenericLogic):
             channels[d_ch(self._pulser._mw_trig)] = 1.0
             channels[d_ch(self._pulser._laser_channel)] = 1.0
             channels[a_ch(self._pulser._laser_analog_channel)] = self._pulser._laser_power_voltage
-            channels[d_ch(self._pulser._mw_switch)] = 1.0
+            channels[d_ch(self._pulser._mw1_switch)] = 1.0
             channels[d_ch(self._pulser._pixel_start)] = 1.0
             block_1.append(init_length = int_time, channels = channels, repetition = 1)
 
@@ -3396,7 +3396,7 @@ class AFMConfocalLogic(GenericLogic):
             channels[d_ch(self._pulser._laser_channel)] = 1.0
             channels[a_ch(self._pulser._laser_analog_channel)] = self._pulser._laser_power_voltage
             channels[d_ch(self._pulser._pixel_stop)] = 1.0
-            channels[d_ch(self._pulser._mw_switch)] = 0.0
+            channels[d_ch(self._pulser._mw1_switch)] = 0.0
             block_1.append(init_length = 1e-6, channels = channels, repetition = 1)
 
             channels = clear(channels)
@@ -3418,7 +3418,7 @@ class AFMConfocalLogic(GenericLogic):
             
             channels = clear(channels)
             channels[a_ch(self._pulser._laser_analog_channel)] = self._pulser._laser_power_voltage
-            channels[d_ch(self._pulser._mw_switch)] = 1.0
+            channels[d_ch(self._pulser._mw1_switch)] = 1.0
             block_1.append(init_length = pi_half_pulse, channels = channels, repetition = 1)
             
             channels = clear(channels)

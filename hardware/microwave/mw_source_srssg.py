@@ -130,7 +130,7 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
             limits.max_frequency = 2.025e9
         elif self._MODEL == 'SG394':
             limits.max_frequency = 4.050e9
-        elif self._MODEL == 'SG396':
+        elif self._MODEL == 'SG396' or self._MODEL == 'SG386':
             limits.max_frequency = 6.075e9
         else:
             self.log.error('Model brand "{0}" unknown, hardware limits may '

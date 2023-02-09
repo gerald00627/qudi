@@ -56,10 +56,12 @@ class PulsedMasterLogic(GenericLogic):
     sigToggleMeasurement = QtCore.Signal(bool, str)
     sigToggleMeasurementPause = QtCore.Signal(bool)
     sigTogglePulser = QtCore.Signal(bool)
-    sigToggleExtMicrowave = QtCore.Signal(bool)
+    sigToggleExtMicrowave1 = QtCore.Signal(bool)
+    sigToggleExtMicrowave2 = QtCore.Signal(bool)
     sigFastCounterSettingsChanged = QtCore.Signal(dict)
     sigMeasurementSettingsChanged = QtCore.Signal(dict)
-    sigExtMicrowaveSettingsChanged = QtCore.Signal(dict)
+    sigExtMicrowave1SettingsChanged = QtCore.Signal(dict)
+    sigExtMicrowave2SettingsChanged = QtCore.Signal(dict)
     sigAnalysisSettingsChanged = QtCore.Signal(dict)
     sigExtractionSettingsChanged = QtCore.Signal(dict)
     sigTimerIntervalChanged = QtCore.Signal(float)
@@ -72,8 +74,10 @@ class PulsedMasterLogic(GenericLogic):
     sigFitUpdated = QtCore.Signal(str, np.ndarray, object, bool)
     sigMeasurementStatusUpdated = QtCore.Signal(bool, bool)
     sigPulserRunningUpdated = QtCore.Signal(bool)
-    sigExtMicrowaveRunningUpdated = QtCore.Signal(bool)
-    sigExtMicrowaveSettingsUpdated = QtCore.Signal(dict)
+    sigExtMicrowave1RunningUpdated = QtCore.Signal(bool)
+    sigExtMicrowave1SettingsUpdated = QtCore.Signal(dict)
+    sigExtMicrowave2RunningUpdated = QtCore.Signal(bool)
+    sigExtMicrowave2SettingsUpdated = QtCore.Signal(dict)
     sigFastCounterSettingsUpdated = QtCore.Signal(dict)
     sigMeasurementSettingsUpdated = QtCore.Signal(dict)
     sigAnalysisSettingsUpdated = QtCore.Signal(dict)
@@ -131,7 +135,8 @@ class PulsedMasterLogic(GenericLogic):
                             'loading_busy': False,
                             'pulser_running': False,
                             'measurement_running': False,
-                            'microwave_running': False,
+                            'microwave1_running': False,
+                            'microwave2_running': False,
                             'predefined_generation_busy': False,
                             'fitting_busy': False,
                             'benchmark_busy': False}
@@ -145,14 +150,18 @@ class PulsedMasterLogic(GenericLogic):
             self.pulsedmeasurementlogic().toggle_measurement_pause, QtCore.Qt.QueuedConnection)
         self.sigTogglePulser.connect(
             self.pulsedmeasurementlogic().toggle_pulse_generator, QtCore.Qt.QueuedConnection)
-        self.sigToggleExtMicrowave.connect(
-            self.pulsedmeasurementlogic().toggle_microwave, QtCore.Qt.QueuedConnection)
+        self.sigToggleExtMicrowave1.connect(
+            self.pulsedmeasurementlogic().toggle_microwave1, QtCore.Qt.QueuedConnection)
+        self.sigToggleExtMicrowave2.connect(
+            self.pulsedmeasurementlogic().toggle_microwave2, QtCore.Qt.QueuedConnection)
         self.sigFastCounterSettingsChanged.connect(
             self.pulsedmeasurementlogic().set_fast_counter_settings, QtCore.Qt.QueuedConnection)
         self.sigMeasurementSettingsChanged.connect(
             self.pulsedmeasurementlogic().set_measurement_settings, QtCore.Qt.QueuedConnection)
-        self.sigExtMicrowaveSettingsChanged.connect(
-            self.pulsedmeasurementlogic().set_microwave_settings, QtCore.Qt.QueuedConnection)
+        self.sigExtMicrowave1SettingsChanged.connect(
+            self.pulsedmeasurementlogic().set_microwave1_settings, QtCore.Qt.QueuedConnection)
+        self.sigExtMicrowave2SettingsChanged.connect(
+            self.pulsedmeasurementlogic().set_microwave2_settings, QtCore.Qt.QueuedConnection)
         self.sigAnalysisSettingsChanged.connect(
             self.pulsedmeasurementlogic().set_analysis_settings, QtCore.Qt.QueuedConnection)
         self.sigExtractionSettingsChanged.connect(
@@ -175,10 +184,14 @@ class PulsedMasterLogic(GenericLogic):
             self.measurement_status_updated, QtCore.Qt.QueuedConnection)
         self.pulsedmeasurementlogic().sigPulserRunningUpdated.connect(
             self.pulser_running_updated, QtCore.Qt.QueuedConnection)
-        self.pulsedmeasurementlogic().sigExtMicrowaveRunningUpdated.connect(
-            self.ext_microwave_running_updated, QtCore.Qt.QueuedConnection)
-        self.pulsedmeasurementlogic().sigExtMicrowaveSettingsUpdated.connect(
-            self.sigExtMicrowaveSettingsUpdated, QtCore.Qt.QueuedConnection)
+        self.pulsedmeasurementlogic().sigExtMicrowave1RunningUpdated.connect(
+            self.ext_microwave1_running_updated, QtCore.Qt.QueuedConnection)
+        self.pulsedmeasurementlogic().sigExtMicrowave1SettingsUpdated.connect(
+            self.sigExtMicrowave1SettingsUpdated, QtCore.Qt.QueuedConnection)
+        self.pulsedmeasurementlogic().sigExtMicrowave2RunningUpdated.connect(
+            self.ext_microwave2_running_updated, QtCore.Qt.QueuedConnection)
+        self.pulsedmeasurementlogic().sigExtMicrowave2SettingsUpdated.connect(
+            self.sigExtMicrowave2SettingsUpdated, QtCore.Qt.QueuedConnection)
         self.pulsedmeasurementlogic().sigFastCounterSettingsUpdated.connect(
             self.sigFastCounterSettingsUpdated, QtCore.Qt.QueuedConnection)
         self.pulsedmeasurementlogic().sigMeasurementSettingsUpdated.connect(
@@ -263,10 +276,12 @@ class PulsedMasterLogic(GenericLogic):
         self.sigToggleMeasurement.disconnect()
         self.sigToggleMeasurementPause.disconnect()
         self.sigTogglePulser.disconnect()
-        self.sigToggleExtMicrowave.disconnect()
+        self.sigToggleExtMicrowave1.disconnect()
+        self.sigToggleExtMicrowave2.disconnect()
         self.sigFastCounterSettingsChanged.disconnect()
         self.sigMeasurementSettingsChanged.disconnect()
-        self.sigExtMicrowaveSettingsChanged.disconnect()
+        self.sigExtMicrowave1SettingsChanged.disconnect()
+        self.sigExtMicrowave2SettingsChanged.disconnect()
         self.sigAnalysisSettingsChanged.disconnect()
         self.sigExtractionSettingsChanged.disconnect()
         self.sigTimerIntervalChanged.disconnect()
@@ -278,8 +293,10 @@ class PulsedMasterLogic(GenericLogic):
         self.pulsedmeasurementlogic().sigFitUpdated.disconnect()
         self.pulsedmeasurementlogic().sigMeasurementStatusUpdated.disconnect()
         self.pulsedmeasurementlogic().sigPulserRunningUpdated.disconnect()
-        self.pulsedmeasurementlogic().sigExtMicrowaveRunningUpdated.disconnect()
-        self.pulsedmeasurementlogic().sigExtMicrowaveSettingsUpdated.disconnect()
+        self.pulsedmeasurementlogic().sigExtMicrowave1RunningUpdated.disconnect()
+        self.pulsedmeasurementlogic().sigExtMicrowave1SettingsUpdated.disconnect()
+        self.pulsedmeasurementlogic().sigExtMicrowave2RunningUpdated.disconnect()
+        self.pulsedmeasurementlogic().sigExtMicrowave2SettingsUpdated.disconnect()
         self.pulsedmeasurementlogic().sigFastCounterSettingsUpdated.disconnect()
         self.pulsedmeasurementlogic().sigMeasurementSettingsUpdated.disconnect()
         self.pulsedmeasurementlogic().sigAnalysisSettingsUpdated.disconnect()
@@ -335,12 +352,20 @@ class PulsedMasterLogic(GenericLogic):
         return self.pulsedmeasurementlogic().elapsed_time
 
     @property
-    def ext_microwave_constraints(self):
-        return self.pulsedmeasurementlogic().ext_microwave_constraints
+    def ext_microwave1_constraints(self):
+        return self.pulsedmeasurementlogic().ext_microwave1_constraints
+    
+    @property
+    def ext_microwave2_constraints(self):
+        return self.pulsedmeasurementlogic().ext_microwave2_constraints
 
     @property
-    def ext_microwave_settings(self):
-        return self.pulsedmeasurementlogic().ext_microwave_settings
+    def ext_microwave1_settings(self):
+        return self.pulsedmeasurementlogic().ext_microwave1_settings
+
+    @property
+    def ext_microwave2_settings(self):
+        return self.pulsedmeasurementlogic().ext_microwave2_settings
 
     @property
     def measurement_settings(self):
@@ -424,16 +449,29 @@ class PulsedMasterLogic(GenericLogic):
         return
 
     @QtCore.Slot(dict)
-    def set_ext_microwave_settings(self, settings_dict=None, **kwargs):
+    def set_ext_microwave1_settings(self, settings_dict=None, **kwargs):
         """
 
         @param settings_dict:
         @param kwargs:
         """
         if isinstance(settings_dict, dict):
-            self.sigExtMicrowaveSettingsChanged.emit(settings_dict)
+            self.sigExtMicrowave1SettingsChanged.emit(settings_dict)
         else:
-            self.sigExtMicrowaveSettingsChanged.emit(kwargs)
+            self.sigExtMicrowave1SettingsChanged.emit(kwargs)
+        return
+
+    @QtCore.Slot(dict)
+    def set_ext_microwave2_settings(self, settings_dict=None, **kwargs):
+        """
+
+        @param settings_dict:
+        @param kwargs:
+        """
+        if isinstance(settings_dict, dict):
+            self.sigExtMicrowave2SettingsChanged.emit(settings_dict)
+        else:
+            self.sigExtMicrowave2SettingsChanged.emit(kwargs)
         return
 
     @QtCore.Slot(dict)
@@ -492,24 +530,45 @@ class PulsedMasterLogic(GenericLogic):
         return
 
     @QtCore.Slot(bool)
-    def toggle_ext_microwave(self, switch_on):
+    def toggle_ext_microwave1(self, switch_on):
         """
 
         @param switch_on:
         """
         if isinstance(switch_on, bool):
-            self.sigToggleExtMicrowave.emit(switch_on)
+            self.sigToggleExtMicrowave1.emit(switch_on)
         return
 
     @QtCore.Slot(bool)
-    def ext_microwave_running_updated(self, is_running):
+    def toggle_ext_microwave2(self, switch_on):
+        """
+
+        @param switch_on:
+        """
+        if isinstance(switch_on, bool):
+            self.sigToggleExtMicrowave2.emit(switch_on)
+        return
+
+    @QtCore.Slot(bool)
+    def ext_microwave1_running_updated(self, is_running):
         """
 
         @param is_running:
         """
         if isinstance(is_running, bool):
-            self.status_dict['microwave_running'] = is_running
-            self.sigExtMicrowaveRunningUpdated.emit(is_running)
+            self.status_dict['microwave1_running'] = is_running
+            self.sigExtMicrowave1RunningUpdated.emit(is_running)
+        return
+
+    @QtCore.Slot(bool)
+    def ext_microwave2_running_updated(self, is_running):
+        """
+
+        @param is_running:
+        """
+        if isinstance(is_running, bool):
+            self.status_dict['microwave2_running'] = is_running
+            self.sigExtMicrowave2RunningUpdated.emit(is_running)
         return
 
     @QtCore.Slot(bool)

@@ -593,7 +593,7 @@ class ODMRLogic(GenericLogic):
 
         channels = clear(channels)
         channels[a_ch(self._odmr_counter._pulser._laser_analog_channel)] = self._odmr_counter._pulser._laser_power_voltage
-        channels[d_ch(self._odmr_counter._pulser._mw_switch)] = 1.0
+        channels[d_ch(self._odmr_counter._pulser._mw1_switch)] = 1.0
         block_1.append(init_length = pi_pulse, channels = channels, repetition = 1)
         
         channels = clear(channels)
