@@ -199,7 +199,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         tau_array = tau_start + np.arange(num_of_points) * tau_step
 
         # create the laser_mw element
-        mw_element = self._get_mw_element(length=tau_start,
+        mw_element = self._get_mw1_element(length=tau_start,
                                           increment=tau_step,
                                           amp=self.microwave1_amplitude,
                                           freq=self.microwave1_frequency,
@@ -233,7 +233,77 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # add metadata to invoke settings later on
         number_of_lasers = 2 * num_of_points if reference else num_of_points
-        block_ensemble.measurement_information['number_of_curves'] = 2
+        block_ensemble.measurement_information['number_of_curves'] = 2 if reference else 1
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = tau_array
+        block_ensemble.measurement_information['units'] = ('s', '')
+        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+
+        # Append ensemble to created_ensembles list
+        created_ensembles.append(block_ensemble)
+        return created_blocks, created_ensembles, created_sequences
+
+    def generate_rabiTwo(self, name='rabiTwo', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=50, reference=False):
+        """
+
+        """
+        created_blocks = list()
+        created_ensembles = list()
+        created_sequences = list()
+
+        # get tau array for measurement ticks
+        tau_array = tau_start + np.arange(num_of_points) * tau_step
+
+        # create the laser_mw element
+        mw1_element = self._get_mw1_element(length=tau_start,
+                                          increment=tau_step,
+                                          amp=self.microwave1_amplitude,
+                                          freq=self.microwave1_frequency,
+                                          phase=0)
+        mw2_element = self._get_mw2_element(length=tau_start,
+                                          increment=tau_step,
+                                          amp=self.microwave2_amplitude,
+                                          freq=self.microwave2_frequency,
+                                          phase=0)
+        waiting_element = self._get_idle_element(length=self.wait_time,
+                                                 increment=0)
+        laser_element = self._get_laser_gate_element(length=self.laser_length,
+                                                     increment=0)
+        delay_element = self._get_delay_gate_element()
+        mw_wait_element = self._get_idle_element(length=tau_start, increment=tau_step)
+
+        # Create block and append to created_blocks list
+        # -1
+        rabi_block = PulseBlock(name=name)
+        rabi_block.append(mw1_element)
+        rabi_block.append(laser_element)
+        rabi_block.append(delay_element)
+        rabi_block.append(waiting_element)
+        # +1
+        rabi_block.append(mw2_element)
+        rabi_block.append(laser_element)
+        rabi_block.append(delay_element)
+        rabi_block.append(waiting_element)
+        if reference:
+            rabi_block.append(mw_wait_element)
+            rabi_block.append(laser_element)
+            rabi_block.append(delay_element)
+            rabi_block.append(waiting_element)
+        created_blocks.append(rabi_block)
+
+        # Create block ensemble
+        block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
+        block_ensemble.append((rabi_block.name, num_of_points - 1))
+
+        # Create and append sync trigger block if needed
+        self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
+
+        # add metadata to invoke settings later on
+        number_of_lasers = 3 * num_of_points if reference else 2*num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 3 if reference else 2
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -268,7 +338,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # Create block and append to created_blocks list
         pulsedodmr_block = PulseBlock(name=name)
         for mw_freq in freq_array:
-            mw_element = self._get_mw_element(length=self.rabi_period1 / 2,
+            mw_element = self._get_mw1_element(length=self.rabi_period1 / 2,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=mw_freq,
@@ -319,20 +389,20 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         laser_element = self._get_laser_gate_element(length=self.laser_length,
                                                      increment=0)
         delay_element = self._get_delay_gate_element()
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
                                               phase=0)
         # Use a 180 deg phase shiftet pulse as 3pihalf pulse if microwave channel is analog
         if self.microwave1_channel.startswith('a'):
-            pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=180)
         else:
-            pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
@@ -398,7 +468,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                                                      increment=0)
         delay_element = self._get_delay_gate_element()
         # get pihalf element
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
@@ -406,13 +476,13 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         if alternating:
             if self.microwave1_channel.startswith('a'):
-                pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+                pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                        increment=0,
                                                        amp=self.microwave1_amplitude,
                                                        freq=self.microwave1_frequency,
                                                        phase=180)
             else:
-                pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+                pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                        increment=0,
                                                        amp=self.microwave1_amplitude,
                                                        freq=self.microwave1_frequency,
@@ -480,25 +550,25 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         laser_element = self._get_laser_gate_element(length=self.laser_length,
                                                      increment=0)
         delay_element = self._get_delay_gate_element()
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
                                               phase=0)
-        pi_element = self._get_mw_element(length=self.rabi_period1 / 2,
+        pi_element = self._get_mw1_element(length=self.rabi_period1 / 2,
                                           increment=0,
                                           amp=self.microwave1_amplitude,
                                           freq=self.microwave1_frequency,
                                           phase=0)
         # Use a 180 deg phase shiftet pulse as 3pihalf pulse if microwave channel is analog
         if self.microwave1_channel.startswith('a'):
-            pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=180)
         else:
-            pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
@@ -572,25 +642,25 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         laser_element = self._get_laser_gate_element(length=self.laser_length,
                                                      increment=0)
         delay_element = self._get_delay_gate_element()
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
                                               phase=0)
-        pi_element = self._get_mw_element(length=self.rabi_period1 / 2,
+        pi_element = self._get_mw1_element(length=self.rabi_period1 / 2,
                                           increment=0,
                                           amp=self.microwave1_amplitude,
                                           freq=self.microwave1_frequency,
                                           phase=0)
         # Use a 180 deg phase shiftet pulse as 3pihalf pulse if microwave channel is analog
         if self.microwave1_channel.startswith('a'):
-            pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=180)
         else:
-            pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
@@ -660,12 +730,11 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         delay_element = self._get_delay_gate_element()
         mw_wait_element = self._get_idle_element(length=self.rabi_period1, increment=0)
 
-        if reference:  # get pi element
-            pi_element = self._get_mw_element(length=self.rabi_period1 / 2,
-                                              increment=0,
-                                              amp=self.microwave1_amplitude,
-                                              freq=self.microwave1_frequency,
-                                              phase=0)
+        pi_element = self._get_mw1_element(length=self.rabi_period1 / 2,
+                                            increment=0,
+                                            amp=self.microwave1_amplitude,
+                                            freq=self.microwave1_frequency,
+                                            phase=0)
 
         tau_element = self._get_idle_element(length=tau_start, increment=tau_step)
         t1_block = PulseBlock(name=name)
@@ -728,8 +797,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         delay_element = self._get_delay_gate_element()
         mw_wait_element = self._get_idle_element(length=self.rabi_period1, increment=0)
 
-        if reference:  # get pi element
-            pi_element = self._get_mw_element(length=self.rabi_period1 / 2,
+        pi_element = self._get_mw1_element(length=self.rabi_period1 / 2,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
@@ -759,7 +827,86 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # add metadata to invoke settings later on
         number_of_lasers = 2 * num_of_points if reference else num_of_points
-        block_ensemble.measurement_information['number_of_curves'] = reference
+        block_ensemble.measurement_information['number_of_curves'] = 2 if reference else 1
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = tau_array
+        block_ensemble.measurement_information['units'] = ('s', '')
+        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+        # append ensemble to created ensembles
+        created_ensembles.append(block_ensemble)
+        return created_blocks, created_ensembles, created_sequences
+
+    def generate_t1_3exponential(self, name='T1exp3', tau_start=1.0e-6, tau_end=1.0e-5,
+                                num_of_points=10):
+        """
+
+        """
+        created_blocks = list()
+        created_ensembles = list()
+        created_sequences = list()
+
+        # get tau array for measurement ticks
+        if tau_start == 0.0:
+            tau_array = np.geomspace(1e-9, tau_end, num_of_points - 1)
+            tau_array = np.insert(tau_array, 0, 0.0)
+        else:
+            tau_array = np.geomspace(tau_start, tau_end, num_of_points)
+
+        # create the elements
+        waiting_element = self._get_idle_element(length=self.wait_time,
+                                                 increment=0)
+        laser_element = self._get_laser_gate_element(length=self.laser_length,
+                                                     increment=0)
+        delay_element = self._get_delay_gate_element()
+        mw_wait_element = self._get_idle_element(length=self.rabi_period1, increment=0)
+
+        pi1_element = self._get_mw1_element(length=self.rabi_period1 / 2,
+                                            increment=0,
+                                            amp=self.microwave1_amplitude,
+                                            freq=self.microwave1_frequency,
+                                            phase=0)
+        pi2_element = self._get_mw2_element(length=self.rabi_period2 / 2,
+                                            increment=0,
+                                            amp=self.microwave2_amplitude,
+                                            freq=self.microwave2_frequency,
+                                            phase=0)
+        t1_block = PulseBlock(name=name)
+        for tau in tau_array:
+            tau_element = self._get_idle_element(length=tau, increment=0.0)
+            # 0
+            t1_block.append(tau_element)
+            t1_block.append(mw_wait_element)
+            t1_block.append(laser_element)
+            t1_block.append(delay_element)
+            t1_block.append(waiting_element)
+            # -1
+            t1_block.append(tau_element)
+            t1_block.append(pi1_element)
+            t1_block.append(laser_element)
+            t1_block.append(delay_element)
+            t1_block.append(waiting_element)
+            # +1
+            t1_block.append(tau_element)
+            t1_block.append(pi2_element)
+            t1_block.append(laser_element)
+            t1_block.append(delay_element)
+            t1_block.append(waiting_element)
+
+        created_blocks.append(t1_block)
+
+        # Create block ensemble
+        block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
+        block_ensemble.append((t1_block.name, 0))
+
+        # Create and append sync trigger block if needed
+        self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
+
+        # add metadata to invoke settings later on
+        number_of_lasers = 3 * num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 3
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')
@@ -787,20 +934,20 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         waiting_element = self._get_idle_element(length=self.wait_time, increment=0)
         laser_element = self._get_laser_gate_element(length=self.laser_length, increment=0)
         delay_element = self._get_delay_gate_element()
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
                                               phase=0)
         # Use a 180 deg phase shiftet pulse as 3pihalf pulse if microwave channel is analog
         if self.microwave1_channel.startswith('a'):
-            pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=180)
         else:
-            pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
@@ -809,7 +956,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # Create block and append to created_blocks list
         hhamp_block = PulseBlock(name=name)
         for sl_amp in amp_array:
-            sl_element = self._get_mw_element(length=spinlock_length,
+            sl_element = self._get_mw1_element(length=spinlock_length,
                                               increment=0,
                                               amp=sl_amp,
                                               freq=self.microwave1_frequency,
@@ -866,25 +1013,25 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         waiting_element = self._get_idle_element(length=self.wait_time, increment=0)
         laser_element = self._get_laser_gate_element(length=self.laser_length, increment=0)
         delay_element = self._get_delay_gate_element()
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
                                               phase=0)
         # Use a 180 deg phase shiftet pulse as 3pihalf pulse if microwave channel is analog
         if self.microwave1_channel.startswith('a'):
-            pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=180)
         else:
-            pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=0)
-        sl_element = self._get_mw_element(length=tau_start,
+        sl_element = self._get_mw1_element(length=tau_start,
                                           increment=tau_step,
                                           amp=spinlock_amp,
                                           freq=self.microwave1_frequency,
@@ -944,25 +1091,25 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         waiting_element = self._get_idle_element(length=self.wait_time, increment=0)
         laser_element = self._get_laser_gate_element(length=self.laser_length, increment=0)
         delay_element = self._get_delay_gate_element()
-        pihalf_element = self._get_mw_element(length=self.rabi_period1 / 4,
+        pihalf_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                               increment=0,
                                               amp=self.microwave1_amplitude,
                                               freq=self.microwave1_frequency,
                                               phase=0)
         # Use a 180 deg phase shiftet pulse as 3pihalf pulse if microwave channel is analog
         if self.microwave1_channel.startswith('a'):
-            pi3half_element = self._get_mw_element(length=self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=180)
         else:
-            pi3half_element = self._get_mw_element(length=3 * self.rabi_period1 / 4,
+            pi3half_element = self._get_mw1_element(length=3 * self.rabi_period1 / 4,
                                                    increment=0,
                                                    amp=self.microwave1_amplitude,
                                                    freq=self.microwave1_frequency,
                                                    phase=0)
-        sl_element = self._get_mw_element(length=spinlock_length,
+        sl_element = self._get_mw1_element(length=spinlock_length,
                                           increment=0,
                                           amp=spinlock_amp,
                                           freq=self.microwave1_frequency,
@@ -1148,7 +1295,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
             self.log.error('The duration of the chirped pulse exceeds expected the T2 time')
 
         for mw_freq in freq_array:
-            mw_element = self._get_mw_element_linearchirp(length=pulse_length,
+            mw_element = self._get_mw1_element_linearchirp(length=pulse_length,
                                                           increment=0,
                                                           amplitude=self.microwave1_amplitude,
                                                           start_freq=(mw_freq - mw_freq_incr / 2.
@@ -1275,7 +1422,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
             self.log.error('The duration of the chirped pulse exceeds the expected T2 time')
 
         for mw_freq in freq_array:
-            mw_element = self._get_mw_element_AEchirp(length=pulse_length,
+            mw_element = self._get_mw1_element_AEchirp(length=pulse_length,
                                                       increment=0,
                                                       amp=peak_mw_amplitude,
                                                       start_freq=(mw_freq - mw_freq_incr / 2.

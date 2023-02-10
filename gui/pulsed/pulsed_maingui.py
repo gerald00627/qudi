@@ -36,6 +36,7 @@ from qtpy import QtCore, QtWidgets, uic
 from qtwidgets.scientific_spinbox import ScienDSpinBox, ScienSpinBox
 from qtwidgets.loading_indicator import CircleLoadingIndicator
 from enum import Enum
+from collections import OrderedDict
 
 
 # TODO: Display the Pulse graphically (similar to AWG application)
@@ -2290,20 +2291,36 @@ class PulsedMeasurementGui(GUIBase):
         """ Initialize, connect and configure the 'Analysis' Tab.
         """
         # Configure the main pulse analysis display:
-        self.signal_image = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+        self.signal_image_dict = OrderedDict()
+        self.signal_image_dict["signal_image1"] = pg.PlotDataItem(pen=pg.mkPen(palette.c4, style=QtCore.Qt.SolidLine),
+                                            style=QtCore.Qt.DotLine,
+                                            symbol='o',
+                                            symbolPen=palette.c4,
+                                            symbolBrush=palette.c4,
+                                            symbolSize=7)
+
+        self.signal_image_dict["signal_image2"] = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.SolidLine),
                                             style=QtCore.Qt.DotLine,
                                             symbol='o',
                                             symbolPen=palette.c1,
                                             symbolBrush=palette.c1,
                                             symbolSize=7)
-        self.signal_image2 = pg.PlotDataItem(pen=pg.mkPen(palette.c4, style=QtCore.Qt.DotLine),
-                                             style=QtCore.Qt.DotLine,
-                                             symbol='o',
-                                             symbolPen=palette.c4,
-                                             symbolBrush=palette.c4,
-                                             symbolSize=7)
-        self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image)
-        self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image2)
+                    
+        self.signal_image_dict["signal_image3"] = pg.PlotDataItem(pen=pg.mkPen(palette.c6, style=QtCore.Qt.SolidLine),
+                                            style=QtCore.Qt.DotLine,
+                                            symbol='o',
+                                            symbolPen=palette.c6,
+                                            symbolBrush=palette.c6,
+                                            symbolSize=7)
+
+        self.signal_image_dict["signal_image4"] = pg.PlotDataItem(pen=pg.mkPen(palette.c3, style=QtCore.Qt.SolidLine),
+                                            style=QtCore.Qt.DotLine,
+                                            symbol='o',
+                                            symbolPen=palette.c3,
+                                            symbolBrush=palette.c3,
+                                            symbolSize=7)
+
+        self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_dict["signal_image1"])
         self._pa.pulse_analysis_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
 
         # Configure the fit of the data in the main pulse analysis display:
@@ -2311,32 +2328,62 @@ class PulsedMeasurementGui(GUIBase):
         self._pa.pulse_analysis_PlotWidget.addItem(self.fit_image)
 
         # Configure the errorbars of the data in the main pulse analysis display:
-        self.signal_image_error_bars = pg.ErrorBarItem(x=np.arange(10),
+        self.signal_image_error_bars_dict = OrderedDict()
+        self.signal_image_error_bars_dict['signal_image1_error'] = pg.ErrorBarItem(x=np.arange(10),
                                                        y=np.zeros(10),
                                                        top=0.,
                                                        bottom=0.,
                                                        pen=palette.c2)
-        self.signal_image_error_bars2 = pg.ErrorBarItem(x=np.arange(10),
-                                                        y=np.zeros(10),
-                                                        top=0.,
-                                                        bottom=0.,
-                                                        pen=palette.c5)
+
+        self.signal_image_error_bars_dict['signal_image2_error'] = pg.ErrorBarItem(x=np.arange(10),
+                                                       y=np.zeros(10),
+                                                       top=0.,
+                                                       bottom=0.,
+                                                       pen=palette.c2)
+
+        self.signal_image_error_bars_dict['signal_image3_error'] = pg.ErrorBarItem(x=np.arange(10),
+                                                       y=np.zeros(10),
+                                                       top=0.,
+                                                       bottom=0.,
+                                                       pen=palette.c2)
+
+        self.signal_image_error_bars_dict['signal_image4_error'] = pg.ErrorBarItem(x=np.arange(10),
+                                                       y=np.zeros(10),
+                                                       top=0.,
+                                                       bottom=0.,
+                                                       pen=palette.c2)
 
         # Configure the second pulse analysis plot display:
-        self.second_plot_image = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+        self.second_plot_image_dict = OrderedDict()
+        self.second_plot_image_dict["second_plot_image1"] = pg.PlotDataItem(pen=pg.mkPen(palette.c4, style=QtCore.Qt.DotLine),
+                                            style=QtCore.Qt.DotLine,
+                                            symbol='o',
+                                            symbolPen=palette.c4,
+                                            symbolBrush=palette.c4,
+                                            symbolSize=7)
+
+        self.second_plot_image_dict["second_plot_image2"] = pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                             style=QtCore.Qt.DotLine,
                                             symbol='o',
                                             symbolPen=palette.c1,
                                             symbolBrush=palette.c1,
                                             symbolSize=7)
-        self.second_plot_image2 = pg.PlotDataItem(pen=pg.mkPen(palette.c4, style=QtCore.Qt.DotLine),
-                                             style=QtCore.Qt.DotLine,
-                                             symbol='o',
-                                             symbolPen=palette.c4,
-                                             symbolBrush=palette.c4,
-                                             symbolSize=7)
-        self._pa.pulse_analysis_second_PlotWidget.addItem(self.second_plot_image)
-        self._pa.pulse_analysis_second_PlotWidget.addItem(self.second_plot_image2)
+
+        self.second_plot_image_dict["second_plot_image3"] = pg.PlotDataItem(pen=pg.mkPen(palette.c6, style=QtCore.Qt.DotLine),
+                                            style=QtCore.Qt.DotLine,
+                                            symbol='o',
+                                            symbolPen=palette.c6,
+                                            symbolBrush=palette.c6,
+                                            symbolSize=7)
+
+        self.second_plot_image_dict["second_plot_image4"] = pg.PlotDataItem(pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+                                            style=QtCore.Qt.DotLine,
+                                            symbol='o',
+                                            symbolPen=palette.c3,
+                                            symbolBrush=palette.c3,
+                                            symbolSize=7)
+
+        self._pa.pulse_analysis_second_PlotWidget.addItem(self.second_plot_image_dict['second_plot_image1'])
         self._pa.pulse_analysis_second_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
         # Configure the fit of the data in the secondary pulse analysis display:
         self.second_fit_image = pg.PlotDataItem(pen=palette.c3)
@@ -2448,32 +2495,24 @@ class PulsedMeasurementGui(GUIBase):
             beamwidth = 0
         del tmp_array
         beamwidth /= 3
-        self.signal_image_error_bars.setData(x=signal_data[0],
-                                             y=signal_data[1],
-                                             top=measurement_error[1],
-                                             bottom=measurement_error[1],
-                                             beam=beamwidth)
-        if signal_data.shape[0] > 2 and measurement_error.shape[0] > 2:
-            self.signal_image_error_bars2.setData(x=signal_data[0],
-                                                  y=signal_data[2],
-                                                  top=measurement_error[2],
-                                                  bottom=measurement_error[2],
-                                                  beam=beamwidth)
+        for i in range(1, signal_data.shape[0]):
+            self.signal_image_error_bars_dict["signal_image{}_error".format(i)].setData(x=signal_data[0],
+                                                                                        y=signal_data[i],
+                                                                                        top=measurement_error[i],
+                                                                                        bottom=measurement_error[i],
+                                                                                        beam=beamwidth)
 
         # dealing with the actual signal plot
-        self.signal_image.setData(x=signal_data[0], y=signal_data[1])
-        if signal_data.shape[0] > 2:
-            self.signal_image2.setData(x=signal_data[0], y=signal_data[2])
+        for i in range(1, signal_data.shape[0]):
+            self.signal_image_dict["signal_image{}".format(i)].setData(x=signal_data[0], y=signal_data[i])
 
         # dealing with the secondary plot
-        self.second_plot_image.setData(x=signal_alt_data[0], y=signal_alt_data[1])
-        if signal_alt_data.shape[0] > 2:
-            self.second_plot_image2.setData(x=signal_alt_data[0], y=signal_alt_data[2])
+        for i in range(1, signal_data.shape[0]):
+            self.second_plot_image_dict["second_plot_image{}".format(i)].setData(x=signal_alt_data[0], y=signal_alt_data[i])
 
         # dealing with the error plot
-        self.measuring_error_image.setData(x=measurement_error[0], y=measurement_error[1])
-        if measurement_error.shape[0] > 2:
-            self.measuring_error_image2.setData(x=measurement_error[0], y=measurement_error[2])
+        for i in range(1, signal_data.shape[0]):
+            self.measuring_error_image_dict["measuring_error_image{}".format(i)].setData(x=measurement_error[0], y=measurement_error[i])
 
         # dealing with the laser plot
         self.update_laser_data()
@@ -2886,27 +2925,38 @@ class PulsedMeasurementGui(GUIBase):
         number_of_signals = self.pulsedmasterlogic().signal_data.shape[0] - 1
         number_of_alt_signals = self.pulsedmasterlogic().signal_alt_data.shape[0] - 1
 
-        if number_of_signals == 1:
-            if self.signal_image2 in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image2)
-            if self.signal_image_error_bars2 in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image_error_bars2)
-            if self.measuring_error_image2 in self._pe.measuring_error_PlotWidget.items():
-                self._pe.measuring_error_PlotWidget.removeItem(self.measuring_error_image2)
-        else:
-            if self.signal_image2 not in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image2)
-            if self.signal_image_error_bars in self._pa.pulse_analysis_PlotWidget.items() and self.signal_image_error_bars2 not in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_error_bars2)
-            if self.measuring_error_image2 not in self._pe.measuring_error_PlotWidget.items():
-                self._pe.measuring_error_PlotWidget.addItem(self.measuring_error_image2)
+        for i, signal_image in enumerate(self.signal_image_dict, 1):
+            if i <= number_of_signals:
+                if self.signal_image_dict[signal_image] not in self._pa.pulse_analysis_PlotWidget.items():
+                    self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_dict[signal_image])
+            else:
+                if self.signal_image_dict[signal_image] in self._pa.pulse_analysis_PlotWidget.items():
+                    self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image_dict[signal_image])
 
-        if number_of_alt_signals == 1:
-            if self.second_plot_image2 in self._pa.pulse_analysis_second_PlotWidget.items():
-                self._pa.pulse_analysis_second_PlotWidget.removeItem(self.second_plot_image2)
-        else:
-            if self.second_plot_image2 not in self._pa.pulse_analysis_second_PlotWidget.items():
-                self._pa.pulse_analysis_second_PlotWidget.addItem(self.second_plot_image2)
+        for i, signal_image_error in enumerate(self.signal_image_error_bars_dict, 1):
+            if i <= number_of_signals:
+                if self.signal_image_error_bars_dict[signal_image_error] not in self._pa.pulse_analysis_PlotWidget.items():
+                    self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_error_bars_dict[signal_image_error])
+            else:
+                if self.signal_image_error_bars_dict[signal_image_error] in self._pa.pulse_analysis_PlotWidget.items():
+                    self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image_error_bars_dict[signal_image_error])
+
+        for i, measuring_error_image in enumerate(self.measuring_error_image_dict, 1):
+            if i <= number_of_signals:
+                if self.measuring_error_image_dict[measuring_error_image] not in self._pe.measuring_error_PlotWidget.items():
+                    self._pe.measuring_error_PlotWidget.addItem(self.measuring_error_image_dict[measuring_error_image])
+            else:
+                if self.measuring_error_image_dict[measuring_error_image] in self._pe.measuring_error_PlotWidget.items():
+                    self._pe.measuring_error_PlotWidget.removeItem(self.measuring_error_image_dict[measuring_error_image])
+
+        for i, second_plot_image in enumerate(self.second_plot_image_dict, 1):
+            if i <= number_of_alt_signals:
+                if self.second_plot_image_dict[second_plot_image] not in self._pa.pulse_analysis_second_PlotWidget.items():
+                    self._pa.pulse_analysis_second_PlotWidget.addItem(self.second_plot_image_dict[second_plot_image])
+            else:
+                if self.second_plot_image_dict[second_plot_image] in self._pa.pulse_analysis_second_PlotWidget.items():
+                    self._pa.pulse_analysis_second_PlotWidget.removeItem(self.second_plot_image_dict[second_plot_image])
+
         return
 
     def toggle_measurement_settings_editor(self, hide_editor):
@@ -2937,17 +2987,17 @@ class PulsedMeasurementGui(GUIBase):
 
         @return:
         """
-        is_alternating = self.signal_image2 in self._pa.pulse_analysis_PlotWidget.items()
-        if show_bars:
-            if self.signal_image_error_bars not in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_error_bars)
-            if is_alternating and self.signal_image_error_bars2 not in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_error_bars2)
-        else:
-            if self.signal_image_error_bars in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image_error_bars)
-            if is_alternating and self.signal_image_error_bars2 in self._pa.pulse_analysis_PlotWidget.items():
-                self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image_error_bars2)
+        number_of_signals = self.pulsedmasterlogic().signal_data.shape[0] - 1
+        for i, signal_image_error in enumerate(self.signal_image_error_bars_dict, 1):
+            if i > number_of_signals:
+                continue
+            if show_bars:
+                if self.signal_image_error_bars_dict[signal_image_error] not in self._pa.pulse_analysis_PlotWidget.items():
+                    self._pa.pulse_analysis_PlotWidget.addItem(self.signal_image_error_bars_dict[signal_image_error])
+            else:
+                if self.signal_image_error_bars_dict[signal_image_error] in self._pa.pulse_analysis_PlotWidget.items():
+                    self._pa.pulse_analysis_PlotWidget.removeItem(self.signal_image_error_bars_dict[signal_image_error])
+
         return
 
     @QtCore.Slot(str)
@@ -3014,10 +3064,12 @@ class PulsedMeasurementGui(GUIBase):
         self._pe.laserpulses_PlotWidget.setLabel(axis='left', text='events', units='#')
 
         # Configure the measuring error plot display:
-        self.measuring_error_image = pg.PlotDataItem(np.arange(10), np.zeros(10), pen=palette.c1)
-        self.measuring_error_image2 = pg.PlotDataItem(np.arange(10), np.zeros(10), pen=palette.c3)
-        self._pe.measuring_error_PlotWidget.addItem(self.measuring_error_image)
-        self._pe.measuring_error_PlotWidget.addItem(self.measuring_error_image2)
+        self.measuring_error_image_dict = OrderedDict()
+        self.measuring_error_image_dict["measuring_error_image1"] = pg.PlotDataItem(np.arange(10), np.zeros(10), pen=palette.c4)
+        self.measuring_error_image_dict["measuring_error_image2"] = pg.PlotDataItem(np.arange(10), np.zeros(10), pen=palette.c1)
+        self.measuring_error_image_dict["measuring_error_image3"] = pg.PlotDataItem(np.arange(10), np.zeros(10), pen=palette.c6)
+        self.measuring_error_image_dict["measuring_error_image4"] = pg.PlotDataItem(np.arange(10), np.zeros(10), pen=palette.c3)
+        self._pe.measuring_error_PlotWidget.addItem(self.measuring_error_image_dict["measuring_error_image1"])
         self._pe.measuring_error_PlotWidget.setLabel('left', 'measuring error',  units='arb.u.')
 
         # Initialize widgets

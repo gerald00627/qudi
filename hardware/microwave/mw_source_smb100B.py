@@ -107,7 +107,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         limits.max_power = -1
 
         limits.min_frequency = 8e3
-        limits.max_frequency = 6e9
+        limits.max_frequency = 3e9
 
         limits.list_minstep = 0.1
         limits.list_maxstep = limits.max_frequency - limits.min_frequency

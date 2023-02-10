@@ -23,42 +23,8 @@ from hardware.timetagger_counter import HWRecorderMode
 from core.connector import Connector
 from logic.generic_logic import GenericLogic
 from interface.odmr_counter_interface import ODMRCounterInterface
-
-class PulseSequence:
-    '''
-    A pulse sequence to be loaded that is made of PulseBlock instances. The pulse blocks can be repeated
-    as well and multiple can be added.
-    '''
-    def __init__(self):
-        self.pulse_dict = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[]}
-
-    def append(self, block_list):
-        '''
-        append a list of tuples of type: 
-        [(PulseBlock_instance_1, n_repetitions), (PulseBlock_instance_2, n_repetitions)]
-        '''
-        for block, n in block_list:
-            for i in range(n):
-                for key in block.block_dict.keys():
-                    self.pulse_dict[key].extend(block.block_dict[key])
-
-    
-class PulseBlock:
-    '''
-    Small repeating pulse blocks that can be appended to a PulseSequence instance
-    '''
-    def __init__(self):
-        self.block_dict = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[]}
-    
-    def append(self, init_length, channels, repetition):
-        '''
-        init_length in s; will be converted by sequence class to ns
-        channels are digital channels of PS in swabian language
-        '''
-        tf = {True:1, False:0}
-        for i in range(repetition):
-            for chn in channels.keys():
-                self.block_dict[chn].extend([(init_length/1e-9, tf[channels[chn]])])    
+import time
+from interface.simple_pulse_objects import PulseBlock, PulseSequence
 
 class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
     """ This is the Interfuse class supplies the controls for a simple ODMR with counter and pulser."""
@@ -105,14 +71,14 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
         d_ch = clear(d_ch)
         d_ch[self._pulser._laser_channel] = True
-        d_ch[self._pulser._mw_switch] = True
+        d_ch[self._pulser._mw1_switch] = True
         d_ch[self._pulser._pixel_start] = True
         block_1.append(init_length = 1/clock_frequency, channels = d_ch, repetition = 1)
 
         d_ch = clear(d_ch)
         d_ch[self._pulser._mw_trig] = True
         d_ch[self._pulser._laser_channel] = True
-        d_ch[self._pulser._mw_switch] = True
+        d_ch[self._pulser._mw1_switch] = True
         d_ch[self._pulser._pixel_stop] = True
         block_1.append(init_length = 1e-3, channels = d_ch, repetition = 1)
 
@@ -163,12 +129,12 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
         @return float[]: the photon counts per second
         """
+
         self._sc_device.start_recorder()
-        
-        self._pulser.pulser_on(n=length+5) # needs debugging: TT must be missing trigger signals
-        counts = self._sc_device.get_measurements(['counts'])
+        self._pulser.pulser_on(n=self._odmr_length,final=self._pulser._laser_on_state) # not sure why n=length fails
+        counts = self._sc_device.get_measurements(['counts'])[0]
     
-        return False, counts[0]
+        return False, counts
 
     def close_odmr(self):
         """ Close the odmr and clean up afterwards.     
