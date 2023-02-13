@@ -95,7 +95,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface, RecorderInterface):
     _pixelclock_click_chn = ConfigOption('pixelclock_click_chn', 1, missing='error')
     _pixelclock_end_chn = ConfigOption('pixelclock_end_chn', 3, missing='error')
     _channel_detect = ConfigOption('_channel_detect', 2, missing='error')
-    _channel_next = ConfigOption('_channel_next', 3, missing='error')
+    _channel_next = ConfigOption('_channel_next', 2, missing='error')
     _channel_sync = ConfigOption('_channel_sync', 4, missing='warn')
 
     _recorder_constraints = RecorderConstraints()
@@ -461,8 +461,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface, RecorderInterface):
             tagger=self._tagger,
             click_channel=self._channel_apd,
             start_channel=self._channel_detect,
-            next_channel=self._channel_next,
-            sync_channel=self._channel_sync,
+            next_channel=self._channel_next,            
             binwidth=int(np.round(self._bin_width * 1000)),
             n_bins=int(self._record_length),
             n_histograms=number_of_gates)
@@ -569,11 +568,15 @@ class TimeTaggerCounter(Base, SlowCounterInterface, RecorderInterface):
         
         if self._curr_mode == HWRecorderMode.GENERAL_PULSED:
             data = self.recorder.getData()
+            print(data)
             ret['counts'] = data          
 
         # released
         self._curr_state = RecorderState.IDLE
-        ret_list = [ret[i] for i in meas_keys]
+        if 'counts' in ret:
+            ret_list = [ret[i] for i in meas_keys]
+        else:
+            print('key not found')
         
         return ret_list
     
