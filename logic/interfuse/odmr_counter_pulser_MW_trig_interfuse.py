@@ -189,7 +189,7 @@ class ODMRCounterMWTrigInterfuse(GenericLogic, ODMRCounterInterface, MicrowaveIn
         self._mw_device._command_wait(':FREQ:MODE SWEEP')
         # print(self._mw_device._connection.query(':FREQUENCY:MANUAL?'))
 
-        time.sleep(0.001)
+        # time.sleep(0.001)
         # self._mw_device._connection.write(':OUTP:STAT ON')
 
         # self._mw_device.list_on()
