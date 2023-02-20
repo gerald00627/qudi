@@ -33,6 +33,7 @@ from interface.microwave_interface import MicrowaveInterface
 from interface.microwave_interface import MicrowaveLimits
 from interface.microwave_interface import MicrowaveMode
 from interface.microwave_interface import TriggerEdge
+from interface.microwave_interface import MicrowaveTriggerMode
 
 
 class MicrowaveSMB100B(Base, MicrowaveInterface):
@@ -51,7 +52,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
     # backward compatibility
     _address = ConfigOption('tcpip_address', missing='error')
     _timeout = ConfigOption('tcpip_timeout', 10, missing='warn')
-    _dwell_time = ConfigOption('dwell_time', 10000)
+    _dwell_time = ConfigOption('dwell_time', 4800)
 
     # to limit the power to a lower value that the hardware can provide
     _max_power = ConfigOption('max_power', None)
@@ -75,6 +76,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         self.log.info('MW {} initialised and connected.'.format(self.model))
         self._command_wait('*CLS')
         self._command_wait('*RST')
+        self._command_wait('SYSTem:DISPlay:UPDate OFF')
         return
 
     def on_deactivate(self):
@@ -303,7 +305,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
             dummy, is_running = self.get_status()
         return 0
 
-    def set_list(self, frequency=None, power=None):
+    def set_list(self, frequency=None, power=None, mw_trigger_mode = 'STEP_EXT'):
         """
         Configures the device for list-mode and optionally sets frequencies and/or power
 
@@ -324,6 +326,9 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
             self.set_cw()
 
         self._command_wait(":LIST:SEL '/var/user/QUDI.lsw'")
+
+        #set dwell time mode to list
+        self._command_wait(':LIST:DWEL:MODE LIST')
 
         # Set list frequencies
         if frequency is not None:
@@ -346,8 +351,12 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
 
             self._command_wait(':LIST:POW' + s)
 
-        self._command_wait(':LIST:MODE STEP')
-        self._command_wait(':TRIG1:LIST:SOUR EXT')
+        if mw_trigger_mode == MicrowaveTriggerMode.STEP_EXT:
+            self._command_wait(':LIST:MODE STEP')
+            self._command_wait(':TRIG1:LIST:SOUR EXT')
+        else:
+            self.log.warning('Incorrect trigger mode for CW ODMR')
+        
         #FIXME: figure out how to set list mode without turning power on (maybe unnecessary)
         # Also get frequency from device, instead of assuming things went well.
         # Perhaps: actual_frequencies = self.query(':LIST:FREQ?')
@@ -376,20 +385,22 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
             else:
                 self.off()
 
-        if current_mode != 'sweep':
-            self._command_wait(':FREQ:MODE SWEEP')
+        # if current_mode != 'sweep':
+        #     self._command_wait(':FREQ:MODE SWEEP')
 
-        self._connection.write(':OUTP:STAT ON')
+        self._connection.write(':OUTP:STAT ON') 
         dummy, is_running = self.get_status()
         while not is_running:
             time.sleep(0.2)
             dummy, is_running = self.get_status()
         return 0
 
-    def set_sweep(self, start=None, stop=None, step=None, power=None):
+    def set_sweep(self, start=None, stop=None, step=None, power=None,mw_trigger_mode = 'AUTO'):
         """
         Configures the device for sweep-mode and optionally sets frequency start/stop/step
         and/or power
+
+        @param TriggerMode trig_mode: trigger mode for MW
 
         @return float, float, float, float, str: current start frequency in Hz,
                                                  current stop frequency in Hz,
@@ -404,8 +415,15 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         if mode != 'sweep':
             self._command_wait(':FREQ:MODE SWEEP')
 
+        if mw_trigger_mode == MicrowaveTriggerMode.AUTO:
+            self._command_wait(':SWE:MODE AUTO')
+            self._command_wait(':TRIG:FSW:SOUR AUTO')
+        else:
+            self.log.warning('Incorrect trigger mode for pulsed ODMR')
+
+
         if (start is not None) and (stop is not None) and (step is not None):
-            self._connection.write(':SWE:MODE STEP')
+            # self._connection.write(':SWE:MODE STEP')
             self._connection.write(':SWE:SPAC LIN')
             self._connection.write('*WAI')
             self._connection.write(':FREQ:START {0:f}'.format(start - step))
@@ -418,7 +436,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
             self._connection.write('*WAI')
 
         #self._command_wait('TRIG:FSW:SOUR AUTO')
-        self._command_wait('TRIG:FSW:SOUR EXT')
+        # self._command_wait('TRIG:FSW:SOUR EXT')
 
         actual_power = self.get_power()
         freq_list = self.get_frequency()

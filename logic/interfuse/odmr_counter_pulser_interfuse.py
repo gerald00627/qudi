@@ -32,6 +32,7 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
     slowcounter = Connector(interface='RecorderInterface')
     pulser = Connector(interface='PulserInterface')
+    microwave1 = Connector(interface='MicrowaveInterface')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -132,8 +133,13 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
         self._sc_device.start_recorder()
         self._pulser.pulser_on(n=self._odmr_length,final=self._pulser._laser_on_state) # not sure why n=length fails
+        
+        # self.microwave1._connection.write(':OUTP:STAT ON')
+
         counts = self._sc_device.get_measurements(['counts'])[0]
     
+        
+
         return False, counts
 
     def close_odmr(self):

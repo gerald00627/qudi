@@ -23,6 +23,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 from qtpy import QtCore
 from collections import OrderedDict
 from interface.microwave_interface import MicrowaveMode
+from interface.microwave_interface import MicrowaveTriggerMode
 from interface.microwave_interface import TriggerEdge
 import numpy as np
 import time
@@ -52,6 +53,12 @@ class ODMRLogic(GenericLogic):
         'LIST',
         missing='warn',
         converter=lambda x: MicrowaveMode[x.upper()])
+
+    mw_trigger_mode = ConfigOption(
+        'mw_trigger_mode',
+        'AUTO',
+        missing='warn',
+        converter=lambda x: MicrowaveTriggerMode[x.upper()])
 
     clock_frequency = StatusVar('clock_frequency', 100)
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
@@ -514,7 +521,7 @@ class ODMRLogic(GenericLogic):
                 self.sigOutputStateUpdated.emit(mode, is_running)
                 return mode, is_running
             freq_list, self.sweep_mw_power, mode = self._mw_device.set_list(final_freq_list,
-                                                                            self.sweep_mw_power)
+                                                                            self.sweep_mw_power,self.mw_trigger_mode)
 
             self.final_freq_list = np.array(freq_list)
             self.mw_starts = used_starts
@@ -522,6 +529,8 @@ class ODMRLogic(GenericLogic):
             self.mw_steps = used_steps
             param_dict = {'mw_starts': used_starts, 'mw_stops': used_stops,
                           'mw_steps': used_steps, 'sweep_mw_power': self.sweep_mw_power}
+
+            self._odmr_counter.final_freq_list = self.final_freq_list
 
             self.sigParameterUpdated.emit(param_dict)
 
@@ -538,12 +547,13 @@ class ODMRLogic(GenericLogic):
                     self.sigParameterUpdated.emit({'mw_steps': [mw_step]})
 
                 sweep_return = self._mw_device.set_sweep(
-                    mw_start, mw_stop, mw_step, self.sweep_mw_power)
+                    mw_start, mw_stop, mw_step, self.sweep_mw_power,self.mw_trigger_mode)
                 mw_start, mw_stop, mw_step, self.sweep_mw_power, mode = sweep_return
 
                 param_dict = {'mw_starts': [mw_start], 'mw_stops': [mw_stop],
                               'mw_steps': [mw_step], 'sweep_mw_power': self.sweep_mw_power}
                 self.final_freq_list = np.arange(mw_start, mw_stop + mw_step, mw_step)
+                self._odmr_counter.final_freq_list = self.final_freq_list
             else:
                 self.log.error('sweep mode only works for one frequency range.')
 
@@ -655,11 +665,12 @@ class ODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return -1
 
-            mode, is_running = self.mw_sweep_on()
-            if not is_running:
-                self._stop_odmr_counter()
-                self.module_state.unlock()
-                return -1
+            mode = self.mw_sweep_on()
+            # mode, is_running = self.mw_sweep_on()
+            # if not is_running:
+            #     self._stop_odmr_counter()
+            #     self.module_state.unlock()
+            #     return -1
 
             self._initialize_odmr_plots()
             # initialize raw_data array
@@ -674,7 +685,7 @@ class ODMRLogic(GenericLogic):
                  len(self._odmr_counter.get_odmr_channels()),
                  self.odmr_plot_x.size]
             )
-            self._odmr_counter.set_odmr_length(self.odmr_plot_x.size)
+            self._odmr_counter.set_odmr_length(self.odmr_plot_x.size) # Configure General Pulsed
             self.sigNextLine.emit()
             return 0
 
@@ -757,11 +768,10 @@ class ODMRLogic(GenericLogic):
                 self._startTime = time.time()
 
             # reset position so every line starts from the same frequency
-            self.reset_sweep()
+            self.reset_sweep() # reset only works if STATE = ON.
 
             # Acquire count data
             error, new_counts = self._odmr_counter.count_odmr(length=self.odmr_plot_x.size)
-
 
             if error:
                 self.stopRequested = True

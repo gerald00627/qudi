@@ -95,7 +95,9 @@ class TimeTaggerCounter(Base, SlowCounterInterface, RecorderInterface):
     _pixelclock_click_chn = ConfigOption('pixelclock_click_chn', 1, missing='error')
     _pixelclock_end_chn = ConfigOption('pixelclock_end_chn', 3, missing='error')
     _channel_detect = ConfigOption('_channel_detect', 2, missing='error')
-    _channel_next = ConfigOption('_channel_next', 2, missing='error')
+    # _channel_next = ConfigOption('_channel_next', 2, missing='error')
+    _channel_next = ConfigOption('_channel_next_MW_trig', 5, missing='error')
+
     _channel_sync = ConfigOption('_channel_sync', 4, missing='warn')
 
     _recorder_constraints = RecorderConstraints()
@@ -322,7 +324,7 @@ class TimeTaggerCounter(Base, SlowCounterInterface, RecorderInterface):
         rc.recorder_mode_params[HWRecorderMode.GENERAL_PULSED] = {'laser_pulses': 10,
                         'bin_width_s': 1e-9,
                         'record_length_s': 3e-6,
-                        'max_counts': 10}
+                        'max_counts': 1}
 
         # configure defaults for mode
         rc.recorder_mode_params_defaults[HWRecorderMode.GENERAL_PULSED] = {}     # no defaults
@@ -568,7 +570,6 @@ class TimeTaggerCounter(Base, SlowCounterInterface, RecorderInterface):
         
         if self._curr_mode == HWRecorderMode.GENERAL_PULSED:
             data = self.recorder.getData()
-            print(data)
             ret['counts'] = data          
 
         # released
