@@ -287,7 +287,7 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.camera.Close()
+        # self.camera.Close()
         return 0
 
     def close_clock(self):

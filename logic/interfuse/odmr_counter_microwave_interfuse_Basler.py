@@ -63,9 +63,9 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
         """ Initialisation performed during activation of the module."""
         self._mw_device = self.microwave()
         self._sc_device = self.slowcounter()  # slow counter device
-        width, height = self._sc_device.get_constraints()
+        # width, height = self._sc_device.get_constraints()
         #Initialize the interfuse variable to store the WF data.
-        self._WF_data = np.zeros((height, width, 300),dtype="float64")
+        # self._WF_data = np.zeros((height, width, 300),dtype="float64")
 
     def on_deactivate(self):
         pass
@@ -113,6 +113,8 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
+        width, height = self._sc_device.get_constraints()
+        self._WF_data = np.zeros((height, width, length),dtype="float64")
         self._odmr_length = length
         return 0
 
