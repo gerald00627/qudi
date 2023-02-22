@@ -278,6 +278,7 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
         self.camera.StartGrabbingMax(self._num_img)
         while self.camera.IsGrabbing():
             output = self.camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+            print( output.GrabSucceeded())
             if output.GrabSucceeded():
                 img = output.Array
         return img

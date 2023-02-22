@@ -226,9 +226,12 @@ class ODMRLogic(GenericLogic):
 
         range_to_fit = self.range_to_fit
 
-        self.odmr_fit_x = np.arange(self.mw_starts[range_to_fit],
-                                    self.mw_stops[range_to_fit] + self.mw_steps[range_to_fit],
-                                    self.mw_steps[range_to_fit])
+        try:
+            self.odmr_fit_x = np.arange(self.mw_starts[range_to_fit],
+                                        self.mw_stops[range_to_fit] + self.mw_steps[range_to_fit],
+                                        self.mw_steps[range_to_fit])
+        except:
+            self.odmr_fit_x = np.zeros(10)
 
         self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
 
