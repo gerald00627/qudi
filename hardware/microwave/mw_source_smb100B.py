@@ -52,7 +52,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
     # backward compatibility
     _address = ConfigOption('tcpip_address', missing='error')
     _timeout = ConfigOption('tcpip_timeout', 10, missing='warn')
-    _dwell_time = ConfigOption('dwell_time', 4800)
+    _dwell_time = ConfigOption('dwell_time', 20000) # dwell time in us
 
     # to limit the power to a lower value that the hardware can provide
     _max_power = ConfigOption('max_power', None)
@@ -354,6 +354,13 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         if mw_trigger_mode == MicrowaveTriggerMode.STEP_EXT:
             self._command_wait(':LIST:MODE STEP')
             self._command_wait(':TRIG1:LIST:SOUR EXT')
+        elif mw_trigger_mode == MicrowaveTriggerMode.SINGLE_EXT:
+            self._command_wait(':LIST:MODE AUTO')
+            self._command_wait(':TRIG1:LIST:SOUR EXT')
+        elif mw_trigger_mode == MicrowaveTriggerMode.SINGLE:
+            # self._command_wait(':LIST:MODE AUTO')
+            self._command_wait(':TRIG1:LIST:SOUR SING')
+
         else:
             self.log.warning('Incorrect trigger mode for CW ODMR')
         

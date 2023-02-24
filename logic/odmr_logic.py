@@ -63,7 +63,7 @@ class ODMRLogic(GenericLogic):
     clock_frequency = StatusVar('clock_frequency', 100)
     cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
     cw_mw_power = StatusVar('cw_mw_power', -30)
-    sweep_mw_power = StatusVar('sweep_mw_power', -30)
+    sweep_mw_power = StatusVar('sweep_mw_power', -20)
     fit_range = StatusVar('fit_range', 0)
     mw_starts = StatusVar('mw_starts', [2800e6])
     mw_stops = StatusVar('mw_stops', [2950e6])
@@ -488,7 +488,7 @@ class ODMRLogic(GenericLogic):
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
-    def mw_sweep_on(self):
+    def  mw_sweep_on(self):
         """
         Switching on the mw source in list/sweep mode.
 
@@ -665,7 +665,9 @@ class ODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return -1
 
+            # Set MW mode and turns it on
             mode = self.mw_sweep_on()
+
             # mode, is_running = self.mw_sweep_on()
             # if not is_running:
             #     self._stop_odmr_counter()

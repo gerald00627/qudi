@@ -58,9 +58,10 @@ class MicrowaveTriggerMode(Enum):
 
     AUTO = 0 # For sweep/list
     SINGLE_EXT = 1 # For sweep/list
-    STEP_EXT = 2 # For sweep/list
-    START_STOP_EXT = 3 # For sweep
-    MANUAL = 4 # For sweep/list
+    SINGLE = 2
+    STEP_EXT = 3 # For sweep/list
+    START_STOP_EXT = 4 # For sweep
+    MANUAL = 5 # For sweep/list
 
 class MicrowaveInterface(metaclass=InterfaceMetaclass):
     """This is the Interface class to define the controls for the simple microwave hardware.
