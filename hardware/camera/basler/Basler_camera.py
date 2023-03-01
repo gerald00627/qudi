@@ -278,7 +278,7 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
     def get_counter(self, samples=None):
         """ Returns an array of PL from the camera
         """
-
+    
         # initialize array for num_imgs = num_avgs
 
         width = self.get_constraints()[0]
@@ -288,7 +288,7 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
 
         # self.camera.StartGrabbingMax(self._num_img)
         while self.camera.IsGrabbing():
-            output = self.camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+            output = self.camera.RetrieveResult(200000, pylon.TimeoutHandling_ThrowException) # Camera exposure time must be less than retrieval timeout
             if output.GrabSucceeded():
                 imgs[:,:,ind] += output.Array
                 ind += 1

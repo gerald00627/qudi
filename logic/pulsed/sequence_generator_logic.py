@@ -94,6 +94,7 @@ class SequenceGeneratorLogic(GenericLogic):
                                                             ('laser_length', 3e-6),
                                                             ('laser_delay', 500e-9),
                                                             ('wait_time', 1e-6),
+                                                            ('camera_trig_channel', 'd_ch5'),
                                                             ('analog_trigger_voltage', 0.0)]))
 
     # The created pulse objects (PulseBlock, PulseBlockEnsemble, PulseSequence) are saved in
@@ -730,6 +731,14 @@ class SequenceGeneratorLogic(GenericLogic):
                                    ''.format(settings_dict['microwave2_channel'],
                                              self.__activation_config[1]))
                     del settings_dict['microwave2_channel']
+
+            if settings_dict.get('camera_trig_channel'):
+                if settings_dict['camera_trig_channel'] not in self.__activation_config[1]:
+                    self.log.error('Unable to set camera_trig channel "{0}".\nChannel to set is not '
+                                   'part of the current channel activation config ({1}).'
+                                   ''.format(settings_dict['camera_trig_channel'],
+                                             self.__activation_config[1]))
+                    del settings_dict['camera_trig_channel']
 
             # update settings dict
             self._generation_parameters.update(settings_dict)

@@ -1061,6 +1061,10 @@ class PredefinedGeneratorBase:
         return None if channel == '' else channel
 
     @property
+    def camera_trig_channel(self):
+        return self.generation_parameters.get('camera_trig_channel')
+
+    @property
     def analog_trigger_voltage(self):
         return self.generation_parameters.get('analog_trigger_voltage')
 
@@ -1258,6 +1262,12 @@ class PredefinedGeneratorBase:
                                              channels=self.gate_channel)
         else:
             return self._get_delay_element()
+
+    def _get_camera_trig_element(self,length,increment):
+
+        camera_trig_element = self._get_trigger_element(length = 5000e-9, increment = 0, channels = self.camera_trig_channel)
+
+        return camera_trig_element
 
     def _get_sync_element(self):
         """

@@ -52,7 +52,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
     # backward compatibility
     _address = ConfigOption('tcpip_address', missing='error')
     _timeout = ConfigOption('tcpip_timeout', 10, missing='warn')
-    _dwell_time = ConfigOption('dwell_time', 20000) # dwell time in us
+    _dwell_time = ConfigOption('dwell_time', 120000) # dwell time in us 
 
     # to limit the power to a lower value that the hardware can provide
     _max_power = ConfigOption('max_power', None)

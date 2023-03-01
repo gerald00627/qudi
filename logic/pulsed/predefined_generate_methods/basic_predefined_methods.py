@@ -274,6 +274,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
                                                      increment=0)
         delay_element = self._get_delay_gate_element()
         mw_wait_element = self._get_idle_element(length=tau_start, increment=tau_step)
+        camera_trig_element = self._get_camera_trig_element(length=trig_dur)
 
         # Create block and append to created_blocks list
         # -1
@@ -304,6 +305,67 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # add metadata to invoke settings later on
         number_of_lasers = 3 * num_of_points if reference else 2*num_of_points
         block_ensemble.measurement_information['number_of_curves'] = 3 if reference else 2
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = tau_array
+        block_ensemble.measurement_information['units'] = ('s', '')
+        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+
+        # Append ensemble to created_ensembles list
+        created_ensembles.append(block_ensemble)
+        return created_blocks, created_ensembles, created_sequences
+
+    def generate_rabiWF(self, name='rabiWF', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=50, reference=False):
+        """
+
+        """
+        created_blocks = list()
+        created_ensembles = list()
+        created_sequences = list()
+
+        # get tau array for measurement ticks
+        tau_array = tau_start + np.arange(num_of_points) * tau_step
+
+        # create the laser_mw element
+        mw_element = self._get_mw1_element(length=tau_start,
+                                          increment=tau_step,
+                                          amp=self.microwave1_amplitude,
+                                          freq=self.microwave1_frequency,
+                                          phase=0)
+        waiting_element = self._get_idle_element(length=self.wait_time,
+                                                 increment=0)
+        laser_element = self._get_laser_gate_element(length=self.laser_length,
+                                                     increment=0)
+        delay_element = self._get_delay_gate_element()
+        mw_wait_element = self._get_idle_element(length=tau_start, increment=tau_step)
+        camera_trig_element = self._get_camera_trig_element(length = 5000e-9,increment=0)
+
+        # Create block and append to created_blocks list
+        rabi_block = PulseBlock(name=name)
+        rabi_block.append(mw_element)
+        rabi_block.append(laser_element)
+        rabi_block.append(delay_element)
+        rabi_block.append(waiting_element)
+        rabi_block.append(camera_trig_element)
+        if reference:
+            rabi_block.append(mw_wait_element)
+            rabi_block.append(laser_element)
+            rabi_block.append(delay_element)
+            rabi_block.append(waiting_element)
+        created_blocks.append(rabi_block)
+
+        # Create block ensemble
+        block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
+        block_ensemble.append((rabi_block.name, num_of_points - 1))
+
+        # Create and append sync trigger block if needed
+        self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
+
+        # add metadata to invoke settings later on
+        number_of_lasers = 2 * num_of_points if reference else num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 2 if reference else 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
         block_ensemble.measurement_information['controlled_variable'] = tau_array
         block_ensemble.measurement_information['units'] = ('s', '')

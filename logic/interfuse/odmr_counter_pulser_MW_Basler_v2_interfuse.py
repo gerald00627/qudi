@@ -197,7 +197,7 @@ class ODMRCounter_MW_Basler_Interfuse(GenericLogic, ODMRCounterInterface, Microw
         self._sc_device.camera.StartGrabbingMax(self._sc_device._num_img)
 
         # Cam triggered by MW, measurement starts with an initiate single sweep instruction
-
+        # MW dwell time must be longer than exposure time
         self._mw_device._command_wait('SOUR1:LIST:TRIG:EXEC')
       
         output = self._sc_device.get_counter()
