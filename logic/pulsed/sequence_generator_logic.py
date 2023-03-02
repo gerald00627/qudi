@@ -94,6 +94,7 @@ class SequenceGeneratorLogic(GenericLogic):
                                                             ('laser_length', 3e-6),
                                                             ('laser_delay', 500e-9),
                                                             ('wait_time', 1e-6),
+                                                            ('camera_exposure', 100e-6),
                                                             ('camera_trig_channel', 'd_ch5'),
                                                             ('analog_trigger_voltage', 0.0)]))
 

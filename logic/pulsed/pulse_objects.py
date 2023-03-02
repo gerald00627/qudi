@@ -1065,6 +1065,10 @@ class PredefinedGeneratorBase:
         return self.generation_parameters.get('camera_trig_channel')
 
     @property
+    def camera_exposure(self):
+        return self.generation_parameters.get('camera_exposure')
+
+    @property
     def analog_trigger_voltage(self):
         return self.generation_parameters.get('analog_trigger_voltage')
 
@@ -1249,6 +1253,10 @@ class PredefinedGeneratorBase:
         return self._get_idle_element(length=self.laser_delay,
                                       increment=0)
 
+    def _get_camera_exposure(self):
+
+        return self.camera_exposure
+
     def _get_delay_gate_element(self):
         """
         Creates a gate trigger of length of the laser delay.
@@ -1265,9 +1273,11 @@ class PredefinedGeneratorBase:
 
     def _get_camera_trig_element(self,length,increment):
 
-        camera_trig_element = self._get_trigger_element(length = 5000e-9, increment = 0, channels = self.camera_trig_channel)
+        camera_trig_element = self._get_trigger_element(length, increment, channels = self.camera_trig_channel)
 
         return camera_trig_element
+
+    
 
     def _get_sync_element(self):
         """

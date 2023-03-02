@@ -327,35 +327,46 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         # get tau array for measurement ticks
         tau_array = tau_start + np.arange(num_of_points) * tau_step
+        
+        # find how long to repeat pulses for. 
+        exp_dur = self._get_camera_exposure() # s
+        block_dur = self.laser_length+self.laser_delay+tau_array[-1] # sum of green+space+MW
+        gap_dur = 10e-6 # gap at end after repeated pulses to pad out exposure time
 
-        # create the laser_mw element
+        #calculate number of reps that can fit into exposure time
+        pulse_reps = np.floor((exp_dur-gap_dur)/block_dur).astype(int)
+
+        #sequence generator already does increments automatically of tau so just need to write a single camera pulse and tau block
+
+        camera_trig_element = self._get_camera_trig_element(length = 5000e-9, increment=0)
+        mw_wait_element = self._get_idle_element(length=tau_array[-2], increment=-tau_step)
         mw_element = self._get_mw1_element(length=tau_start,
                                           increment=tau_step,
                                           amp=self.microwave1_amplitude,
                                           freq=self.microwave1_frequency,
                                           phase=0)
+        # laser_element = self._get_laser_gate_element(length=self.laser_length, increment=0)
+        laser_element = self._get_laser_element(length=self.laser_length, increment=0)
+        delay_element = self._get_delay_gate_element() # dur = laser delay dur = 300ns
         waiting_element = self._get_idle_element(length=self.wait_time,
-                                                 increment=0)
-        laser_element = self._get_laser_gate_element(length=self.laser_length,
-                                                     increment=0)
-        delay_element = self._get_delay_gate_element()
-        mw_wait_element = self._get_idle_element(length=tau_start, increment=tau_step)
-        camera_trig_element = self._get_camera_trig_element(length = 5000e-9,increment=0)
+                                                 increment=0) # dur = wait_time = 700ns
 
-        # Create block and append to created_blocks list
+        #create pulseblock object
         rabi_block = PulseBlock(name=name)
-        rabi_block.append(mw_element)
-        rabi_block.append(laser_element)
-        rabi_block.append(delay_element)
-        rabi_block.append(waiting_element)
+
+        #append first camera triggerblock
         rabi_block.append(camera_trig_element)
-        if reference:
-            rabi_block.append(mw_wait_element)
+        # for loop for adding n_pulse_reps of laser and mw pulses
+        for i in range(pulse_reps):           
+            rabi_block.append(mw_wait_element) # mw_wait_element + mw_element = tau_tot
+            rabi_block.append(mw_element)
             rabi_block.append(laser_element)
             rabi_block.append(delay_element)
-            rabi_block.append(waiting_element)
+        # gap for padding exposure time
+        rabi_block.append(waiting_element)
+        
         created_blocks.append(rabi_block)
-
+        
         # Create block ensemble
         block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
         block_ensemble.append((rabi_block.name, num_of_points - 1))
