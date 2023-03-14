@@ -340,6 +340,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
 
         camera_trig_element = self._get_camera_trig_element(length = 5000e-9, increment=0)
         mw_wait_element = self._get_idle_element(length=tau_array[-2], increment=-tau_step)
+        no_mw_wait_element = self._get_idle_element(length=tau_array[-1], increment=0)
         mw_element = self._get_mw1_element(length=tau_start,
                                           increment=tau_step,
                                           amp=self.microwave1_amplitude,
@@ -362,6 +363,11 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
             rabi_block.append(mw_element)
             rabi_block.append(laser_element)
             rabi_block.append(delay_element)
+            if reference:
+                rabi_block.append(no_mw_wait_element) # dur = tau_tot
+                rabi_block.append(laser_element)
+                rabi_block.append(delay_element)
+
         # gap for padding exposure time
         rabi_block.append(waiting_element)
         
