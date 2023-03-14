@@ -42,7 +42,7 @@ class CameraBasler_FastCounter(Base, CameraInterface, FastCounterInterface):
     Example config for copy-paste:
 
     cameraBasler:
-        module.Class: 'camera.Basler_camera.CameraBasler'
+    module.Class: 'camera.Basler_camera.CameraBasler'
         camera_ID : 'acA1920-155um'
         camera_Index: '0'
         image_Format: 'Mono12p'
@@ -59,8 +59,8 @@ class CameraBasler_FastCounter(Base, CameraInterface, FastCounterInterface):
     _resolution = ConfigOption('resolution', (1936, 1216)) 
     
     # camera settings
-    _exposure = 15000
-    _num_img = 10
+    _exposure = ConfigOption('exposure', 10000)
+    _num_img = ConfigOption('num_images',50)
     _gain = 1
     
     # bools for threadlock 

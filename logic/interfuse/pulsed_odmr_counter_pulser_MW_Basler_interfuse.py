@@ -35,7 +35,7 @@ from core.configoption import ConfigOption
 import time
 from interface.simple_pulse_objects import PulseBlock, PulseSequence
 
-class ODMRCounter_MW_Basler_Interfuse(GenericLogic, ODMRCounterInterface, MicrowaveInterface):
+class pulsedODMRCounter_MW_Basler_Interfuse(GenericLogic, ODMRCounterInterface, MicrowaveInterface):
     """ This is the Interfuse class supplies the controls for a simple ODMR with counter and pulser."""
 
     # slowcounter = Connector(interface='RecorderInterface')
@@ -95,14 +95,17 @@ class ODMRCounter_MW_Basler_Interfuse(GenericLogic, ODMRCounterInterface, Microw
         block_1 = PulseBlock()
 
         d_ch = clear(d_ch)
-        d_ch[self._pulser._laser_channel] = True
-        d_ch[self._pulser._mw1_switch] = True
-        block_1.append(init_length = 5e-6, channels = d_ch, repetition = 1)
+        block_1.append(init_length = 0.2e-6, channels = d_ch, repetition = 1)
 
         d_ch = clear(d_ch)
-        # d_ch[self._pulser._laser_channel] = False
+        # d_ch[self._pulser._laser_channel] = True
+        d_ch[self._pulser._mw1_switch] = True
+        block_1.append(init_length = 250e-9, channels = d_ch, repetition = 1)
+
+        d_ch = clear(d_ch)
+        d_ch[self._pulser._laser_channel] = True
         # d_ch[self._pulser._mw1_switch] = True
-        block_1.append(init_length = 0.5e-6, channels = d_ch, repetition = 1)
+        block_1.append(init_length = 3e-6, channels = d_ch, repetition = 1)
 
         seq.append([(block_1, 1)])
 
