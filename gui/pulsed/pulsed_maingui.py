@@ -145,7 +145,7 @@ class PredefinedMethodsConfigDialog(QtWidgets.QDialog):
 
 class PulsedMeasurementGui(GUIBase):
     """ This is the main GUI Class for pulsed measurements. """
-    ## declare connectors
+    ## declare connectors_
     pulsedmasterlogic = Connector(interface='PulsedMasterLogic')
 
     # status var

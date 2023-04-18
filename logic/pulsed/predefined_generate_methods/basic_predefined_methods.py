@@ -997,6 +997,102 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
 
+    def generate_t1_WF_3exponential(self, name='T1WFexp3', tau_start=1.0e-6, tau_end=1.0e-5,
+                                num_of_points=10):
+        """
+
+        """
+        created_blocks = list()
+        created_ensembles = list()
+        created_sequences = list()
+
+        # get tau array for measurement ticks
+        if tau_start == 0.0:
+            tau_array = np.geomspace(1e-9, tau_end, num_of_points - 1)
+            tau_array = np.insert(tau_array, 0, 0.0)
+        else:
+            tau_array = np.geomspace(tau_start, tau_end, num_of_points)
+
+        pulse_reps = 5
+
+        # create the elements with camera exposure throughout
+        waiting_element = self._get_idle_cam_element(length= self.wait_time, increment = 0)
+        mw_wait_element = self._get_idle_cam_element(length=self.rabi_period1, increment=0) #divide by2? or avg?
+        laser_element = self._get_laser_cam_element(length=self.laser_length, increment=0)
+        delay_element = self._get_idle_cam_element(length = self.laser_delay,increment = 0)
+        no_exp_wait_element = self._get_idle_element(length = 100e-6, increment = 0)
+
+        pi1_element = self._get_mw1_cam_element(length=self.rabi_period1 / 2,
+                                            increment=0,
+                                            amp=self.microwave1_amplitude,
+                                            freq=self.microwave1_frequency,
+                                            phase=0)
+        pi2_element = self._get_mw2_cam_element(length=self.rabi_period2 / 2,
+                                            increment=0,
+                                            amp=self.microwave2_amplitude,
+                                            freq=self.microwave2_frequency,
+                                            phase=0)
+
+        t1_block = PulseBlock(name=name)
+        for tau in tau_array:
+            tau_element = self._get_idle_cam_element(length=tau, increment=0.0)
+            
+            # small idle block needed or does not trigger correctly
+            t1_block.append(no_exp_wait_element)
+
+            for i in range(pulse_reps):
+                # 0
+                t1_block.append(tau_element)
+                t1_block.append(mw_wait_element)
+                t1_block.append(laser_element)
+                t1_block.append(delay_element)
+                
+            t1_block.append(waiting_element)
+            t1_block.append(no_exp_wait_element)
+
+            for i in range(pulse_reps):
+                # -1
+                t1_block.append(tau_element)
+                t1_block.append(pi1_element)
+                t1_block.append(laser_element)
+                t1_block.append(delay_element)
+
+            t1_block.append(waiting_element)
+            t1_block.append(no_exp_wait_element)
+
+            for i in range(pulse_reps):
+                # +1
+                t1_block.append(tau_element)
+                t1_block.append(pi2_element)
+                t1_block.append(laser_element)
+                t1_block.append(delay_element)
+
+            t1_block.append(waiting_element)
+            t1_block.append(no_exp_wait_element)
+
+        created_blocks.append(t1_block)
+
+        # Create block ensemble
+        block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
+        block_ensemble.append((t1_block.name, 0))
+
+        # Create and append sync trigger block if needed
+        self._add_trigger(created_blocks=created_blocks, block_ensemble=block_ensemble)
+
+        # add metadata to invoke settings later on
+        number_of_lasers = 3 * num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 3
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = tau_array
+        block_ensemble.measurement_information['units'] = ('s', '')
+        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+        # append ensemble to created ensembles
+        created_ensembles.append(block_ensemble)
+        return created_blocks, created_ensembles, created_sequences
+
     def generate_HHamp(self, name='hh_amp', spinlock_length=20e-6, amp_start=0.05, amp_step=0.01,
                        num_of_points=50):
         """

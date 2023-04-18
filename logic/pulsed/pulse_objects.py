@@ -1277,7 +1277,88 @@ class PredefinedGeneratorBase:
 
         return camera_trig_element
 
+    def _get_idle_cam_element(self, length, increment):
+        """
+        Creates an idle pulse PulseBlockElement with camera exposure
+
+        @param float length: idle duration in seconds
+        @param float increment: idle duration increment in seconds
+
+        @return: PulseBlockElement, the generated idle element
+        """
+        # Create idle element that contains camera exposure
+        camera_trig_element = self._get_trigger_element(length, increment, channels = self.camera_trig_channel)
+
+        return camera_trig_element
     
+    def _get_laser_cam_element(self, length, increment):
+        """
+        Creates laser trigger PulseBlockElement with camera exposure
+
+        @param float length: laser pulse duration in seconds
+        @param float increment: laser pulse duration increment in seconds
+
+        @return: PulseBlockElement, two elements for laser and gate trigger (delay element)
+        """
+        laser_element = self._get_trigger_element(length=length,
+                                                  increment=increment,
+                                                  channels=[self.laser_channel,self.camera_trig_channel])
+        laser_element.laser_on = True
+        return laser_element
+
+    def _get_mw1_cam_element(self, length, increment, amp=None, freq=None, phase=None):
+        """
+        Creates a MW pulse PulseBlockElement
+
+        @param float length: MW pulse duration in seconds
+        @param float increment: MW pulse duration increment in seconds
+        @param float freq: MW frequency in case of analogue MW channel in Hz
+        @param float amp: MW amplitude in case of analogue MW channel in V
+        @param float phase: MW phase in case of analogue MW channel in deg
+
+        @return: PulseBlockElement, the generated MW element
+        """
+        if self.microwave1_channel.startswith('d'):
+            mw_element = self._get_trigger_element(
+                length=length,
+                increment=increment,
+                channels=[self.microwave1_channel, self.camera_trig_channel])
+        else:
+            mw_element = self._get_idle_element(
+                length=length,
+                increment=increment)
+            mw_element.pulse_function[self.microwave1_channel] = SamplingFunctions.Sin(
+                amplitude=amp,
+                frequency=freq,
+                phase=phase)
+        return mw_element
+
+    def _get_mw2_cam_element(self, length, increment, amp=None, freq=None, phase=None):
+        """
+        Creates a MW pulse PulseBlockElement
+
+        @param float length: MW pulse duration in seconds
+        @param float increment: MW pulse duration increment in seconds
+        @param float freq: MW frequency in case of analogue MW channel in Hz
+        @param float amp: MW amplitude in case of analogue MW channel in V
+        @param float phase: MW phase in case of analogue MW channel in deg
+
+        @return: PulseBlockElement, the generated MW element
+        """
+        if self.microwave2_channel.startswith('d'):
+            mw_element = self._get_trigger_element(
+                length=length,
+                increment=increment,
+                channels=[self.microwave2_channel, self.camera_trig_channel])
+        else:
+            mw_element = self._get_idle_element(
+                length=length,
+                increment=increment)
+            mw_element.pulse_function[self.microwave2_channel] = SamplingFunctions.Sin(
+                amplitude=amp,
+                frequency=freq,
+                phase=phase)
+        return mw_element
 
     def _get_sync_element(self):
         """

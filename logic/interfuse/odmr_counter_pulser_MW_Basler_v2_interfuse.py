@@ -97,6 +97,7 @@ class ODMRCounter_MW_Basler_Interfuse(GenericLogic, ODMRCounterInterface, Microw
         d_ch = clear(d_ch)
         d_ch[self._pulser._laser_channel] = True
         d_ch[self._pulser._mw1_switch] = True
+        d_ch[self._pulser._mw2_switch] = True
         block_1.append(init_length = 5e-6, channels = d_ch, repetition = 1)
 
         d_ch = clear(d_ch)
