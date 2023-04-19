@@ -29,12 +29,13 @@ import numpy as np
 import time
 from core.module import Base
 from core.configoption import ConfigOption
+from core.util.helpers import in_range
 
 from interface.camera_interface import CameraInterface
 # from core.connector import Connector
 
 # from interface.odmr_counter_interface import ODMRCounterInterface
-from interface.slow_counter_interface import SlowCounterInterface
+from interface.widefield_camera_interface import WidefieldCameraInterface
 # from interface.slow_counter_interface import SlowCounterConstraints
 # from interface.slow_counter_interface import CountingMode
 
@@ -43,7 +44,7 @@ from qtpy import QtCore
 
 
 # class CameraBasler(Base, SlowCounterInterface, ODMRCounterInterface):
-class CameraBasler(Base, CameraInterface, SlowCounterInterface):
+class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
     """ Basler hardware for camera interface
 
     Example config for copy-paste:
@@ -57,17 +58,20 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
         output_line: 'Line3'
         num_images: 100
     """
-    _camera_ID = ConfigOption('camera_ID', True)
-    _camera_index = ConfigOption('camera_index', True)
-    _input_line = ConfigOption('input_line', True)
-    _output_line = ConfigOption('output_line', True)
-    _pixel_format = ConfigOption('pixel_format',True)
+    _camera_ID = ConfigOption('camera_ID', '')
+    _camera_index = ConfigOption('camera_index', 0)
+    _input_line = ConfigOption('input_line', 4)
+    _output_line = ConfigOption('output_line', 3)
+    _pixel_format = ConfigOption('pixel_format','Mono12')
     _support_live = ConfigOption('support_live', True)
-    _resolution = ConfigOption('resolution', (1936, 1216)) 
+    _image_size = ConfigOption('image_size', (1936, 1216))
+    _image_offset = ConfigOption('image_offset', (0, 0))
+    _plot_pixel = ConfigOption('plot_pixel', (100, 100)) 
+    _trigger_mode = ConfigOption('trigger_mode', False)
+    _exposure_mode = ConfigOption('exposure_mode','Timed')
+    _exposure = ConfigOption('exposure', 200e-6)
     
     # camera settings
-    _exposure = 15000
-    _num_img = 10
     _gain = 1
     
     # bools for threadlock 
@@ -78,33 +82,65 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
     sigUpdateDisplay = QtCore.Signal()
     sigAcquisitionFinished = QtCore.Signal()
 
+    _gpio_input = {"LineMode": "Input",
+                   "TriggerSelector": "FrameStart",
+                   "TriggerDelay": 0,
+                   "TriggerActivation": "RisingEdge",
+                   "LineInverter": False}
+
+    _gpio_output = {"LineMode": "Output",
+                    "LineInverter": False,
+                    "MinimumOutputPulse": 0,
+                    "LineSource": "ExposureActive"}
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
-        self.camera = []
-        self.camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
-        self.camera.Open()
 
-        self.camera.PixelFormat.SetValue(self._pixel_format)
+        try:
+            self.camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+            self.camera.Open()
+        except:
+            self.log.error('Could not connect to the device {}'.format(self._camera_ID))
+
+
+        self._camera_ID = self.camera.GetDeviceInfo().GetModelName()
+
+        self.limits = self.get_limits()
+
+        self._gpio_input["LineSelector"] = self._input_line
+        self._gpio_output["LineSelector"] = self._output_line
+
+        self._image_size = self.set_size(eval(self._image_size))
+        self._exposure = self.set_exposure(self._exposure)
+        self._gain = self.set_gain(self._gain)
+        self._pixel_format = self.set_pixel_format(self._pixel_format)
+        self._trigger_mode = self.set_trigger_mode(self._trigger_mode)
+        self._exposure_mode = self.set_exposure_mode(self._exposure_mode)
+        self._image_offset = self.set_offset(eval(self._image_offset))
+        self._plot_pixel = eval(self._plot_pixel)
+
+        self.set_gpio_channel(self._gpio_input)
+        self.set_gpio_channel(self._gpio_output)
+
+        self.input_channel_limits, self.output_channel_limits = self.get_channel_limits()
+
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
         self.stop_acquisition()
         self.camera.Close()
-
         pass
 
+    ######################################################################
+    ####                Begin Camera Interface                        ####
+    ###################################################################### 
+
     def get_name(self):
-        
-        return self._camera_ID
-
-    def get_size(self):
-        """ Retrieve size of the image in pixel
-
-        @return tuple: Size (width, height)
+        """ Returns the camera ID from the class, without explicitly references device
         """
-        return self._resolution
+        return self._camera_ID
 
     def support_live_acquisition(self):
         """ Return whether or not the camera can take care of live acquisition
@@ -123,9 +159,9 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
             self._live = True
             self._acquiring = False
    
-        self.camera.StartGrabbingMax(self._num_img)
+        self.camera.StartGrabbingMax(1)
         self._acquiring = self.camera.IsGrabbing()
-        self.grabResult = self.camera.RetrieveResult(100, pylon.TimeoutHandling_ThrowException)
+        self.grabResult = self.camera.RetrieveResult(1000, pylon.TimeoutHandling_ThrowException)
                     
         if self._support_live:
             self._live = False
@@ -136,7 +172,7 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
 
         @return bool: Success ?
         """
-        self.camera.StartGrabbingMax(self._num_img)
+        self.camera.StartGrabbingMax(1)
 
         if self._live:
             return False
@@ -169,13 +205,86 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
 
         Each pixel might be a float, integer or sub pixels
         """
-        data = self.grabResult.Array
-        # print data.shape
-        
+        data = self.grabResult.Array        
         return data
 
-        # data = np.random.random(self._resolution)*self._exposure*self._gain
-        # return data.transpose()
+    def get_offset(self):
+        """ Retrieve size of the image in pixel
+
+        @return tuple: Size (width, height)
+        """
+        self._image_offset = (self.camera.OffsetX.GetValue(), self.camera.OffsetY.GetValue())
+        return self._image_offset
+
+    def set_offset(self, image_offset):
+        """ Set the OffsetX and Offset Y of the exposure in pixels
+        
+        @return tuple: Actual Offset (offsetX, offsetY)
+        """
+        offset_x_min = self.limits["offset_x"][0]
+        offset_x_max = self.limits["offset_x"][1]
+        offset_x_inc = self.limits["offset_x"][2]
+
+        offset_x = offset_x_inc * (in_range(image_offset[0], offset_x_min, offset_x_max) // offset_x_inc)
+
+        offset_y_min = self.limits["offset_y"][0]
+        offset_y_max = self.limits["offset_y"][1]
+        offset_y_inc = self.limits["offset_y"][2]
+
+        offset_y = offset_y_inc * (in_range(image_offset[1], offset_y_min, offset_y_max) // offset_y_inc)
+        
+        self.camera.OffsetX.SetValue(offset_x)
+        self.camera.OffsetY.SetValue(offset_y)
+
+        self._image_offset = self.get_offset()
+
+        self.limits = self.get_limits()
+
+        return self._image_offset
+
+    def get_size(self):
+        """ Retrieve size of the image in pixel
+
+        @return tuple: Size (width, height)
+        """
+        self._image_size = (self.camera.Width.GetValue(), self.camera.Height.GetValue())
+        return self._image_size
+
+    def set_size(self, image_size):
+        """ Set the height and width of the exposure in pixels
+        
+        @return tuple: Actual Size (width, height)
+        """
+        width_min = self.limits["image_width"][0]
+        width_max = self.limits["image_width"][1]
+        width_inc = self.limits["image_width"][2]
+
+        width = width_inc * (in_range(image_size[0], width_min, width_max) // width_inc)
+
+        if width < width_min:
+            width = width_min
+        elif width > width_max:
+            width = width_max
+
+        height_min = self.limits["image_height"][0]
+        height_max = self.limits["image_height"][1]
+        height_inc = self.limits["image_height"][2]
+
+        height = height_inc * (in_range(image_size[1], height_min, height_max) // height_inc)
+
+        if height < height_min:
+            height = height_min
+        elif height > height_max:
+            height = height_max
+        
+        self.camera.Width.SetValue(width)
+        self.camera.Height.SetValue(height)
+
+        self._image_size = self.get_size()
+
+        self.limits = self.get_limits()
+
+        return self._image_size
 
     def set_exposure(self, exposure):
         """ Set the exposure time in seconds
@@ -184,7 +293,25 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
 
         @return float: setted new exposure time
         """
-        self._exposure = exposure
+        if self._exposure_mode != "Timed":
+            return 0.12345
+
+        exposure_min = self.limits["exposure_time"][0]
+        exposure_max = self.limits["exposure_time"][1]
+        exposure_inc = self.limits["exposure_time"][2]
+    
+        new_exposure = exposure_inc * (in_range(exposure, exposure_min, exposure_max) // exposure_inc)
+
+        if new_exposure < exposure_min:
+            new_exposure = exposure_min
+        
+        elif new_exposure > exposure_max:
+            new_exposure = exposure_max
+
+        self.camera.ExposureTime.SetValue(new_exposure*1e6)
+
+        self._exposure = self.get_exposure()
+
         return self._exposure
 
     def get_exposure(self):
@@ -193,7 +320,7 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
         @return float exposure time
         """
         self._exposure = self.camera.ExposureTime.GetValue()
-        return self._exposure
+        return self._exposure * 1e-6
 
     def set_gain(self, gain):
         """ Set the gain
@@ -202,7 +329,13 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
 
         @return float: new exposure gain
         """
-        self._gain = gain
+        gain_min = self.limits["gain"][0]
+        gain_max = self.limits["gain"][1]
+
+        new_gain = in_range(gain, gain_min, gain_max)
+        self.camera.Gain.SetValue(new_gain)
+
+        self._gain = self.get_gain()
         return self._gain
 
     def get_gain(self):
@@ -211,8 +344,30 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
         @return float: exposure gain
         """
         self._gain = self.camera.Gain.GetValue()
-
         return self._gain
+
+    def set_pixel_format(self, pixel_format):
+        """ Set values can each pixel return ("Mono8", "Mono12", etc.)
+
+        @return string: new pixel format
+        """ 
+        if pixel_format in self.limits["pixel_formats"]:
+            try:
+                self.camera.PixelFormat.SetValue(pixel_format)
+                self._pixel_format = self.get_pixel_format()
+            except:
+                self.log.warn("Could not reset camera Pixel Format")
+            
+
+        return self._pixel_format
+
+    def get_pixel_format(self):
+        """ Get values can each pixel return ("Mono8", "Mono12", etc.)
+
+        @return string: new pixel format
+        """ 
+        self._pixel_format = self.camera.PixelFormat.GetValue()
+        return self._pixel_format
 
 
     def get_ready_state(self):
@@ -222,172 +377,244 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
         """
         return not (self._live or self._acquiring)
 
+    ######################################################################
+    ####                End Camera Interface                          ####
+    ###################################################################### 
 
-######################################################################################
-########## SlowCounter Interface Implementation BEGIN ################################
-######################################################################################
+    ######################################################################
+    ####                Start Widefield Camera Interface              ####
+    ###################################################################### 
+
+    def get_limits(self):
+        """ Get camera limits
+        """
+        limits = dict()
+        limits["gain"] = (self.camera.Gain.Min, self.camera.Gain.Max)
+        limits["trigger_mode"] = (True, False)
+        limits["exposure_modes"] = self.camera.ExposureMode.Symbolics
+        if self.get_exposure_mode() == "Timed":
+            limits["exposure_time"] = (self.camera.ExposureTime.Min * 1e-6, 
+                                    self.camera.ExposureTime.Max * 1e-6, 
+                                    self.camera.ExposureTime.GetInc() * 1e-6)
+        else:
+            limits["exposure_time"] = (0, 0, 0)
+        limits["image_width"] = (self.camera.Width.Min, self.camera.Width.Max, self.camera.Width.GetInc())
+        limits["image_height"] = (self.camera.Height.Min, self.camera.Height.Max, self.camera.Height.GetInc())
+        limits["offset_x"] = (self.camera.OffsetX.Min, self.camera.OffsetX.Max, self.camera.OffsetX.GetInc())
+        limits["offset_y"] = (self.camera.OffsetY.Min, self.camera.OffsetY.Max, self.camera.OffsetY.GetInc())
+        limits["pixel_formats"] = self.camera.PixelFormat.Symbolics
+        limits["plot_pixel_x"] = (0, self.camera.Width.GetValue())
+        limits["plot_pixel_y"] = (0, self.camera.Height.GetValue())
+        return limits
     
-    def set_up_clock(self, clock_frequency=None, clock_channel=None):
-        """ Configures the hardware clock of the TimeTagger for timing
-
-        @param float clock_frequency: if defined, this sets the frequency of
-                                      the clock
-        @param string clock_channel: if defined, this is the physical channel
-                                     of the clock
-
-        @return int: error code (0:OK, -1:error)
+    def get_channel_limits(self):
+        """ Get camera channel limits
         """
-        return 0
+        input_channel_limits = dict()
+        output_channel_limits = dict()
 
-    def set_up_counter(self,
-                       counter_channels=None,
-                       sources=None,
-                       clock_channel=None,
-                       counter_buffer=None):
-        """ Set up camera for hardware triggering 
-        @return int: error code (0:OK, -1:error)
+        self.set_gpio_channel({'LineSelector': self._input_line,
+                               'LineMode': 'Input'})
+
+        input_channel_limits['LineSelector'] = [self._input_line]
+        input_channel_limits['TriggerSelectors'] = self.camera.TriggerSelector.Symbolics
+        input_channel_limits['TriggerDelays'] = (self.camera.TriggerDelay.Min, self.camera.TriggerDelay.Max, self.camera.TriggerDelay.GetInc())
+        input_channel_limits['TriggerActivations'] = self.camera.TriggerActivation.Symbolics
+
+        self.set_gpio_channel({'LineSelector': self._output_line,
+                               'LineMode': 'Output'})
+
+        output_channel_limits['LineSelector'] = [self._output_line]
+        output_channel_limits['MinimumOutputPulse'] = (self.camera.LineMinimumOutputPulseWidth.Min, self.camera.LineMinimumOutputPulseWidth.Max, self.camera.LineMinimumOutputPulseWidth.GetInc())
+        output_channel_limits['LineSource'] = self.camera.LineSource.Symbolics
+
+        return input_channel_limits, output_channel_limits
+
+    def set_gpio_channel(self, properties):
+        """ Set properties for input and output GPIO channels
         """
 
-        # #Restarts to default settings
-        # self.camera.UserSetSelector = 'Default'
-        # self.camera.UserSetLoad.Execute()
+        self.camera.LineSelector.SetValue('{}'.format(properties['LineSelector']))
+        self.camera.LineMode.SetValue(properties["LineMode"])
 
-        self.camera.LineSelector = 'Line4'
-        self.camera.LineMode = 'Input'
-
-        self.camera.TriggerSelector = 'FrameStart'
-        self.camera.TriggerSource = self._input_line
-        self.camera.TriggerMode = 'On'
-        self.camera.TriggerActivation.Value = 'RisingEdge'
+        if "LineSource" in properties:
+            self.camera.LineSource.SetValue(properties["LineSource"])
         
-        # line 3 needs to be output, exposure active and inverted line. for MW trig cam
+        if "TriggerSelector" in properties:
+            self.camera.TriggerSelector.SetValue(properties["TriggerSelector"])
 
+        if "TriggerDelay" in properties:
+            self.camera.TriggerDelay.SetValue(properties["TriggerDelay"])
+    
+        if "LineInverter" in properties:
+            self.camera.LineInverter.SetValue(properties["LineInverter"])
 
-        return 0
+        if "TriggerActivation" in properties:
+            self.camera.TriggerActivation.SetValue(properties["TriggerActivation"])
 
-    def get_counter_channels(self):
-        return [1]
-
-    def get_constraints(self):
-        """ Get camera parameters
-        """
-        width = self.camera.Width.GetValue()
-        height = self.camera.Height.GetValue()
-        return width, height
-
-    def get_counter(self, samples=None):
+        if "MinimumOutputPulse" in properties:
+            self.camera.LineMinimumOutputPulseWidth.SetValue(properties["MinimumOutputPulse"])
+ 
+    def grab(self, nframes=0):
         """ Returns an array of PL from the camera
         """
     
         # initialize array for num_imgs = num_avgs
 
-        width = self.get_constraints()[0]
-        height = self.get_constraints()[1]
-        imgs = np.zeros((height,width,self._num_img),dtype='float64')
+        width = self._image_size[0]
+        height = self._image_size[0]
+        imgs = np.zeros((height, width, nframes),dtype='float64')
         ind = 0
 
         # self.camera.StartGrabbingMax(self._num_img)
         while self.camera.IsGrabbing():
-            output = self.camera.RetrieveResult(200000, pylon.TimeoutHandling_ThrowException) # Camera exposure time must be less than retrieval timeout
+            output = self.camera.RetrieveResult(nframes, pylon.TimeoutHandling_ThrowException) # Camera exposure time must be less than retrieval timeout
             if output.GrabSucceeded():
                 imgs[:,:,ind] += output.Array
                 ind += 1
                 # imgs[:,:] += output.Array
         return imgs
 
-    def close_counter(self):
-        """ Closes the counter and cleans up afterwards.
+    def set_plot_pixel(self, plot_pixel):
+        """ Set the exposure time in seconds
 
-        @return int: error code (0:OK, -1:error)
+        @param float time: desired new exposure time
+
+        @return float: setted new exposure time
         """
-        # self.camera.Close()
-        return 0
+        plot_pixel_x_min = self.limits["plot_pixel_x"][0]
+        plot_pixel_x_max = self.limits["plot_pixel_x"][1]
 
-    def close_clock(self):
-        """ Closes the clock and cleans up afterwards.
+        plot_pixel_x = in_range(int(plot_pixel[0]), plot_pixel_x_min, plot_pixel_x_max)
 
-        @return int: error code (0:OK, -1:error)
+        plot_pixel_y_min = self.limits["plot_pixel_y"][0]
+        plot_pixel_y_max = self.limits["plot_pixel_y"][1]
+
+        plot_pixel_y = in_range(int(plot_pixel[1]), plot_pixel_y_min, plot_pixel_y_max)
+
+        self._plot_pixel = (plot_pixel_x, plot_pixel_y)
+        return self._plot_pixel
+
+    def get_plot_pixel(self):
+        """ Get the plot pixel coordinates
+
+        @return tuple: plot pixel
         """
-        return 0
+        return self._plot_pixel
 
-    ##### ODMRCounterInterface Interface Implementation BEGIN ######
+    def set_camera_parameters(self, camera_params):
+        """ Set the camera parameters
+        
+        @return dict: dict of actual parameters that were set on the camera.
+        """
 
-    # def set_up_odmr_clock(self, clock_frequency=None, clock_channel=None):
-    #     """ Configures the hardware clock of the NiDAQ card to give the timing.
+        set_params = dict()
 
-    #     @param float clock_frequency: if defined, this sets the frequency of the
-    #                                   clock
-    #     @param str clock_channel: if defined, this is the physical channel of
-    #                               the clock
+        if "exposure_time" in camera_params:
+            set_params["exposure_time"] = self.set_exposure(camera_params["exposure_time"])
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+        if "trigger_mode" in camera_params:
+            set_params["trigger_mode"] = self.set_trigger_mode(camera_params["trigger_mode"])
 
-    # def set_up_odmr(self, 
-    #                 counter_channel=None, 
-    #                 photon_source=None,
-    #                 clock_channel=None, 
-    #                 odmr_trigger_channel=None):
-    #     """ Configures the actual counter with a given clock.
+        if "exposure_mode" in camera_params:
+            set_params["exposure_mode"] = self.set_exposure_mode(camera_params["exposure_mode"])
 
-    #     @param str counter_channel: if defined, this is the physical channel of
-    #                                 the counter
-    #     @param str photon_source: if defined, this is the physical channel where
-    #                               the photons are to count from
-    #     @param str clock_channel: if defined, this specifies the clock for the
-    #                               counter
-    #     @param str odmr_trigger_channel: if defined, this specifies the trigger
-    #                                      output for the microwave
+        if "gain" in camera_params:
+            set_params["gain"] = self.set_gain(camera_params["gain"])
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+        if "image_size" in camera_params:
+            set_params["image_size"] = self.set_size(camera_params["image_size"])
 
-    # def set_odmr_length(self, length=100):
-    #     """Set up the trigger sequence for the ODMR and the triggered microwave.
+        if "image_offset" in camera_params:
+            set_params["image_offset"] = self.set_offset(camera_params["image_offset"])
 
-    #     @param int length: length of microwave sweep in pixel
+        if "pixel_format" in camera_params:
+            set_params["pixel_format"] = self.set_pixel_format(camera_params["pixel_format"])
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+        if "plot_pixel" in camera_params:
+            set_params["plot_pixel"] = self.set_plot_pixel(camera_params["plot_pixel"])
 
-    # def count_odmr(self, length = 100):
-    #     """ Sweeps the microwave and returns the counts on that sweep.
+        limits = self.get_limits()
 
-    #     @param int length: length of microwave sweep in pixel
+        return set_params, limits
 
-    #     @return (bool, float[]): tuple: was there an error, the photon counts per second
-    #     """
-    #     return 0
+    def set_trigger_mode(self, mode):
+        """ Set the trigger mode (bool)
 
-    # def close_odmr(self):
-    #     """ Close the odmr and clean up afterwards.
+        @return bool: trigger mode
+        """
+        if mode:
+            self.camera.TriggerMode.SetValue('On')
+        else:
+            self.camera.TriggerMode.SetValue('Off')
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+        self.limits = self.get_limits()
 
-    # def close_odmr_clock(self):
-    #     """ Close the odmr and clean up afterwards.
+        self._trigger_mode = self.get_trigger_mode()
+        return self._trigger_mode
 
-    #     @return int: error code (0:OK, -1:error)
-    #     """
-    #     return 0
+    def get_trigger_mode(self):
+        """ Get the trigger mode (bool)
 
-    # def get_odmr_channels(self):
-    #     """ Return a list of channel names.
+        @return bool: trigger mode
+        """
+        string_mode = self.camera.TriggerMode.GetValue()
 
-    #     @return list(str): channels recorded during ODMR measurement
-    #     """
-    #     return [1]
+        if string_mode == 'On':
+            self._trigger_mode = True
+        else:
+            self._trigger_mode = False
 
-    # def oversampling(self):
-    #     pass
+        return self._trigger_mode
 
-    # def lock_in_active(self):
-    #     pass
+    def set_exposure_mode(self, mode):
+        """ Set the exposure mode (string)
 
-    # def lock_in_active(self, val):
-    #     pass
+        @return string: exposure mode
+        """
+        if mode in self.limits["exposure_modes"]:
+            try:
+                self.camera.ExposureMode.SetValue(mode)
+                self._exposure_mode = self.get_exposure_mode()
+            except:
+                self.log.warn("Could not reset camera exposure mode")
+            
+        return self._exposure_mode
+
+    def get_exposure_mode(self):
+        """ Get the exposure mode (string)
+
+        @return string: exposure mode
+        """
+        self._exposure_mode = self.camera.ExposureMode.GetValue()
+        return self._exposure_mode
+    
+    def get_channel_parameters(self):
+        """ Get camera channel limits
+        """
+        input_channel = dict()
+        output_channel = dict()
+
+        self.set_gpio_channel({'LineSelector': self._input_line,
+                               'LineMode': 'Input'})
+
+        input_channel['LineSelector'] = self._input_line
+        input_channel['TriggerSelectors'] = self.camera.TriggerSelector.GetValue()
+        input_channel['TriggerDelays'] = self.camera.TriggerDelay.GetValue()
+        input_channel['TriggerActivations'] = self.camera.TriggerActivation.GetValue()
+        input_channel['LineInverter'] = self.camera.LineInverter.GetValue()
+
+        self.set_gpio_channel({'LineSelector': self._output_line,
+                               'LineMode': 'Output'})
+
+        output_channel['LineSelector'] = self._output_line
+        output_channel['LineInverter'] = self.camera.LineInverter.GetValue()
+        output_channel['MinimumOutputPulse'] = self.camera.LineMinimumOutputPulseWidth.GetValue()
+        output_channel['LineSource'] = self.camera.LineSource.GetValue()
+
+        return input_channel, output_channel
+
+
+######################################################################
+####                End Widefield Camera Interface                ####
+###################################################################### 
