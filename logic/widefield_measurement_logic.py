@@ -47,6 +47,8 @@ class WidefieldMeasurementLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
     sequencegeneratorlogic = Connector(interface='SequenceGeneratorLogic')
+    pulsedmeasurementlogic = Connector(interface='PulsedMeasurementLogic')
+
 
     # config option
     mw_scanmode = ConfigOption(
@@ -164,6 +166,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
         self._sequencegeneratorlogic = self.sequencegeneratorlogic()
+        self._pulsedmeasurementlogic = self.pulsedmeasurementlogic()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
@@ -283,14 +286,14 @@ class WidefieldMeasurementLogic(GenericLogic):
         #     self.sigGeneratorSettingsUpdated, QtCore.Qt.QueuedConnection)
         # self._sequencegeneratorlogic.sigSamplingSettingsUpdated.connect(
         #     self.sigSamplingSettingsUpdated, QtCore.Qt.QueuedConnection)
-        # self._sequencegeneratorlogic.sigPredefinedSequenceGenerated.connect(
-        #     self.predefined_sequence_generated, QtCore.Qt.QueuedConnection)
-        # self._sequencegeneratorlogic.sigSampleEnsembleComplete.connect(
-        #     self.sample_ensemble_finished, QtCore.Qt.QueuedConnection)
-        # self._sequencegeneratorlogic.sigSampleSequenceComplete.connect(
-        #     self.sample_sequence_finished, QtCore.Qt.QueuedConnection)
-        # self._sequencegeneratorlogic.sigLoadedAssetUpdated.connect(
-        #     self.loaded_asset_updated, QtCore.Qt.QueuedConnection)
+        self._sequencegeneratorlogic.sigPredefinedSequenceGenerated.connect(
+            self.predefined_sequence_generated, QtCore.Qt.QueuedConnection)
+        self._sequencegeneratorlogic.sigSampleEnsembleComplete.connect(
+            self.sample_ensemble_finished, QtCore.Qt.QueuedConnection)
+        self._sequencegeneratorlogic.sigSampleSequenceComplete.connect(
+            self.sample_sequence_finished, QtCore.Qt.QueuedConnection)
+        self._sequencegeneratorlogic.sigLoadedAssetUpdated.connect(
+            self.loaded_asset_updated, QtCore.Qt.QueuedConnection)
         # self._sequencegeneratorlogic.sigBenchmarkComplete.connect(
         #     self.benchmark_completed, QtCore.Qt.QueuedConnection)
 
@@ -1332,6 +1335,101 @@ class WidefieldMeasurementLogic(GenericLogic):
     def generate_method_params(self):
         return getattr(self._sequencegeneratorlogic, 'generate_method_params', dict())   
     
+
+    #######################################################################
+    ###             Sequence generator methods                          ###
+    #######################################################################
+
+    # @QtCore.Slot()
+    # def clear_pulse_generator(self):
+    #     still_busy = self.status_dict['sampling_ensemble_busy'] or self.status_dict[
+    #         'sampling_sequence_busy'] or self.status_dict['loading_busy'] or self.status_dict[
+    #                                'sampload_busy']
+    #     if still_busy:
+    #         self.log.error('Can not clear pulse generator. Sampling/Loading still in progress.')
+    #     elif self.status_dict['measurement_running']:
+    #         self.log.error('Can not clear pulse generator. Measurement is still running.')
+    #     else:
+    #         if self.status_dict['pulser_running']:
+    #             self.log.warning('Can not clear pulse generator while it is still running. '
+    #                              'Turned off.')
+    #             self.pulsedmeasurementlogic().pulse_generator_off()
+    #         self.sigClearPulseGenerator.emit()
+    #     return
+
+    @QtCore.Slot(str)
+    @QtCore.Slot(str, bool)
+    def sample_ensemble(self, ensemble_name, with_load=False):
+        already_busy = self.status_dict['sampling_ensemble_busy'] or self.status_dict[
+            'sampling_sequence_busy'] or self._sequencegeneratorlogic.module_state() == 'locked'
+        if already_busy:
+            self.log.error('Sampling of a different asset already in progress.\n'
+                           'PulseBlockEnsemble "{0}" not sampled!'.format(ensemble_name))
+        else:
+            if with_load:
+                self.status_dict['sampload_busy'] = True
+            self.status_dict['sampling_ensemble_busy'] = True
+            self.sigSampleBlockEnsemble.emit(ensemble_name)
+        return
+
+    @QtCore.Slot(object)
+    def sample_ensemble_finished(self, ensemble):
+        self.status_dict['sampling_ensemble_busy'] = False
+        self.sigSampleEnsembleComplete.emit(ensemble)
+        if self.status_dict['sampload_busy'] and not self.status_dict['sampling_sequence_busy']:
+            if ensemble is None:
+                self.status_dict['sampload_busy'] = False
+                self.sigLoadedAssetUpdated.emit(*self.loaded_asset)
+            else:
+                self.load_ensemble(ensemble.name)
+        return
+
+    @QtCore.Slot(str)
+    @QtCore.Slot(str, bool)
+    def sample_sequence(self, sequence_name, with_load=False):
+        already_busy = self.status_dict['sampling_ensemble_busy'] or self.status_dict[
+            'sampling_sequence_busy'] or self._sequencegeneratorlogic.module_state() == 'locked'
+        if already_busy:
+            self.log.error('Sampling of a different asset already in progress.\n'
+                           'PulseSequence "{0}" not sampled!'.format(sequence_name))
+        else:
+            if with_load:
+                self.status_dict['sampload_busy'] = True
+            self.status_dict['sampling_sequence_busy'] = True
+            self.sigSampleSequence.emit(sequence_name)
+        return
+
+    @QtCore.Slot(object)
+    def sample_sequence_finished(self, sequence):
+        self.status_dict['sampling_sequence_busy'] = False
+        self.sigSampleSequenceComplete.emit(sequence)
+        if self.status_dict['sampload_busy']:
+            if sequence is None:
+                self.status_dict['sampload_busy'] = False
+                self.sigLoadedAssetUpdated.emit(*self.loaded_asset)
+            else:
+                self.load_sequence(sequence.name)
+        return
+
+    @QtCore.Slot(str)
+    def load_ensemble(self, ensemble_name):
+        if self.status_dict['loading_busy']:
+            self.log.error('Loading of a different asset already in progress.\n'
+                           'PulseBlockEnsemble "{0}" not loaded!'.format(ensemble_name))
+            self.loaded_asset_updated(*self.loaded_asset)
+        elif self.status_dict['measurement_running']:
+            self.log.error('Loading of ensemble not possible while measurement is running.\n'
+                           'PulseBlockEnsemble "{0}" not loaded!'.format(ensemble_name))
+            self.loaded_asset_updated(*self.loaded_asset)
+        else:
+            self.status_dict['loading_busy'] = True
+            if self.status_dict['pulser_running']:
+                self.log.warning('Can not load new asset into pulse generator while it is still '
+                                 'running. Turned off.')
+                self._pulsedmeasurementlogic.pulse_generator_off()
+            self.sigLoadBlockEnsemble.emit(ensemble_name)
+        return
+
     @QtCore.Slot(str)
     @QtCore.Slot(str, dict)
     @QtCore.Slot(str, dict, bool)
@@ -1349,4 +1447,68 @@ class WidefieldMeasurementLogic(GenericLogic):
         if sample_and_load:
             self.status_dict['sampload_busy'] = True
         self.sigGeneratePredefinedSequence.emit(generator_method_name, kwarg_dict)
+        return
+
+    @QtCore.Slot(object, bool)
+    def predefined_sequence_generated(self, asset_name, is_sequence):
+        self.status_dict['predefined_generation_busy'] = False
+        if asset_name is None:
+            self.status_dict['sampload_busy'] = False
+        self.sigPredefinedSequenceGenerated.emit(asset_name, is_sequence)
+        if self.status_dict['sampload_busy']:
+            if is_sequence:
+                self.sample_sequence(asset_name, True)
+            else:
+                self.sample_ensemble(asset_name, True)
+        return
+
+    @QtCore.Slot(str)
+    def load_sequence(self, sequence_name):
+        if self.status_dict['loading_busy']:
+            self.log.error('Loading of a different asset already in progress.\n'
+                           'PulseSequence "{0}" not loaded!'.format(sequence_name))
+            self.loaded_asset_updated(*self.loaded_asset)
+        elif self.status_dict['measurement_running']:
+            self.log.error('Loading of sequence not possible while measurement is running.\n'
+                           'PulseSequence "{0}" not loaded!'.format(sequence_name))
+            self.loaded_asset_updated(*self.loaded_asset)
+        else:
+            self.status_dict['loading_busy'] = True
+            if self.status_dict['pulser_running']:
+                self.log.warning('Can not load new asset into pulse generator while it is still '
+                                 'running. Turned off.')
+                self._pulsedmeasurementlogic.pulse_generator_off()
+            self.sigLoadSequence.emit(sequence_name)
+        return
+
+    @QtCore.Slot(str, str)
+    def loaded_asset_updated(self, asset_name, asset_type):
+        """
+
+        @param asset_name:
+        @param asset_type:
+        @return:
+        """
+        self.status_dict['sampload_busy'] = False
+        self.status_dict['loading_busy'] = False
+        self.sigLoadedAssetUpdated.emit(asset_name, asset_type)
+        # Transfer sequence information from PulseBlockEnsemble or PulseSequence to
+        # PulsedMeasurementLogic to be able to invoke measurement settings from them
+        if not asset_type:
+            # If no asset loaded or asset type unknown, clear sequence_information dict
+
+            object_instance = None
+        elif asset_type == 'PulseBlockEnsemble':
+            object_instance = self.saved_pulse_block_ensembles.get(asset_name)
+        elif asset_type == 'PulseSequence':
+            object_instance = self.saved_pulse_sequences.get(asset_name)
+        else:
+            object_instance = None
+
+        if object_instance is None:
+            self._pulsedmeasurementlogic.sampling_information = dict()
+            self._pulsedmeasurementlogic.measurement_information = dict()
+        else:
+            self._pulsedmeasurementlogic.sampling_information = object_instance.sampling_information
+            self._pulsedmeasurementlogic.measurement_information = object_instance.measurement_information
         return

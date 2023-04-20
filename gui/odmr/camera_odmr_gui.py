@@ -361,7 +361,7 @@ class WidefieldGUI(GUIBase):
         # self._widefield_logic.sigSequenceDictUpdated.connect(self.update_sequence_dict)
         # self._widefield_logic.sigAvailableWaveformsUpdated.connect(self.waveform_list_updated)
         # self._widefield_logic.sigAvailableSequencesUpdated.connect(self.sequence_list_updated)
-        # self._widefield_logic.sigSampleEnsembleComplete.connect(self.sample_ensemble_finished)
+        self._widefield_logic.sigSampleEnsembleComplete.connect(self.sample_ensemble_finished)
         # self._widefield_logic.sigSampleSequenceComplete.connect(self.sample_sequence_finished)
         # self._widefield_logic.sigLoadedAssetUpdated.connect(self.loaded_asset_updated)
         # self._widefield_logic.sigGeneratorSettingsUpdated.connect(self.pulse_generator_settings_updated)
@@ -1701,27 +1701,19 @@ class WidefieldGUI(GUIBase):
             method_name, param_dict, sample_and_load)
         return
 
-    @QtCore.Slot(object, bool)
-    def predefined_generated(self, asset_name, is_sequence):
-        # Enable all "Generate" buttons in predefined methods tab
-        for button in self._pm.gen_buttons.values():
+    @QtCore.Slot(object)
+    def sample_ensemble_finished(self, ensemble):
+        """
+        This method reactivates the GenSampLo button after the ensemble has been uploaded
+        """
+        # enable buttons
+        # TODO add in sampload busy stuff
+        # if not self._pulsedmasterlogic.status_dict['sampload_busy']:
+            # Reactivate predefined method buttons
+        for button in self._mw.gen_buttons.values():
             button.setEnabled(True)
-
-        # Enable all "GenSampLo" buttons in predefined methods tab if generation failed or
-        # "sampload_busy" flag in PulsedMasterLogic status_dict is False.
-        # If generation was successful and "sampload_busy" flag is True, disable respective buttons
-        # in "Pulse Generator" and "Sequence Generator" tab
-        if asset_name is None or not self._widefield_logic.status_dict['sampload_busy']:
-            for button in self._pm.samplo_buttons.values():
-                button.setEnabled(True)
-        else:
-            self._pg.sample_ensemble_PushButton.setEnabled(False)
-            self._pg.samplo_ensemble_PushButton.setEnabled(False)
-            self._pg.load_ensemble_PushButton.setEnabled(False)
-            if is_sequence:
-                self._sg.load_sequence_PushButton.setEnabled(False)
-                self._sg.samplo_sequence_PushButton.setEnabled(False)
-                self._sg.sample_sequence_PushButton.setEnabled(False)
+        for button in self._mw.samplo_buttons.values():
+            button.setEnabled(True)
         return
     
     def apply_predefined_methods_config(self):
