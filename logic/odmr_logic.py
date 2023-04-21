@@ -607,11 +607,13 @@ class ODMRLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
 
+        # this is where the WF ESR pulse was loaded onto PS
         clock_status = self._odmr_counter.set_up_odmr_clock(clock_frequency=self.clock_frequency)
 
         if clock_status < 0:
             return -1
 
+        # this is where line4 input and framestart, trigegr source trigger mode and rising edge
         counter_status = self._odmr_counter.set_up_odmr()
         if counter_status < 0:
             self._odmr_counter.close_odmr_clock()

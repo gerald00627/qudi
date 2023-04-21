@@ -184,15 +184,15 @@ class ODMRCounter_MW_Basler_Interfuse(GenericLogic, ODMRCounterInterface, Microw
         # Laser and MW switch constant output
         self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
 
-        # Set up camera to grab _num_img photos and average them
+        # Set up camera to grab _num_img photos and average them -
         self._sc_device._num_img = length
-      
+
         # For plotting central pixel
         counts = np.zeros((1, length))
 
         # self.set_power(self._mw_power)
 
-        self._sc_device.camera.StartGrabbingMax(self._sc_device._num_img)
+        self._sc_device.camera.StartGrabbingMax(self._sc_device._num_img) # -
 
         # Cam triggered by MW, measurement starts with an initiate single sweep instruction
         # MW dwell time must be longer than exposure time

@@ -222,6 +222,76 @@ class CameraBasler(Base, CameraInterface, SlowCounterInterface):
         """
         return not (self._live or self._acquiring)
 
+    def get_offset(self):
+        """ Retrieve size of the image in pixel
+
+        @return tuple: Size (width, height)
+        """
+        # self._image_offset = (self.camera.OffsetX.GetValue(), self.camera.OffsetY.GetValue())
+        # return self._image_offset
+
+        pass
+
+    def get_pixel_format(self):
+        """ Get values can each pixel return ("Mono8", "Mono12", etc.)
+
+        @return string: new pixel format
+        """ 
+        # self._pixel_format = self.camera.PixelFormat.GetValue()
+        # return self._pixel_format
+
+        pass
+
+    def set_pixel_format(self, pixel_format):
+        """ Set values can each pixel return ("Mono8", "Mono12", etc.)
+
+        @return string: new pixel format
+        """ 
+        # if pixel_format in self.limits["pixel_formats"]:
+        #     try:
+        #         self.camera.PixelFormat.SetValue(pixel_format)
+        #         self._pixel_format = self.get_pixel_format()
+        #     except:
+        #         self.log.warn("Could not reset camera Pixel Format")
+
+        pass
+            
+    def set_size(self, image_size):
+        """ Set the height and width of the exposure in pixels
+        
+        @return tuple: Actual Size (width, height)
+        """
+        # width_min = self.limits["image_width"][0]
+        # width_max = self.limits["image_width"][1]
+        # width_inc = self.limits["image_width"][2]
+
+        # width = width_inc * (in_range(image_size[0], width_min, width_max) // width_inc)
+
+        # if width < width_min:
+        #     width = width_min
+        # elif width > width_max:
+        #     width = width_max
+
+        # height_min = self.limits["image_height"][0]
+        # height_max = self.limits["image_height"][1]
+        # height_inc = self.limits["image_height"][2]
+
+        # height = height_inc * (in_range(image_size[1], height_min, height_max) // height_inc)
+
+        # if height < height_min:
+        #     height = height_min
+        # elif height > height_max:
+        #     height = height_max
+        
+        # self.camera.Width.SetValue(width)
+        # self.camera.Height.SetValue(height)
+
+        # self._image_size = self.get_size()
+
+        # self.limits = self.get_limits()
+
+        pass
+
 
 ######################################################################################
 ########## SlowCounter Interface Implementation BEGIN ################################

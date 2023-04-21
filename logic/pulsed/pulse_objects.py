@@ -1333,6 +1333,25 @@ class PredefinedGeneratorBase:
                 phase=phase)
         return mw_element
 
+    def _get_mw1_mw2_laser_cam_element(self, length, increment):
+        """
+        Creates a MW pulse PulseBlockElement
+
+        @param float length: MW pulse duration in seconds
+        @param float increment: MW pulse duration increment in seconds
+        @param float freq: MW frequency in case of analogue MW channel in Hz
+        @param float amp: MW amplitude in case of analogue MW channel in V
+        @param float phase: MW phase in case of analogue MW channel in deg
+
+        @return: PulseBlockElement, the generated MW element
+        """
+        mw_element = self._get_trigger_element(
+            length=length,
+            increment=increment,
+            channels=[self.microwave1_channel, self.microwave2_channel,self.camera_trig_channel, self.laser_channel])
+      
+        return mw_element
+
     def _get_mw2_cam_element(self, length, increment, amp=None, freq=None, phase=None):
         """
         Creates a MW pulse PulseBlockElement

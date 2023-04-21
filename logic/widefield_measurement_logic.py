@@ -24,6 +24,8 @@ from qtpy import QtCore
 from collections import OrderedDict
 from interface.microwave_interface import MicrowaveMode
 from interface.microwave_interface import TriggerEdge
+from interface.microwave_interface import MicrowaveTriggerMode
+
 import numpy as np
 import time
 import datetime
@@ -34,6 +36,7 @@ from core.util.mutex import Mutex
 from core.connector import Connector
 from core.configoption import ConfigOption
 from core.statusvariable import StatusVar
+
 
 
 class WidefieldMeasurementLogic(GenericLogic):
@@ -201,6 +204,9 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         self.predefined_generate_methods = self.generate_methods
         self.measurement_params = self.generate_method_params[self.measurement_type]
+
+        #Place holder for currently loaded sequence string
+        self.curr_loaded_seq = '' 
         
         # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
         # theoretically this can be changed, but the current counting scheme will not support that
@@ -619,10 +625,12 @@ class WidefieldMeasurementLogic(GenericLogic):
 
     def mw_sweep_on(self):
         """
-        Switching on the mw source in list/sweep mode.
+        Switching on the mw source in list/sweep mode. Set trigger mode
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
+        
+        # TODO some sources do not have all these modes  
 
         limits = self.get_hw_constraints()
         param_dict = {}
@@ -649,10 +657,15 @@ class WidefieldMeasurementLogic(GenericLogic):
                 mode, is_running = self._mw_device.get_status()
                 self.sigOutputStateUpdated.emit(mode, is_running)
                 return mode, is_running
+
+            # TODO Trigger mode is currently measurement dependent (eventually ESR should be changed for PS to trigger MW)
+            # This needs to be changed for general triggering, as currently this will only work for WF ESR
+
+            # Upload list of frequency/dwell time/power and set trigger mode of MW
+            
             freq_list, self.sweep_mw_power, mode = self._mw_device.set_list(final_freq_list,
                                                                             self.sweep_mw_power,
-                                                                            "SINGLE",
-                                                                            "AUTO")
+                                                                            MicrowaveTriggerMode.STEP_EXT)
 
             self.final_freq_list = np.array(freq_list)
             self.mw_starts = used_starts
@@ -735,22 +748,26 @@ class WidefieldMeasurementLogic(GenericLogic):
         self._mw_device.trigger()
         return
 
+    
+
     def _start_widefield_odmr_counter(self):
         """
         Starting the ODMR counter and set up the clock for it.
+        This will setup the widefield camera
 
         @return int: error code (0:OK, -1:error)
         """
 
+        # Prepare camera to take num_freq imgs
         clock_status = self._widefield_camera.set_up_acquisition(frame_rate=self.frame_rate)
 
-        if clock_status < 0:
-            return -1
+        # if clock_status < 0:
+        #     return -1
 
-        counter_status = self._widefield_camera.set_up_widefield_odmr()
-        if counter_status < 0:
-            self._widefield_camera.close_widefield_odmr_clock()
-            return -1
+        # counter_status = self._widefield_camera.set_up_widefield_odmr()
+        # if counter_status < 0:
+        #     self._widefield_camera.close_widefield_odmr_clock()
+        #     return -1
 
         return 0
 
@@ -793,6 +810,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             self._startTime = time.time()
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
+            # Prepare camera to take imgs
             odmr_status = self._start_widefield_odmr_counter()
             if odmr_status < 0:
                 mode, is_running = self._mw_device.get_status()
@@ -801,14 +819,16 @@ class WidefieldMeasurementLogic(GenericLogic):
                 return -1
 
             
-
+            # for now we still have the camera of sweep 
             mode, is_running = self.mw_sweep_on()
+
             if not is_running:
                 self._stop_widefield_odmr_counter()
                 self.module_state.unlock()
                 return -1
 
-            self.mw_trigger()
+            # TODO For now, camera output is triggered by MW, but later this ought to be okay 
+            # self.mw_trigger()
 
             self._initialize_odmr_plots()
             # Raw data array
@@ -1447,6 +1467,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         if sample_and_load:
             self.status_dict['sampload_busy'] = True
         self.sigGeneratePredefinedSequence.emit(generator_method_name, kwarg_dict)
+        self.curr_loaded_seq = generator_method_name
         return
 
     @QtCore.Slot(object, bool)

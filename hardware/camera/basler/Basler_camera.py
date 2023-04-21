@@ -614,6 +614,14 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
 
         return input_channel, output_channel
 
+    def set_up_acquisition(self, framerate):
+        """ Prepare camera to take images 
+        """
+        # self._sc_device._num_img = length
+
+        # self._sc_device.camera.StartGrabbingMax(self._sc_device._num_img)
+
+        return 
 
 ######################################################################
 ####                End Widefield Camera Interface                ####

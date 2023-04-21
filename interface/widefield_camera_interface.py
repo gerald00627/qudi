@@ -110,3 +110,11 @@ class WidefieldCameraInterface(metaclass=InterfaceMetaclass):
         @return string: exposure mode
         """
         pass
+
+    @abstract_interface_method
+    def set_up_acquisition(self,framerate):
+        """ Get the exposure mode (string)
+
+        @return string: 
+        """  
+        pass
