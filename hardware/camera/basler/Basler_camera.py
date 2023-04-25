@@ -462,18 +462,23 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         # initialize array for num_imgs = num_avgs
 
         width = self._image_size[0]
-        height = self._image_size[0]
+        height = self._image_size[1]
         imgs = np.zeros((height, width, nframes),dtype='float64')
         ind = 0
 
+        error = False
+
         # self.camera.StartGrabbingMax(self._num_img)
         while self.camera.IsGrabbing():
-            output = self.camera.RetrieveResult(nframes, pylon.TimeoutHandling_ThrowException) # Camera exposure time must be less than retrieval timeout
+            output = self.camera.RetrieveResult(200000, pylon.TimeoutHandling_ThrowException) # Camera exposure time must be less than retrieval timeout
             if output.GrabSucceeded():
                 imgs[:,:,ind] += output.Array
                 ind += 1
                 # imgs[:,:] += output.Array
-        return imgs
+            else:
+                error = True
+                    
+        return error, imgs
 
     def set_plot_pixel(self, plot_pixel):
         """ Set the exposure time in seconds
@@ -614,14 +619,16 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
 
         return input_channel, output_channel
 
-    def set_up_acquisition(self, framerate):
+    def begin_acquisition(self, num_imgs):
         """ Prepare camera to take images 
         """
-        # self._sc_device._num_img = length
-
-        # self._sc_device.camera.StartGrabbingMax(self._sc_device._num_img)
+        self.camera.StartGrabbingMax(num_imgs)
 
         return 
+
+    def close_odmr(self):
+        self.camera.Close()
+        return
 
 ######################################################################
 ####                End Widefield Camera Interface                ####

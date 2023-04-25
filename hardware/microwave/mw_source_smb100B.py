@@ -76,7 +76,7 @@ class MicrowaveSMB100B(Base, MicrowaveInterface):
         self.log.info('MW {} initialised and connected.'.format(self.model))
         self._command_wait('*CLS')
         self._command_wait('*RST')
-        self._command_wait('SYSTem:DISPlay:UPDate OFF')
+        # self._command_wait('SYSTem:DISPlay:UPDate OFF')
         return
 
     def on_deactivate(self):

@@ -722,14 +722,14 @@ class WidefieldGUI(GUIBase):
             self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.gainSpinBox.setEnabled(False)
-            self._mw.triggerMode_checkBox.stateChanged.setEnabled(False)
-            self._mw.exposuremode_comboBox.currentTextChanged.setEnabled(False)
+            self._mw.triggerMode_checkBox.setEnabled(False)
+            self._mw.exposuremode_comboBox.setEnabled(False)
             self._mw.exposureDSpinBox.setEnabled(False)
             self._mw.x_pixels_SpinBox.setEnabled(False)
             self._mw.y_pixels_SpinBox.setEnabled(False)
             self._mw.offset_x_spinBox.setEnabled(False)
             self._mw.offset_y_spinBox.setEnabled(False)
-            self._mw.pixel_format_comboBox.currentTextChanged.setEnabled(False)
+            self._mw.pixel_format_comboBox.setEnabled(False)
             self._mw.plot_pixel_x_spinBox.setEnabled(False)
             self._mw.plot_pixel_y_spinBox.setEnabled(False)
             
@@ -817,14 +817,14 @@ class WidefieldGUI(GUIBase):
             self._mw.cw_power_DoubleSpinBox.setEnabled(False)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.gainSpinBox.setEnabled(False)
-            self._mw.triggerMode_checkBox.stateChanged.setEnabled(False)
-            self._mw.exposuremode_comboBox.currentTextChanged.setEnabled(False)
+            self._mw.triggerMode_checkBox.setEnabled(False)
+            self._mw.exposuremode_comboBox.setEnabled(False)
             self._mw.exposureDSpinBox.setEnabled(False)
             self._mw.x_pixels_SpinBox.setEnabled(False)
             self._mw.y_pixels_SpinBox.setEnabled(False)
             self._mw.offset_x_spinBox.setEnabled(False)
             self._mw.offset_y_spinBox.setEnabled(False)
-            self._mw.pixel_format_comboBox.currentTextChanged.setEnabled(False)
+            self._mw.pixel_format_comboBox.setEnabled(False)
             self._mw.plot_pixel_x_spinBox.setEnabled(False)
             self._mw.plot_pixel_y_spinBox.setEnabled(False)
             if mw_mode != 'cw':
@@ -865,14 +865,14 @@ class WidefieldGUI(GUIBase):
             self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(True)
             self._mw.gainSpinBox.setEnabled(True)
-            self._mw.triggerMode_checkBox.stateChanged.setEnabled(True)
-            self._mw.exposuremode_comboBox.currentTextChanged.setEnabled(True)
+            self._mw.triggerMode_checkBox.setEnabled(True)
+            self._mw.exposuremode_comboBox.setEnabled(True)
             self._mw.exposureDSpinBox.setEnabled(True)
             self._mw.x_pixels_SpinBox.setEnabled(True)
             self._mw.y_pixels_SpinBox.setEnabled(True)
             self._mw.offset_x_spinBox.setEnabled(True)
             self._mw.offset_y_spinBox.setEnabled(True)
-            self._mw.pixel_format_comboBox.currentTextChanged.setEnabled(True)
+            self._mw.pixel_format_comboBox.setEnabled(True)
             self._mw.plot_pixel_x_spinBox.setEnabled(True)
             self._mw.plot_pixel_y_spinBox.setEnabled(True)
             self._mw.clear_odmr_PushButton.setEnabled(False)
@@ -907,7 +907,7 @@ class WidefieldGUI(GUIBase):
     def update_plots(self, odmr_data_x, odmr_data_y):
         """ Refresh the plot widgets with new data. """
         # Update mean signal plot
-        self.odmr_image.setData(odmr_data_x, odmr_data_y[self.display_channel])
+        self.odmr_image.setData(odmr_data_x, odmr_data_y,[self.display_channel])
 
     def update_channel(self, index):
         self.display_channel = int(

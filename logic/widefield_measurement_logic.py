@@ -52,6 +52,7 @@ class WidefieldMeasurementLogic(GenericLogic):
     sequencegeneratorlogic = Connector(interface='SequenceGeneratorLogic')
     pulsedmeasurementlogic = Connector(interface='PulsedMeasurementLogic')
 
+    pulser = Connector(interface='PulserInterface')
 
     # config option
     mw_scanmode = ConfigOption(
@@ -170,6 +171,8 @@ class WidefieldMeasurementLogic(GenericLogic):
         self._taskrunner = self.taskrunner()
         self._sequencegeneratorlogic = self.sequencegeneratorlogic()
         self._pulsedmeasurementlogic = self.pulsedmeasurementlogic()
+
+        self._pulser = self.pulser()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
@@ -401,6 +404,8 @@ class WidefieldMeasurementLogic(GenericLogic):
     def _initialize_odmr_plots(self):
         """ Initializing the ODMR plots (line and matrix). """
 
+        # TODO this is not generalized for pulsed measurements without ranges
+
         final_freq_list = []
         self.frequency_lists = []
         for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
@@ -604,20 +609,20 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
-        if self.module_state() == 'locked':
-            self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+        # if self.module_state() == 'locked':
+        #     self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+        # else:
+        self.cw_mw_frequency, \
+        self.cw_mw_power, \
+        mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
+        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+        self.sigParameterUpdated.emit(param_dict)
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
         else:
-            self.cw_mw_frequency, \
-            self.cw_mw_power, \
-            mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-            param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-            self.sigParameterUpdated.emit(param_dict)
-            if mode != 'cw':
-                self.log.error('Switching to CW microwave output mode failed.')
-            else:
-                err_code = self._mw_device.cw_on()
-                if err_code < 0:
-                    self.log.error('Activation of microwave output failed.')
+            err_code = self._mw_device.cw_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
@@ -635,84 +640,98 @@ class WidefieldMeasurementLogic(GenericLogic):
         limits = self.get_hw_constraints()
         param_dict = {}
         self.final_freq_list = []
-        if self.mw_scanmode == MicrowaveMode.LIST:
-            final_freq_list = []
-            used_starts = []
-            used_steps = []
-            used_stops = []
-            for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
-                num_steps = int(np.rint((mw_stop - mw_start) / mw_step))
-                end_freq = mw_start + num_steps * mw_step
-                freq_list = np.linspace(mw_start, end_freq, num_steps + 1)
-                # adjust the end frequency in order to have an integer multiple of step size
-                # The master module (i.e. GUI) will be notified about the changed end frequency
-                final_freq_list.extend(freq_list)
-                used_starts.append(mw_start)
-                used_steps.append(mw_step)
-                used_stops.append(end_freq)
 
-            final_freq_list = np.array(final_freq_list)
-            if len(final_freq_list) >= limits.list_maxentries:
-                self.log.error('Number of frequency steps too large for microwave device.')
-                mode, is_running = self._mw_device.get_status()
-                self.sigOutputStateUpdated.emit(mode, is_running)
-                return mode, is_running
+        # if ranges is in the generate method params, we are sweeping freq.
+        if 'ranges' in self.generate_method_params.get(self.curr_loaded_seq):
+            if self.mw_scanmode == MicrowaveMode.LIST:
+                final_freq_list = []
+                used_starts = []
+                used_steps = []
+                used_stops = []
+                for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
+                    num_steps = int(np.rint((mw_stop - mw_start) / mw_step))
+                    end_freq = mw_start + num_steps * mw_step
+                    freq_list = np.linspace(mw_start, end_freq, num_steps + 1)
+                    # adjust the end frequency in order to have an integer multiple of step size
+                    # The master module (i.e. GUI) will be notified about the changed end frequency
+                    final_freq_list.extend(freq_list)
+                    used_starts.append(mw_start)
+                    used_steps.append(mw_step)
+                    used_stops.append(end_freq)
 
-            # TODO Trigger mode is currently measurement dependent (eventually ESR should be changed for PS to trigger MW)
-            # This needs to be changed for general triggering, as currently this will only work for WF ESR
+                final_freq_list = np.array(final_freq_list)
+                if len(final_freq_list) >= limits.list_maxentries:
+                    self.log.error('Number of frequency steps too large for microwave device.')
+                    mode, is_running = self._mw_device.get_status()
+                    self.sigOutputStateUpdated.emit(mode, is_running)
+                    return mode, is_running
 
-            # Upload list of frequency/dwell time/power and set trigger mode of MW
-            
-            freq_list, self.sweep_mw_power, mode = self._mw_device.set_list(final_freq_list,
-                                                                            self.sweep_mw_power,
-                                                                            MicrowaveTriggerMode.STEP_EXT)
+                # TODO Trigger mode is currently measurement dependent (eventually ESR should be changed for PS to trigger MW)
+                # This needs to be changed for general triggering, as currently this will only work for WF ESR
 
-            self.final_freq_list = np.array(freq_list)
-            self.mw_starts = used_starts
-            self.mw_stops = used_stops
-            self.mw_steps = used_steps
-            param_dict = {'mw_starts': used_starts, 'mw_stops': used_stops,
-                          'mw_steps': used_steps, 'sweep_mw_power': self.sweep_mw_power}
+                # Upload list of frequency/dwell time/power and set trigger mode of MW
+                
+                freq_list, self.sweep_mw_power, mode = self._mw_device.set_list(final_freq_list,
+                                                                                self.sweep_mw_power,
+                                                                                MicrowaveTriggerMode.SINGLE)
+
+                self.final_freq_list = np.array(freq_list)
+                self.mw_starts = used_starts
+                self.mw_stops = used_stops
+                self.mw_steps = used_steps
+                param_dict = {'mw_starts': used_starts, 'mw_stops': used_stops,
+                                'mw_steps': used_steps, 'sweep_mw_power': self.sweep_mw_power}
+
+                self.sigParameterUpdated.emit(param_dict)
+
+            elif self.mw_scanmode == MicrowaveMode.SWEEP:
+                if self.ranges == 1:
+                    mw_stop = self.mw_stops[0]
+                    mw_step = self.mw_steps[0]
+                    mw_start = self.mw_starts[0]
+
+                    if np.abs(mw_stop - mw_start) / mw_step >= limits.sweep_maxentries:
+                        self.log.warning('Number of frequency steps too large for microwave device. '
+                                            'Lowering resolution to fit the maximum length.')
+                        mw_step = np.abs(mw_stop - mw_start) / (limits.list_maxentries - 1)
+                        self.sigParameterUpdated.emit({'mw_steps': [mw_step]})
+
+                    sweep_return = self._mw_device.set_sweep(
+                        mw_start, mw_stop, mw_step, self.sweep_mw_power)
+                    mw_start, mw_stop, mw_step, self.sweep_mw_power, mode = sweep_return
+
+                    param_dict = {'mw_starts': [mw_start], 'mw_stops': [mw_stop],
+                                    'mw_steps': [mw_step], 'sweep_mw_power': self.sweep_mw_power}
+                    self.final_freq_list = np.arange(mw_start, mw_stop + mw_step, mw_step)
+                else:
+                    self.log.error('sweep mode only works for one frequency range.')
+
+            else:
+                self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
 
             self.sigParameterUpdated.emit(param_dict)
 
-        elif self.mw_scanmode == MicrowaveMode.SWEEP:
-            if self.ranges == 1:
-                mw_stop = self.mw_stops[0]
-                mw_step = self.mw_steps[0]
-                mw_start = self.mw_starts[0]
-
-                if np.abs(mw_stop - mw_start) / mw_step >= limits.sweep_maxentries:
-                    self.log.warning('Number of frequency steps too large for microwave device. '
-                                     'Lowering resolution to fit the maximum length.')
-                    mw_step = np.abs(mw_stop - mw_start) / (limits.list_maxentries - 1)
-                    self.sigParameterUpdated.emit({'mw_steps': [mw_step]})
-
-                sweep_return = self._mw_device.set_sweep(
-                    mw_start, mw_stop, mw_step, self.sweep_mw_power)
-                mw_start, mw_stop, mw_step, self.sweep_mw_power, mode = sweep_return
-
-                param_dict = {'mw_starts': [mw_start], 'mw_stops': [mw_stop],
-                              'mw_steps': [mw_step], 'sweep_mw_power': self.sweep_mw_power}
-                self.final_freq_list = np.arange(mw_start, mw_stop + mw_step, mw_step)
+            if mode != 'list' and mode != 'sweep':
+                self.log.error('Switching to list/sweep microwave output mode failed.')
+            elif self.mw_scanmode == MicrowaveMode.SWEEP:
+                err_code = self._mw_device.sweep_on()
+                if err_code < 0:
+                    self.log.error('Activation of microwave output failed.')
             else:
-                self.log.error('sweep mode only works for one frequency range.')
+                err_code = self._mw_device.list_on()
+                if err_code < 0:
+                    self.log.error('Activation of microwave output failed.')
 
         else:
-            self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
+            # When ranges is not active, we have constant cw output.  
+            cw_freq, cw_power ,mode = self._mw_device.set_cw(self.cw_mw_frequency,self.cw_mw_power)
+            
+            # TODO check that this signal does not bug with cw outputs
+            param_dict = {'cw_mw_frequency': cw_freq, 'cw_mw_power': cw_power}
+            self.sigParameterUpdated.emit(param_dict)
 
-        self.sigParameterUpdated.emit(param_dict)
-
-        if mode != 'list' and mode != 'sweep':
-            self.log.error('Switching to list/sweep microwave output mode failed.')
-        elif self.mw_scanmode == MicrowaveMode.SWEEP:
-            err_code = self._mw_device.sweep_on()
-            if err_code < 0:
-                self.log.error('Activation of microwave output failed.')
-        else:
-            err_code = self._mw_device.list_on()
-            if err_code < 0:
-                self.log.error('Activation of microwave output failed.')
+            # Turn on CW output   
+            self._mw_device.cw_on() 
 
         mode, is_running = self._mw_device.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
@@ -758,9 +777,6 @@ class WidefieldMeasurementLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
 
-        # Prepare camera to take num_freq imgs
-        clock_status = self._widefield_camera.set_up_acquisition(frame_rate=self.frame_rate)
-
         # if clock_status < 0:
         #     return -1
 
@@ -778,15 +794,18 @@ class WidefieldMeasurementLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
 
-        ret_val1 = self._widefield_camera.close_odmr()
-        if ret_val1 != 0:
-            self.log.error('ODMR counter could not be stopped!')
-        ret_val2 = self._widefield_camera.close_odmr_clock()
-        if ret_val2 != 0:
-            self.log.error('ODMR clock could not be stopped!')
+        # ret_val1 = self._widefield_camera.close_odmr()
+        self._widefield_camera.stop_acquisition()
+
+        # if ret_val1 != 0:
+        #     self.log.error('ODMR counter could not be stopped!')
+        # ret_val2 = self._widefield_camera.close_odmr_clock()
+        # if ret_val2 != 0:
+        #     self.log.error('ODMR clock could not be stopped!')
 
         # Check with a bitwise or:
-        return ret_val1 | ret_val2
+        # return ret_val1 | ret_val2
+        return 
 
     def start_widefield_odmr_scan(self):
         """ Starting an ODMR scan.
@@ -798,7 +817,7 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
-            self.set_trigger(self.mw_trigger_pol, self.frame_rate)
+            # self.set_trigger(self.mw_trigger_pol, self.frame_rate)
 
             self.module_state.lock()
             self._clearOdmrData = False
@@ -810,34 +829,33 @@ class WidefieldMeasurementLogic(GenericLogic):
             self._startTime = time.time()
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
-            # Prepare camera to take imgs
-            odmr_status = self._start_widefield_odmr_counter()
-            if odmr_status < 0:
-                mode, is_running = self._mw_device.get_status()
-                self.sigOutputStateUpdated.emit(mode, is_running)
-                self.module_state.unlock()
-                return -1
 
-            
-            # for now we still have the camera of sweep 
-            mode, is_running = self.mw_sweep_on()
+            #sets the microwave settings and turns on output
+            # mode, is_running = self.mw_sweep_on()
+            mode, is_running = self.mw_cw_on()
 
-            if not is_running:
-                self._stop_widefield_odmr_counter()
-                self.module_state.unlock()
-                return -1
+            # odmr_status = self._start_widefield_odmr_counter()
+            # if odmr_status < 0:
+            #     mode, is_running = self._mw_device.get_status()
+            #     self.sigOutputStateUpdated.emit(mode, is_running)
+            #     self.module_state.unlock()
+            #     return -1
 
-            # TODO For now, camera output is triggered by MW, but later this ought to be okay 
-            # self.mw_trigger()
+            # if not is_running:
+            #     self._stop_widefield_odmr_counter()
+            #     self.module_state.unlock()
+            #     return -1
 
             self._initialize_odmr_plots()
             # Raw data array
+
             self.odmr_raw_data = np.zeros(
-            [self.odmr_plot_x.size,
-             self._widefield_camera.width,
-             self._widefield_camera.height]
+            [self._widefield_camera.get_size()[0],
+             self._widefield_camera.get_size()[1],self.odmr_plot_x.size]
             )
-            self._widefield_camera.set_widefield_odmr_length(self.odmr_plot_x.size)
+
+            # self._widefield_camera.set_widefield_odmr_length(self.odmr_plot_x.size)
+            
             self.sigNextLine.emit()
             return 0
 
@@ -901,6 +919,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         (from mw_start to mw_stop in steps of mw_step)
         """
+        
         with self.threadlock:
             # If the odmr measurement is not running do nothing
             if self.module_state() != 'locked':
@@ -911,6 +930,7 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.stopRequested = False
                 self.mw_off()
                 self._stop_widefield_odmr_counter()
+                self._pulser.pulser_off()
                 self.module_state.unlock()
                 return
 
@@ -921,16 +941,33 @@ class WidefieldMeasurementLogic(GenericLogic):
 
             # reset position so every line starts from the same frequency
             # self.reset_sweep()
+          
+            # Laser and MW switch constant output
+            self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
 
-            # Prepare camera to take pictures (doesn't exit function until camera is ready to grab)
-            self._widefield_camera.begin_acquisition()
+            # For ODMR, Prepare camera to take num_freq imgs
+            # if 'ranges' in self.generate_method_params.get(self.curr_loaded_seq):
+            #     self._widefield_camera.begin_acquisition(len(self.final_freq_list))
+            # # TODO implement for not ranges      
+            # else: 
+            #     pass
 
-            # Sweep Microwave
-            self.mw_trigger()
+            # # Sweep Microwave
+            # self.mw_trigger()
+
+            # self._mw_device._command_wait('SOUR1:LIST:TRIG:EXEC')
 
             # Collect Count data
-            error, new_counts = self._widefield_camera.retrieve_images()
+            for i in range(len(self.final_freq_list)):
+                self._mw_device.set_frequency(self.final_freq_list[i])
+                self._widefield_camera.begin_acquisition(1)
+                error,new_counts = self._widefield_camera.grab(1)
+                self.odmr_raw_data[:,:,i] += np.squeeze(new_counts)
 
+            # self._WF_data[:,:,:] = self._WF_data[:,:,:] + new_counts
+            # #find the PL data at the center of the camara view and output
+            # temp = output[math.ceil(0.5*output.shape[0]), math.ceil(0.5*output.shape[1]),:]
+            # counts = temp
 
             if error:
                 self.stopRequested = True
@@ -942,13 +979,11 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.odmr_raw_data[:, :, :] = 0
                 self._clearOdmrData = False
 
-            self.odmr_raw_data += new_counts
-
             # Add new count data to mean signal
             if self._clearOdmrData:
                 self.odmr_plot_y[:, :] = 0
 
-            self.odmr_plot_y = self.odmr_raw_data[:, self.plot_pixel_x, self.plot_pixel_y],
+            self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
 
 
             # Update elapsed time/sweeps
@@ -959,6 +994,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             # Fire update signals
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
             self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
+            
             self.sigNextLine.emit()
             return
 

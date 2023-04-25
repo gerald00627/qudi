@@ -112,9 +112,16 @@ class WidefieldCameraInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
-    def set_up_acquisition(self,framerate):
+    def begin_acquisition(self,num_imgs):
         """ Get the exposure mode (string)
 
         @return string: 
         """  
+        pass 
+
+    @abstract_interface_method
+    def close_odmr(self):
+        """
+            Stops ODMR capture, discuonnects camera
+        """
         pass
