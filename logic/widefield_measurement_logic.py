@@ -404,8 +404,6 @@ class WidefieldMeasurementLogic(GenericLogic):
     def _initialize_odmr_plots(self):
         """ Initializing the ODMR plots (line and matrix). """
 
-        # TODO this is not generalized for pulsed measurements without ranges
-
         final_freq_list = []
         self.frequency_lists = []
         for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
@@ -413,8 +411,8 @@ class WidefieldMeasurementLogic(GenericLogic):
             final_freq_list.extend(freqs)
             self.frequency_lists.append(freqs)
 
-        if type(self.final_freq_list) == list:
-            self.final_freq_list = np.array(final_freq_list)
+        # if type(self.final_freq_list) == list:
+        self.final_freq_list = np.array(final_freq_list)
         
         self.odmr_plot_x = np.array(self.final_freq_list)
         self.odmr_plot_y = np.zeros(self.odmr_plot_x.size)
@@ -939,21 +937,8 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
 
-            # reset position so every line starts from the same frequency
-            # self.reset_sweep()
-          
             # Laser and MW switch constant output
             self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
-
-            # For ODMR, Prepare camera to take num_freq imgs
-            # if 'ranges' in self.generate_method_params.get(self.curr_loaded_seq):
-            #     self._widefield_camera.begin_acquisition(len(self.final_freq_list))
-            # # TODO implement for not ranges      
-            # else: 
-            #     pass
-
-            # # Sweep Microwave
-            # self.mw_trigger()
 
             # self._mw_device._command_wait('SOUR1:LIST:TRIG:EXEC')
 
@@ -963,11 +948,6 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self._widefield_camera.begin_acquisition(1)
                 error,new_counts = self._widefield_camera.grab(1)
                 self.odmr_raw_data[:,:,i] += np.squeeze(new_counts)
-
-            # self._WF_data[:,:,:] = self._WF_data[:,:,:] + new_counts
-            # #find the PL data at the center of the camara view and output
-            # temp = output[math.ceil(0.5*output.shape[0]), math.ceil(0.5*output.shape[1]),:]
-            # counts = temp
 
             if error:
                 self.stopRequested = True
@@ -1023,7 +1003,9 @@ class WidefieldMeasurementLogic(GenericLogic):
                 start_pos = np.where(np.isclose(self.final_freq_list, self.mw_starts[fit_range]))[0][0]
                 x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
                 y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
-                y_data = self.odmr_plot_y[channel_index][y_args]
+                # y_data = self.odmr_plot_y[channel_index][y_args]
+                y_data = self.odmr_plot_y[y_args]
+
             else:
                 x_data = self.final_freq_list
                 y_data = self.odmr_plot_y[channel_index]

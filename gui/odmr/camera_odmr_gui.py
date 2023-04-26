@@ -24,6 +24,7 @@ import pyqtgraph as pg
 import numpy as np
 
 from core.connector import Connector
+from core.util import units
 from gui.colordefs import QudiPalettePale as Palette
 from gui.guibase import GUIBase
 from gui.colordefs import ColorScaleInferno
@@ -907,7 +908,10 @@ class WidefieldGUI(GUIBase):
     def update_plots(self, odmr_data_x, odmr_data_y):
         """ Refresh the plot widgets with new data. """
         # Update mean signal plot
-        self.odmr_image.setData(odmr_data_x, odmr_data_y,[self.display_channel])
+        # self.odmr_image.setData(odmr_data_x, odmr_data_y,[self.display_channel])
+        self.odmr_image.setData(odmr_data_x, odmr_data_y)
+        # self.update_colorbar(cb_range)
+
 
     def update_channel(self, index):
         self.display_channel = int(

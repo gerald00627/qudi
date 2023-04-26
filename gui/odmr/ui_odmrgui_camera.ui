@@ -727,7 +727,7 @@
       <string>Fit Function:</string>
      </property>
     </widget>
-    <widget class="QTextBrowser" name="textBrowser">
+    <widget class="QTextBrowser" name="odmr_fit_results_DisplayWidget">
      <property name="geometry">
       <rect>
        <x>30</x>
@@ -881,6 +881,9 @@
   </action>
   <action name="action_run_stop">
    <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="icon">
