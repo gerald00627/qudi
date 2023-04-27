@@ -855,7 +855,8 @@ class WidefieldMeasurementLogic(GenericLogic):
              self._widefield_camera.get_size()[1],self.odmr_plot_x.size]
             )
 
-            # self._widefield_camera.set_widefield_odmr_length(self.odmr_plot_x.size)
+            # Set WF camera trigger mode on 
+            # self._widefield_camera.set_trigger_mode(True)
             
             self.sigNextLine.emit()
             return 0
@@ -932,6 +933,7 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.mw_off()
                 self._stop_widefield_odmr_counter()
                 self._pulser.pulser_off()
+                self.save_WF_data()
                 self.module_state.unlock()
                 return
 
@@ -940,10 +942,8 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
 
-            # Laser and MW switch constant output
+            # Laser and MW switch constant output, THIS SHOULD BE MOVED TO LAST to make ESR AND pulsed all work.
             self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
-
-            # self._mw_device._command_wait('SOUR1:LIST:TRIG:EXEC')
 
             # Collect Count data
             for i in range(len(self.final_freq_list)):
@@ -1131,6 +1131,44 @@ class WidefieldMeasurementLogic(GenericLogic):
                                         plotfig=fig)
 
         self.log.info('ODMR data saved to:\n{0}'.format(filepath))
+        return
+
+    def save_WF_data(self):
+        """ Saves the current ODMR data to a file."""
+        # filepath = self._save_logic.get_path_for_module(module_name='ODMR')
+
+        data_raw = OrderedDict()
+        data_raw['Count_data'] = self.odmr_raw_data
+        data_raw['Sweep_values'] = self.odmr_plot_x
+
+        data_raw['CWPower_dBm'] = self.cw_mw_power
+        data_raw['SweepPower_dBm'] = self.sweep_mw_power
+        data_raw['RunTime_s'] = self.run_time
+        data_raw['NumSweeps'] = self.elapsed_sweeps
+        data_raw['StartFreq_Hz'] = self.mw_starts
+        data_raw['StopFreq_Hz'] = self.mw_stops
+        data_raw['StepSize_Hz'] = self.mw_steps
+        data_raw['FrameRate_Hz'] = self.frame_rate
+
+        # eventually the name will be changed to depend on measurement
+        filepath = self._save_logic._save_WF_data(data_raw,'ODMR')
+
+        # # now create a plot for each scan range
+        # data_start_ind = 0
+        # for ii, frequency_arr in enumerate(self.frequency_lists):
+           
+        #     # prepare the data in a dict or in an OrderedDict:
+        #     data = OrderedDict()
+        #     data['frequency (Hz)'] = frequency_arr
+
+        #     num_points = len(frequency_arr)
+        #     data_end_ind = data_start_ind + num_points
+        #     data['count data (counts/s)'] = self.odmr_plot_y[data_start_ind:data_end_ind]
+        #     data_start_ind += num_points
+
+        # self.log.info('WF data saved')
+        self.log.info('WF data saved to:\n{0}'.format(filepath))
+        
         return
 
     def get_camera_limits(self):
