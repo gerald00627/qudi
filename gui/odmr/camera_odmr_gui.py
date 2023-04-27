@@ -1138,7 +1138,6 @@ class WidefieldGUI(GUIBase):
             self._mw.plot_pixel_y_spinBox.blockSignals(True)
             self._mw.plot_pixel_y_spinBox.setValue(param[1])
             self._mw.plot_pixel_y_spinBox.blockSignals(False)
-
         return
 
     def update_camera_limits(self, constraints):

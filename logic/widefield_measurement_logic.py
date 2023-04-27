@@ -102,6 +102,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
     # Internal signals
     sigNextLine = QtCore.Signal()
+    sigPlotPxChanged = QtCore.Signal(list)
 
     # Update signals, e.g. for GUI module
     sigParameterUpdated = QtCore.Signal(dict)
@@ -248,6 +249,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         # Connect signals
         self.sigNextLine.connect(self._scan_widefield_odmr_line, QtCore.Qt.QueuedConnection)
+        self.sigPlotPxChanged.connect(self.update_plot_px, QtCore.Qt.QueuedConnection)
 
         # Connect signals controlling SequenceGeneratorLogic
         self.sigSavePulseBlock.connect(
@@ -530,6 +532,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.pixel_formats = limits["pixel_formats"]
         self.plot_pixel_x, self.plot_pixel_y = real_params["plot_pixel"]
         
+        self.sigPlotPxChanged.emit([self.plot_pixel_x,self.plot_pixel_y])
         self.sigParameterUpdated.emit(real_params)
         input_limits, output_limits = self._widefield_camera.get_channel_limits()
         self.sigCameraLimits.emit((limits, input_limits, output_limits))
@@ -977,6 +980,20 @@ class WidefieldMeasurementLogic(GenericLogic):
             
             self.sigNextLine.emit()
             return
+
+    def update_plot_px(self, params):
+        """ Send updated px data for GUI 
+        
+        @param dict params: dict containing parameters new pixels
+        """
+        try:
+            self.odmr_plot_y = self.odmr_raw_data[params[0], params[1],:]
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
+        except:
+            # self.log.warning('Unable to change ODMR pixel plot')
+            pass
+
+        return
 
     def get_hw_constraints(self):
         """ Return the names of all ocnfigured fit functions.

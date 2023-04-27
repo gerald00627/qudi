@@ -481,11 +481,7 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         return error, imgs
 
     def set_plot_pixel(self, plot_pixel):
-        """ Set the exposure time in seconds
-
-        @param float time: desired new exposure time
-
-        @return float: setted new exposure time
+        """ 
         """
         plot_pixel_x_min = self.limits["plot_pixel_x"][0]
         plot_pixel_x_max = self.limits["plot_pixel_x"][1]
