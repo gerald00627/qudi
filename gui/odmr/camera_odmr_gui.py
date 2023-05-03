@@ -905,13 +905,17 @@ class WidefieldGUI(GUIBase):
         self.sigClearData.emit()
         return
 
-    def update_plots(self, odmr_data_x, odmr_data_y):
-        """ Refresh the plot widgets with new data. """
+    def update_plots(self, odmr_data_x, odmr_data_y, x_label=None, unit_label=None):
+        """ Refresh the plot widgets with new data. Also set x_label and unit """
+
         # Update mean signal plot
         # self.odmr_image.setData(odmr_data_x, odmr_data_y,[self.display_channel])
         self.odmr_image.setData(odmr_data_x, odmr_data_y)
         # self.update_colorbar(cb_range)
 
+        if x_label:
+            self._mw.odmr_PlotWidget.setLabel(axis='bottom', text=x_label, units=unit_label)  
+        return  
 
     def update_channel(self, index):
         self.display_channel = int(
@@ -919,6 +923,8 @@ class WidefieldGUI(GUIBase):
         self.update_plots(
             self._widefield_logic.odmr_plot_x,
             self._widefield_logic.odmr_plot_y)
+
+        return
 
     def update_colorbar(self, cb_range):
         """

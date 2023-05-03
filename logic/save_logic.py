@@ -218,7 +218,7 @@ class SaveLogic(GenericLogic):
             self._daily_loghandler = None
 
         self.sigSaveData.connect(self._save_data)
-        self.sigSaveWFData.connect(self._save_WF_data)
+        # self.sigSaveWFData.connect(self._save_WF_data)
 
     def on_deactivate(self):
         if self._daily_loghandler is not None:

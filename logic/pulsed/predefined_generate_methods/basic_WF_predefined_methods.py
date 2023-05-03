@@ -103,7 +103,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
     #     created_ensembles.append(block_ensemble)
     #     return created_blocks, created_ensembles, created_sequences
 
-    def generate_WF_rabi(self, name='rabiWF', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=40, reference=False):
+    def generate_WF_rabi(self, name='rabiWF', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=40, reference=True):
         """
 
         """
@@ -396,5 +396,18 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         # Create block ensemble and append to created_ensembles list
         block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
         block_ensemble.append((laser_block.name, 0))
+
+        # add metadata to invoke settings later on
+        number_of_lasers = 2 * num_of_points
+        block_ensemble.measurement_information['number_of_curves'] = 2
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = tau_array
+        block_ensemble.measurement_information['units'] = ('s', '')
+        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+
+
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences

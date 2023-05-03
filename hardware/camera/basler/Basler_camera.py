@@ -65,11 +65,11 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
     _pixel_format = ConfigOption('pixel_format','Mono12')
     _support_live = ConfigOption('support_live', True)
     _image_size = ConfigOption('image_size', (1936, 1216))
-    _image_offset = ConfigOption('image_offset', (0, 0))
-    _plot_pixel = ConfigOption('plot_pixel', (100, 100)) 
+    _image_offset = ConfigOption('image_offset', (602, 812))
+    _plot_pixel = ConfigOption('plot_pixel', (90, 90)) 
     _trigger_mode = ConfigOption('trigger_mode', False)
     _exposure_mode = ConfigOption('exposure_mode','Timed')
-    _exposure = ConfigOption('exposure', 200e-6)
+    _exposure = ConfigOption('exposure', 10e-3)
     
     # camera settings
     _gain = 1
@@ -455,6 +455,13 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         if "MinimumOutputPulse" in properties:
             self.camera.LineMinimumOutputPulseWidth.SetValue(properties["MinimumOutputPulse"])
  
+    def begin_acquisition(self, num_imgs):
+        """ Prepare camera to take images 
+        """
+        self.camera.StartGrabbingMax(num_imgs)
+
+        return 
+
     def grab(self, nframes=0):
         """ Returns an array of PL from the camera
         """
@@ -474,7 +481,7 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
             if output.GrabSucceeded():
                 imgs[:,:,ind] += output.Array
                 ind += 1
-                # imgs[:,:] += output.Array
+                # time.sleep(0.01)
             else:
                 error = True
                     
@@ -614,13 +621,6 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         output_channel['LineSource'] = self.camera.LineSource.GetValue()
 
         return input_channel, output_channel
-
-    def begin_acquisition(self, num_imgs):
-        """ Prepare camera to take images 
-        """
-        self.camera.StartGrabbingMax(num_imgs)
-
-        return 
 
     def close_odmr(self):
         self.camera.Close()

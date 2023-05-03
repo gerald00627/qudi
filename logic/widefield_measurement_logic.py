@@ -100,6 +100,8 @@ class WidefieldMeasurementLogic(GenericLogic):
     ranges = StatusVar('ranges', 1)
     fc = StatusVar('fits', None)
 
+    curr_loaded_seq = StatusVar('curr_loaded_seq','WF_ODMR')
+
     # Internal signals
     sigNextLine = QtCore.Signal()
     sigPlotPxChanged = QtCore.Signal(list)
@@ -109,7 +111,7 @@ class WidefieldMeasurementLogic(GenericLogic):
     sigMeasurementChanged = QtCore.Signal(dict)
     sigCameraLimits = QtCore.Signal(tuple)
     sigOutputStateUpdated = QtCore.Signal(str, bool)
-    sigOdmrPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray)
+    sigOdmrPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray,str,str)
     sigOdmrFitUpdated = QtCore.Signal(np.ndarray, np.ndarray, dict, str)
     sigOdmrElapsedTimeUpdated = QtCore.Signal(float, int)
 
@@ -210,7 +212,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.measurement_params = self.generate_method_params[self.measurement_type]
 
         #Place holder for currently loaded sequence string
-        self.curr_loaded_seq = '' 
+        self.curr_loaded_seq = 'WF_ODMR'
         
         # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
         # theoretically this can be changed, but the current counting scheme will not support that
@@ -228,13 +230,16 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.frequency_lists = []
         self.final_freq_list = []
 
+        self.tau_array = []
+        self.num_imgs = []
+
         # Set flags
         # for stopping a measurement
         self._stopRequested = False
         # for clearing the ODMR data during a measurement
         self._clearOdmrData = False
 
-        # Initalize the ODMR data arrays (mean signal and sweep matrix)
+        # Initalize the ODMR data arrays (mean signal)
         self._initialize_odmr_plots()
         # Raw data array
         self.odmr_raw_data = np.zeros(
@@ -406,30 +411,85 @@ class WidefieldMeasurementLogic(GenericLogic):
     def _initialize_odmr_plots(self):
         """ Initializing the ODMR plots (line and matrix). """
 
-        final_freq_list = []
-        self.frequency_lists = []
-        for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
-            freqs = np.arange(mw_start, mw_stop + mw_step, mw_step)
-            final_freq_list.extend(freqs)
-            self.frequency_lists.append(freqs)
+        if 'ranges' in self.generate_method_params.get(self.curr_loaded_seq):
+            # For ODMR measurements
+            final_freq_list = []
+            self.frequency_lists = []
+            for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
+                freqs = np.arange(mw_start, mw_stop + mw_step, mw_step)
+                final_freq_list.extend(freqs)
+                self.frequency_lists.append(freqs)
 
-        # if type(self.final_freq_list) == list:
-        self.final_freq_list = np.array(final_freq_list)
-        
-        self.odmr_plot_x = np.array(self.final_freq_list)
-        self.odmr_plot_y = np.zeros(self.odmr_plot_x.size)
+            # if type(self.final_freq_list) == list:
+            self.final_freq_list = np.array(final_freq_list)
+            
+            self.odmr_plot_x = np.array(self.final_freq_list)
+            self.odmr_plot_y = np.zeros(self.odmr_plot_x.size)
 
-        range_to_fit = self.range_to_fit
+            range_to_fit = self.range_to_fit
 
-        self.odmr_fit_x = np.arange(self.mw_starts[range_to_fit],
-                                    self.mw_stops[range_to_fit] + self.mw_steps[range_to_fit],
-                                    self.mw_steps[range_to_fit])
+            self.odmr_fit_x = np.arange(self.mw_starts[range_to_fit],
+                                        self.mw_stops[range_to_fit] + self.mw_steps[range_to_fit],
+                                        self.mw_steps[range_to_fit])
 
-        self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
+            self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
 
-        self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
-        current_fit = self.fc.current_fit
-        self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,'Frequency','Hz')
+            current_fit = self.fc.current_fit
+            self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
+        else:
+            # For Pulsed Measurements
+
+            tau_start = []
+            tau_step = []
+            tau_end = []
+            num_points = []
+            tau_array = []
+            reference = []
+
+            if 'tau_start' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                tau_start = self.generate_method_params.get(self.curr_loaded_seq)['tau_start']
+
+            if 'tau_step' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                tau_step = self.generate_method_params.get(self.curr_loaded_seq)['tau_step']
+
+            if 'tau_end' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                tau_end = self.generate_method_params.get(self.curr_loaded_seq)['tau_end']
+
+            if 'num_of_points' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                num_points = self.generate_method_params.get(self.curr_loaded_seq)['num_of_points']
+
+            if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                reference = self.generate_method_params.get(self.curr_loaded_seq)['reference']
+
+            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+                self.tau_array = tau_start + np.arange(num_points) * tau_step
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
+                self.tau_array = np.geomspace(tau_start, tau_end, num_points)
+            else:
+                self.log.warning('Unable to initialize plot for this sequence.')
+    
+            if type(tau_array) != np.ndarray:
+                self.tau_array = np.array(self.tau_array)
+
+            # # this is where curves are added for multiple sources
+            # if reference:
+                
+            # else:
+            self.odmr_plot_x = self.tau_array
+            self.odmr_plot_y = np.zeros(self.tau_array.size)
+
+            # range_to_fit = self.range_to_fit
+            # self.odmr_fit_x = np.arange(self.mw_starts[range_to_fit],
+            #                             self.mw_stops[range_to_fit] + self.mw_steps[range_to_fit],
+            #                             self.mw_steps[range_to_fit])
+
+            # self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
+
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,'Seconds','s')
+            # current_fit = self.fc.current_fit
+            # self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
+
         return
 
     def set_trigger(self, trigger_pol, frequency):
@@ -847,17 +907,47 @@ class WidefieldMeasurementLogic(GenericLogic):
             #     self.module_state.unlock()
             #     return -1
 
+            # Configure camera exposuremode / trigger mode 
+            # TODO this could also go into the predefined method, so you don't assume they know to click the camera settings each time
+
+            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+                self._widefield_camera.set_trigger_mode(False)
+                self._widefield_camera.set_exposure_mode('Timed')
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+                self._widefield_camera.set_trigger_mode(True)
+                self._widefield_camera.set_exposure_mode('Timed')
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
+                self._widefield_camera.set_trigger_mode(True)
+                self._widefield_camera.set_exposure_mode('TriggerWidth')
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
+                self._widefield_camera.set_trigger_mode(True)
+                self._widefield_camera.set_exposure_mode('TriggerWidth')
+            else: 
+                pass
+
             self._initialize_odmr_plots()
-            # Raw data array
+           
+            # TODO Initialize raw data array/eventually this information can be in the predefined method
+
+            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+                self.num_imgs = self.odmr_plot_x.size
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+                if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                    self.num_imgs = 2*self.odmr_plot_x.size
+                else:
+                    self.num_imgs = self.odmr_plot_x.size
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
+                self.num_imgs = 2*self.odmr_plot_x.size
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
+                self.num_imgs = 3*self.odmr_plot_x.size
+            else: 
+                pass
 
             self.odmr_raw_data = np.zeros(
             [self._widefield_camera.get_size()[0],
-             self._widefield_camera.get_size()[1],self.odmr_plot_x.size]
+             self._widefield_camera.get_size()[1],self.num_imgs]
             )
 
-            # Set WF camera trigger mode on 
-            # self._widefield_camera.set_trigger_mode(True)
-            
             self.sigNextLine.emit()
             return 0
 
@@ -942,15 +1032,32 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
 
-            # Laser and MW switch constant output, THIS SHOULD BE MOVED TO LAST to make ESR AND pulsed all work.
-            self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
+            # TODO this if loop can eventually be solved using predefined method 
+            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+                # for CW odmr, pulse streamer is on the whole time
 
-            # Collect Count data
-            for i in range(len(self.final_freq_list)):
-                self._mw_device.set_frequency(self.final_freq_list[i])
-                self._widefield_camera.begin_acquisition(1)
-                error,new_counts = self._widefield_camera.grab(1)
-                self.odmr_raw_data[:,:,i] += np.squeeze(new_counts)
+                # Laser and MW switch constant output, THIS SHOULD BE MOVED TO LAST to make ESR AND pulsed all work.
+                self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
+
+                # Collect Count data
+                for i in range(len(self.final_freq_list)):
+                    self._mw_device.set_frequency(self.final_freq_list[i])
+                    self._widefield_camera.begin_acquisition(1)
+                    error,new_counts = self._widefield_camera.grab(1)
+                    self.odmr_raw_data[:,:,i] += np.squeeze(new_counts)
+            else: 
+                # For pulsed measurements 
+                
+                self._widefield_camera.begin_acquisition(self.num_imgs)
+
+                # Send sequence once to measure 1 line.
+                self._pulser.pulser_on(False,1,False,final=self._pulser._laser_off_state) 
+
+                # Collect Count data
+                error,new_counts = self._widefield_camera.grab(self.num_imgs)
+                
+                for i in range(self.num_imgs):
+                    self.odmr_raw_data[:,:,i] += new_counts[:,:,i]
 
             if error:
                 self.stopRequested = True
@@ -966,8 +1073,8 @@ class WidefieldMeasurementLogic(GenericLogic):
             if self._clearOdmrData:
                 self.odmr_plot_y[:, :] = 0
 
-            self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
-
+            # TODO sequence specific plotting
+            self.plot_single_pixel()
 
             # Update elapsed time/sweeps
             self.elapsed_sweeps += 1
@@ -976,10 +1083,32 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.stopRequested = True
             # Fire update signals
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
-            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,None,None)
             
             self.sigNextLine.emit()
             return
+
+    def plot_single_pixel(self):
+        """ Prepares single curve data for plotting """
+
+        if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+                self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
+        elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+            if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+                # split data
+                rabi_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+                rabi_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+                for i in range(int(self.num_imgs/2)):
+                    rabi_l[:,:,i] = self.odmr_raw_data[:,:,2*i]
+                    rabi_bg[:,:,i] = self.odmr_raw_data[:,:,2*i+1]
+
+                self.odmr_plot_y = rabi_l[self.plot_pixel_x, self.plot_pixel_y,:] - rabi_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+            else:
+                self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
+        else:   
+            self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
+
+        return 
 
     def update_plot_px(self, params):
         """ Send updated px data for GUI 
@@ -987,10 +1116,10 @@ class WidefieldMeasurementLogic(GenericLogic):
         @param dict params: dict containing parameters new pixels
         """
         try:
-            self.odmr_plot_y = self.odmr_raw_data[params[0], params[1],:]
-            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
+            self.plot_single_pixel()
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,None,None)
         except:
-            # self.log.warning('Unable to change ODMR pixel plot')
+            self.log.warning('Unable to change ODMR pixel plot')
             pass
 
         return
@@ -1168,7 +1297,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         # self.log.info('WF data saved')
         self.log.info('WF data saved to:\n{0}'.format(filepath))
-        
+
         return
 
     def get_camera_limits(self):
@@ -1316,17 +1445,17 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         return fig
 
-    def select_odmr_matrix_data(self, odmr_matrix, nch, freq_range):
-        odmr_matrix_dp = odmr_matrix[:, nch]
-        x_data = self.frequency_lists[freq_range]
-        x_data_full_length = np.zeros(len(self.final_freq_list))
-        mw_starts = [freq_arr[0] for freq_arr in self.frequency_lists]
-        start_pos = np.where(np.isclose(self.final_freq_list,
-                                        mw_starts[freq_range]))[0][0]
-        x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
-        y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
-        odmr_matrix_range = odmr_matrix_dp[:, y_args]
-        return odmr_matrix_range
+    # def select_odmr_matrix_data(self, odmr_matrix, nch, freq_range):
+    #     odmr_matrix_dp = odmr_matrix[:, nch]
+    #     x_data = self.frequency_lists[freq_range]
+    #     x_data_full_length = np.zeros(len(self.final_freq_list))
+    #     mw_starts = [freq_arr[0] for freq_arr in self.frequency_lists]
+    #     start_pos = np.where(np.isclose(self.final_freq_list,
+    #                                     mw_starts[freq_range]))[0][0]
+    #     x_data_full_length[start_pos:(start_pos + len(x_data))] = x_data
+    #     y_args = np.array([ind_list[0] for ind_list in np.argwhere(x_data_full_length)])
+    #     odmr_matrix_range = odmr_matrix_dp[:, y_args]
+    #     return odmr_matrix_range
 
     def perform_odmr_measurement(self, freq_start, freq_step, freq_stop, power, channel, runtime,
                                  fit_function='No Fit', save_after_meas=True, name_tag=''):
