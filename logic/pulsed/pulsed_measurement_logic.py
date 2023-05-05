@@ -665,11 +665,12 @@ class PulsedMeasurementLogic(GenericLogic):
     @measurement_information.setter
     def measurement_information(self, info_dict):
         # Check if mandatory params to invoke settings are missing and set empty dict in that case.
-        mand_params = ('number_of_lasers',
-                       'controlled_variable',
-                       'laser_ignore_list',
-                       'number_of_curves',
-                       'counting_length')
+        mand_params = ('number_of_lasers','number_of_curves','counting_length')
+          # mand_params = ('number_of_lasers',
+        #                'controlled_variable',
+        #                'laser_ignore_list',
+        #                'number_of_curves',
+        #                'counting_length')
         if not isinstance(info_dict, dict) or not all(param in info_dict for param in mand_params):
             self.log.debug('The set measurement_information did not contain all the necessary '
                            'information or was not a dict. Setting empty dict.')

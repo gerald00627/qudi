@@ -180,6 +180,8 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
         block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
             ensemble=block_ensemble, created_blocks=created_blocks)
+        block_ensemble.measurement_information['cam_exp_mode'] = 'TriggerWidth'
+        block_ensemble.measurement_information['cam_trig_mode'] = True
 
         # Append ensemble to created_ensembles list
         created_ensembles.append(block_ensemble)
@@ -275,6 +277,10 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
         block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
             ensemble=block_ensemble, created_blocks=created_blocks)
+        block_ensemble.measurement_information['cam_exp_mode'] = 'TriggerWidth'
+        block_ensemble.measurement_information['cam_trig_mode'] = True
+
+
         # append ensemble to created ensembles
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
@@ -370,6 +376,9 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
         block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
             ensemble=block_ensemble, created_blocks=created_blocks)
+        block_ensemble.measurement_information['cam_exp_mode'] = 'TriggerWidth'
+        block_ensemble.measurement_information['cam_trig_mode'] = True
+
         # append ensemble to created ensembles
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
@@ -398,16 +407,17 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         block_ensemble.append((laser_block.name, 0))
 
         # add metadata to invoke settings later on
-        number_of_lasers = 2 * num_of_points
-        block_ensemble.measurement_information['number_of_curves'] = 2
+        number_of_lasers = 1
+        block_ensemble.measurement_information['number_of_curves'] = 1
         block_ensemble.measurement_information['laser_ignore_list'] = list()
-        block_ensemble.measurement_information['controlled_variable'] = tau_array
-        block_ensemble.measurement_information['units'] = ('s', '')
-        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['controlled_variable'] = []
+        block_ensemble.measurement_information['units'] = ('Hz', '')
+        block_ensemble.measurement_information['labels'] = ('Frequency', 'Signal')
         block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
         block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
             ensemble=block_ensemble, created_blocks=created_blocks)
-
+        block_ensemble.measurement_information['cam_exp_mode'] = 'Timed'
+        block_ensemble.measurement_information['cam_trig_mode'] = False
 
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences

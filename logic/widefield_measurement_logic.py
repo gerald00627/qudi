@@ -144,6 +144,10 @@ class WidefieldMeasurementLogic(GenericLogic):
     sigSamplingSettingsUpdated = QtCore.Signal(dict)
     sigPredefinedSequenceGenerated = QtCore.Signal(object, bool)
 
+    # PulsedMeasurementLogic control signal
+    sigTogglePulser = QtCore.Signal(bool)
+
+
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
         self.threadlock = Mutex()
@@ -257,18 +261,18 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.sigPlotPxChanged.connect(self.update_plot_px, QtCore.Qt.QueuedConnection)
 
         # Connect signals controlling SequenceGeneratorLogic
-        self.sigSavePulseBlock.connect(
-            self._sequencegeneratorlogic.save_block, QtCore.Qt.QueuedConnection)
-        self.sigSaveBlockEnsemble.connect(
-            self._sequencegeneratorlogic.save_ensemble, QtCore.Qt.QueuedConnection)
-        self.sigSaveSequence.connect(
-            self._sequencegeneratorlogic.save_sequence, QtCore.Qt.QueuedConnection)
-        self.sigDeletePulseBlock.connect(
-            self._sequencegeneratorlogic.delete_block, QtCore.Qt.QueuedConnection)
-        self.sigDeleteBlockEnsemble.connect(
-            self._sequencegeneratorlogic.delete_ensemble, QtCore.Qt.QueuedConnection)
-        self.sigDeleteSequence.connect(
-            self._sequencegeneratorlogic.delete_sequence, QtCore.Qt.QueuedConnection)
+        # self.sigSavePulseBlock.connect(
+        #     self._sequencegeneratorlogic.save_block, QtCore.Qt.QueuedConnection)
+        # self.sigSaveBlockEnsemble.connect(
+        #     self._sequencegeneratorlogic.save_ensemble, QtCore.Qt.QueuedConnection)
+        # self.sigSaveSequence.connect(
+        #     self._sequencegeneratorlogic.save_sequence, QtCore.Qt.QueuedConnection)
+        # self.sigDeletePulseBlock.connect(
+        #     self._sequencegeneratorlogic.delete_block, QtCore.Qt.QueuedConnection)
+        # self.sigDeleteBlockEnsemble.connect(
+        #     self._sequencegeneratorlogic.delete_ensemble, QtCore.Qt.QueuedConnection)
+        # self.sigDeleteSequence.connect(
+        #     self._sequencegeneratorlogic.delete_sequence, QtCore.Qt.QueuedConnection)
         self.sigLoadBlockEnsemble.connect(
             self._sequencegeneratorlogic.load_ensemble, QtCore.Qt.QueuedConnection)
         self.sigLoadSequence.connect(
@@ -279,10 +283,10 @@ class WidefieldMeasurementLogic(GenericLogic):
             self._sequencegeneratorlogic.sample_pulse_sequence, QtCore.Qt.QueuedConnection)
         self.sigClearPulseGenerator.connect(
             self._sequencegeneratorlogic.clear_pulser, QtCore.Qt.QueuedConnection)
-        self.sigGeneratorSettingsChanged.connect(
-            self._sequencegeneratorlogic.set_pulse_generator_settings, QtCore.Qt.QueuedConnection)
-        self.sigSamplingSettingsChanged.connect(
-            self._sequencegeneratorlogic.set_generation_parameters, QtCore.Qt.QueuedConnection)
+        # self.sigGeneratorSettingsChanged.connect(
+        #     self._sequencegeneratorlogic.set_pulse_generator_settings, QtCore.Qt.QueuedConnection)
+        # self.sigSamplingSettingsChanged.connect(
+        #     self._sequencegeneratorlogic.set_generation_parameters, QtCore.Qt.QueuedConnection)
         self.sigGeneratePredefinedSequence.connect(
             self._sequencegeneratorlogic.generate_predefined_sequence, QtCore.Qt.QueuedConnection)
 
@@ -313,6 +317,10 @@ class WidefieldMeasurementLogic(GenericLogic):
         # self._sequencegeneratorlogic.sigBenchmarkComplete.connect(
         #     self.benchmark_completed, QtCore.Qt.QueuedConnection)
 
+        # Connect signals controlling PulsedMeasurement Logic
+        self.sigTogglePulser.connect(
+            self.pulsedmeasurementlogic().toggle_pulse_generator, QtCore.Qt.QueuedConnection)
+
         return
 
     def on_deactivate(self):
@@ -337,19 +345,19 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.sigNextLine.disconnect()
 
         # Disconnect signals controlling SequenceGeneratorLogic
-        self.sigSavePulseBlock.disconnect()
-        self.sigSaveBlockEnsemble.disconnect()
-        self.sigSaveSequence.disconnect()
-        self.sigDeletePulseBlock.disconnect()
-        self.sigDeleteBlockEnsemble.disconnect()
-        self.sigDeleteSequence.disconnect()
-        self.sigLoadBlockEnsemble.disconnect()
+        # self.sigSavePulseBlock.disconnect()
+        # self.sigSaveBlockEnsemble.disconnect()
+        # self.sigSaveSequence.disconnect()
+        # self.sigDeletePulseBlock.disconnect()
+        # self.sigDeleteBlockEnsemble.disconnect()
+        # self.sigDeleteSequence.disconnect()
+        # self.sigLoadBlockEnsemble.disconnect()
         self.sigLoadSequence.disconnect()
         self.sigSampleBlockEnsemble.disconnect()
         self.sigSampleSequence.disconnect()
         self.sigClearPulseGenerator.disconnect()
-        self.sigGeneratorSettingsChanged.disconnect()
-        self.sigSamplingSettingsChanged.disconnect()
+        # self.sigGeneratorSettingsChanged.disconnect()
+        # self.sigSamplingSettingsChanged.disconnect()
         self.sigGeneratePredefinedSequence.disconnect()
 
         # Disconnect signals coming from SequenceGeneratorLogic
@@ -365,6 +373,9 @@ class WidefieldMeasurementLogic(GenericLogic):
         self._sequencegeneratorlogic.sigSampleSequenceComplete.disconnect()
         self._sequencegeneratorlogic.sigLoadedAssetUpdated.disconnect()
         self._sequencegeneratorlogic.sigBenchmarkComplete.disconnect()
+
+        # Disconnect signals controlling PulsedMeasurementLogic
+        self.sigTogglePulser.disconnect()
 
     @fc.constructor
     def sv_set_fits(self, val):
@@ -908,40 +919,50 @@ class WidefieldMeasurementLogic(GenericLogic):
             #     return -1
 
             # Configure camera exposuremode / trigger mode 
-            # TODO this could also go into the predefined method, so you don't assume they know to click the camera settings each time
+            # TODO it should automatically update the camera settings and reflect it on gui too
 
-            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
-                self._widefield_camera.set_trigger_mode(False)
-                self._widefield_camera.set_exposure_mode('Timed')
-            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
-                self._widefield_camera.set_trigger_mode(True)
-                self._widefield_camera.set_exposure_mode('Timed')
-            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
-                self._widefield_camera.set_trigger_mode(True)
-                self._widefield_camera.set_exposure_mode('TriggerWidth')
-            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
-                self._widefield_camera.set_trigger_mode(True)
-                self._widefield_camera.set_exposure_mode('TriggerWidth')
-            else: 
-                pass
+            cam_trig_mode = self._pulsedmeasurementlogic.measurement_information.get('cam_trig_mode')
+            cam_exp_mode = self._pulsedmeasurementlogic.measurement_information.get('cam_exp_mode')
+
+            self._widefield_camera.set_trigger_mode(cam_trig_mode)
+            self._widefield_camera.set_exposure_mode(cam_exp_mode)
+
+            # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+            #     self._widefield_camera.set_trigger_mode(False)
+            #     self._widefield_camera.set_exposure_mode('Timed')
+            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+            #     self._widefield_camera.set_trigger_mode(True)
+            #     self._widefield_camera.set_exposure_mode('Timed')
+            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
+            #     self._widefield_camera.set_trigger_mode(True)
+            #     self._widefield_camera.set_exposure_mode('TriggerWidth')
+            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
+            #     self._widefield_camera.set_trigger_mode(True)
+            #     self._widefield_camera.set_exposure_mode('TriggerWidth')
+            # else: 
+            #     pass
 
             self._initialize_odmr_plots()
            
-            # TODO Initialize raw data array/eventually this information can be in the predefined method
+            # Initialize raw data array
 
-            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
-                self.num_imgs = self.odmr_plot_x.size
-            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
-                if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                    self.num_imgs = 2*self.odmr_plot_x.size
-                else:
-                    self.num_imgs = self.odmr_plot_x.size
-            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
-                self.num_imgs = 2*self.odmr_plot_x.size
-            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
-                self.num_imgs = 3*self.odmr_plot_x.size
-            else: 
-                pass
+            num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
+
+            self.num_imgs = self.odmr_plot_x.size*num_curves
+
+            # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+            #     self.num_imgs = self.odmr_plot_x.size
+            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+            #     if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+            #         self.num_imgs = 2*self.odmr_plot_x.size
+            #     else:
+            #         self.num_imgs = self.odmr_plot_x.size
+            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
+            #     self.num_imgs = 2*self.odmr_plot_x.size
+            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
+            #     self.num_imgs = 3*self.odmr_plot_x.size
+            # else: 
+            #     pass
 
             self.odmr_raw_data = np.zeros(
             [self._widefield_camera.get_size()[0],
@@ -1073,7 +1094,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             if self._clearOdmrData:
                 self.odmr_plot_y[:, :] = 0
 
-            # TODO sequence specific plotting
+            # Plot single pixel data
             self.plot_single_pixel()
 
             # Update elapsed time/sweeps
@@ -1091,22 +1112,47 @@ class WidefieldMeasurementLogic(GenericLogic):
     def plot_single_pixel(self):
         """ Prepares single curve data for plotting """
 
-        if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
-                self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
-        elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
-            if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                # split data
-                rabi_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
-                rabi_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
-                for i in range(int(self.num_imgs/2)):
-                    rabi_l[:,:,i] = self.odmr_raw_data[:,:,2*i]
-                    rabi_bg[:,:,i] = self.odmr_raw_data[:,:,2*i+1]
+        num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
 
-                self.odmr_plot_y = rabi_l[self.plot_pixel_x, self.plot_pixel_y,:] - rabi_bg[self.plot_pixel_x, self.plot_pixel_y,:]
-            else:
-                self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
-        else:   
+        if num_curves == 1:
             self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
+        elif num_curves == 2:
+            #TODO this assumes a specific order, and only plots a single curve (subtracted bg) 
+            data_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+            data_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+            for i in range(int(self.num_imgs/2)):
+                data_l[:,:,i] = self.odmr_raw_data[:,:,2*i]
+                data_bg[:,:,i] = self.odmr_raw_data[:,:,2*i+1]
+            self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:] - data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+        elif num_curves == 3:
+            # TODO assumes specific order of pulsing, currently only plotting l-bg
+            data_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+            data_u = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+            data_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+            for i in range(int(self.num_imgs/3)):
+                data_l[:,:,i] = self.odmr_raw_data[:,:,3*i]
+                data_u[:,:,i] = self.odmr_raw_data[:,:,3*i+1]
+                data_bg[:,:,i] = self.odmr_raw_data[:,:,3*i+2]
+            self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:] - data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+        else: 
+            self.log.warning('Number of curves exceeds 3')
+
+        # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+        #         self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
+        # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+        #     if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+        #         # split data
+        #         rabi_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+        #         rabi_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+        #         for i in range(int(self.num_imgs/2)):
+        #             rabi_l[:,:,i] = self.odmr_raw_data[:,:,2*i]
+        #             rabi_bg[:,:,i] = self.odmr_raw_data[:,:,2*i+1]
+
+        #         self.odmr_plot_y = rabi_l[self.plot_pixel_x, self.plot_pixel_y,:] - rabi_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+        #     else:
+        #         self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
+        # else:   
+        #     self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
 
         return 
 
@@ -1119,7 +1165,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             self.plot_single_pixel()
             self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,None,None)
         except:
-            self.log.warning('Unable to change ODMR pixel plot')
+            self.log.debug('Unable to change ODMR pixel plot')
             pass
 
         return
@@ -1562,23 +1608,6 @@ class WidefieldMeasurementLogic(GenericLogic):
     ###             Sequence generator methods                          ###
     #######################################################################
 
-    # @QtCore.Slot()
-    # def clear_pulse_generator(self):
-    #     still_busy = self.status_dict['sampling_ensemble_busy'] or self.status_dict[
-    #         'sampling_sequence_busy'] or self.status_dict['loading_busy'] or self.status_dict[
-    #                                'sampload_busy']
-    #     if still_busy:
-    #         self.log.error('Can not clear pulse generator. Sampling/Loading still in progress.')
-    #     elif self.status_dict['measurement_running']:
-    #         self.log.error('Can not clear pulse generator. Measurement is still running.')
-    #     else:
-    #         if self.status_dict['pulser_running']:
-    #             self.log.warning('Can not clear pulse generator while it is still running. '
-    #                              'Turned off.')
-    #             self.pulsedmeasurementlogic().pulse_generator_off()
-    #         self.sigClearPulseGenerator.emit()
-    #     return
-
     @QtCore.Slot(str)
     @QtCore.Slot(str, bool)
     def sample_ensemble(self, ensemble_name, with_load=False):
@@ -1734,4 +1763,30 @@ class WidefieldMeasurementLogic(GenericLogic):
         else:
             self._pulsedmeasurementlogic.sampling_information = object_instance.sampling_information
             self._pulsedmeasurementlogic.measurement_information = object_instance.measurement_information
+        return
+
+    def toggle_pulser_output(self,switch_on):
+
+        # err = self._pulsedmeasurementlogic.toggle_pulse_generator(switch_on)
+        if isinstance(switch_on,bool):    
+            err = self.sigTogglePulser.emit(switch_on)
+        else: 
+            self.log.warning('Problem with pulser toggle')
+
+        return err
+        
+    def clear_pulse_generator(self):
+        still_busy = self.status_dict['sampling_ensemble_busy'] or self.status_dict[
+            'sampling_sequence_busy'] or self.status_dict['loading_busy'] or self.status_dict[
+                                   'sampload_busy']
+        if still_busy:
+            self.log.error('Can not clear pulse generator. Sampling/Loading still in progress.')
+        elif self.status_dict['measurement_running']:
+            self.log.error('Can not clear pulse generator. Measurement is still running.')
+        else:
+            if self.status_dict['pulser_running']:
+                self.log.warning('Can not clear pulse generator while it is still running. '
+                                 'Turned off.')
+            self.pulsedmeasurementlogic().pulse_generator_off()
+            self.sigClearPulseGenerator.emit()
         return

@@ -33,6 +33,8 @@ from gui.fitsettings import FitSettingsDialog, FitSettingsComboBox
 from qtpy import QtCore, QtWidgets, uic
 from core.util.helpers import natural_sort
 from qtwidgets.scientific_spinbox import ScienDSpinBox, ScienSpinBox
+from qtwidgets.loading_indicator import CircleLoadingIndicator
+
 
 from qtpy import QtGui
 from gui.guiutils import ColorBar
@@ -175,6 +177,32 @@ class WidefieldGUI(GUIBase):
                                                   'current ODMR measurements.')
         self._mw.clear_odmr_PushButton.setEnabled(False)
         self._mw.toolBar.addWidget(self._mw.clear_odmr_PushButton)
+
+        # add Pulser Control toolbar to control pulser
+        self._mw.pulser_on_off_PushButton = QtWidgets.QPushButton()
+        self._mw.pulser_on_off_PushButton.setText('Pulser On')
+        self._mw.pulser_on_off_PushButton.setToolTip('Switch the pulser on/off.')
+        self._mw.pulser_on_off_PushButton.setCheckable(True)
+        self._mw.Pulser_ToolBar.addWidget(self._mw.pulser_on_off_PushButton)
+
+        self._mw.clear_device_PushButton = QtWidgets.QPushButton(self._mw)
+        self._mw.clear_device_PushButton.setText('Clear Pulser')
+        self._mw.clear_device_PushButton.setToolTip('Clear the sequence from the Pulser')
+        self._mw.Pulser_ToolBar.addWidget(self._mw.clear_device_PushButton)
+
+        # self._mw.current_loaded_asset_Label = QtWidgets.QLabel(self._mw)
+        # sizepolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred,QtWidgets.QSizePolicy.Fixed)
+        # sizepolicy.setHorizontalStretch(0)
+        # sizepolicy.setVerticalStretch(0)
+        # sizepolicy.setHeightForWidth(self._mw.current_loaded_asset_Label.sizePolicy().hasHeightForWidth())
+        # self._mw.current_loaded_asset_Label.setSizePolicy(sizepolicy)
+        # self._mw.current_loaded_asset_Label.setText('  No Asset Loaded')
+        # self._mw.current_loaded_asset_Label.setToolTip('Display the currently loaded asset.')
+        # self._mw.Pulser_ToolBar.addWidget(self._mw.current_loaded_asset_Label)
+
+        # self._mw.loading_indicator = CircleLoadingIndicator(parent=self._mw)
+        # self._mw.loading_indicator_action = self._mw.Pulser_ToolBar.addWidget(self._mw.loading_indicator)  # adding as toolbar's last item
+        # self._mw.loading_indicator_action.setVisible(False)
 
         # Set up and connect channel combobox
         self.display_channel = 0
@@ -338,7 +366,8 @@ class WidefieldGUI(GUIBase):
                                                            QtCore.Qt.QueuedConnection)
         self._widefield_logic.sigMeasurementChanged.connect(self._change_measurement_type,
                                                             QtCore.Qt.QueuedConnection)
-        
+        # self._widefield_logic.sigPulserRunningUpdated.connect(self.pulser_running_updated)
+
 
         # self._widefield_logic.sigMeasurementDataUpdated.connect(self.measurement_data_updated)
         # self._widefield_logic.sigTimerUpdated.connect(self.measurement_timer_updated)
@@ -385,6 +414,9 @@ class WidefieldGUI(GUIBase):
             self.update_channel_settings)
         self.reject_channel_settings()
 
+        # Pulser toolbar
+        self._mw.pulser_on_off_PushButton.clicked.connect(self.pulser_on_off_clicked)
+        self._mw.clear_device_PushButton.clicked.connect(self.clear_pulser_clicked)
 
         # Camera Setup
 
@@ -445,11 +477,11 @@ class WidefieldGUI(GUIBase):
         self._widefield_logic.sigOdmrPlotsUpdated.disconnect()
         self._widefield_logic.sigOdmrFitUpdated.disconnect()
         self._widefield_logic.sigOdmrElapsedTimeUpdated.disconnect()
-        self._widefield_logic.sigMeasurementDataUpdated.disconnect()
-        self._widefield_logic.sigTimerUpdated.disconnect()
+        # self._widefield_logic.sigMeasurementDataUpdated.disconnect()
+        # self._widefield_logic.sigTimerUpdated.disconnect()
         self._widefield_logic.sigFitUpdated.disconnect()
         self._widefield_logic.sigMeasurementStatusUpdated.disconnect()
-        self._widefield_logic.sigPulserRunningUpdated.disconnect()
+        # self._widefield_logic.sigPulserRunningUpdated.disconnect()
         self._widefield_logic.sigExtMicrowaveRunningUpdated.disconnect()
         self._widefield_logic.sigExtMicrowaveSettingsUpdated.disconnect()
         self._widefield_logic.sigFastCounterSettingsUpdated.disconnect()
@@ -505,6 +537,11 @@ class WidefieldGUI(GUIBase):
         self._mw.pixel_format_comboBox.currentTextChanged.disconnect()
         self._mw.plot_pixel_x_spinBox.editingFinished.disconnect()
         self._mw.plot_pixel_y_spinBox.editingFinished.disconnect()
+
+        self._mw.pulser_on_off_PushButton.clicked.disconnect()
+        self._mw.clear_device_PushButton.clicked.disconnect()
+
+
 
         dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
         for identifier_name in dspinbox_dict:
@@ -903,6 +940,48 @@ class WidefieldGUI(GUIBase):
     def clear_odmr_data(self):
         """ Clear the ODMR data. """
         self.sigClearData.emit()
+        return
+
+    @QtCore.Slot(bool)
+    def pulser_on_off_clicked(self,checked):
+        " Manually switch the pulser on/off"
+        if checked: 
+            self._mw.pulser_on_off_PushButton.setText('Pulser On')
+        else:
+            self._mw.pulser_on_off_PushButton.setText('Pulser Off')
+            
+        self._widefield_logic.toggle_pulser_output(checked)
+        return
+
+    # @QtCore.Slot(bool)
+    # def pulser_running_updated(self, is_running):
+    #     """
+    #     @param is_running:
+    #     @return:
+    #     """
+    #     # block signals
+    #     self._mw.pulser_on_off_PushButton.blockSignals(True)
+    #     # set widgets
+    #     if is_running:
+    #         self._mw.clear_device_PushButton.setEnabled(False)
+    #         self._mw.pulser_on_off_PushButton.setText('Pulser OFF')
+    #         if not self._mw.pulser_on_off_PushButton.isChecked():
+    #             self._mw.pulser_on_off_PushButton.toggle()
+    #     else:
+    #         self._pg.curr_ensemble_del_all_PushButton.setEnabled(True)
+    #         self._sg.curr_sequence_del_all_PushButton.setEnabled(True)
+    #         self._mw.clear_device_PushButton.setEnabled(True)
+    #         self._mw.pulser_on_off_PushButton.setText('Pulser ON')
+    #         if self._mw.pulser_on_off_PushButton.isChecked():
+    #             self._mw.pulser_on_off_PushButton.toggle()
+    #     # unblock signals
+    #     self._mw.pulser_on_off_PushButton.blockSignals(False)
+    #     return
+
+    @QtCore.Slot()
+    def clear_pulser_clicked(self):
+        "Delete all loaded files in pulser's current memory"
+        self._widefield_logic.clear_pulse_generator()
         return
 
     def update_plots(self, odmr_data_x, odmr_data_y, x_label=None, unit_label=None):
