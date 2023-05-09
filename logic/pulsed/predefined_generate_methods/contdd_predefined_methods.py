@@ -57,7 +57,7 @@ class ContDDPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=self.microwave_frequency,
                                               phase=0)
         # Use a 180 deg phase shifted pulse as 3pihalf pulse if microwave channel is analog
-        if self.microwave_channel.startswith('a'):
+        if self.microwave1_channel.startswith('a'):
             pi3half_element = self._get_mw_element(length=self.rabi_period / 4,
                                                    increment=0,
                                                    amp=self.microwave_amplitude,
@@ -156,7 +156,7 @@ class ContDDPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=self.microwave_frequency,
                                               phase=0)
         # Use a 180 deg phase shifted pulse as 3pihalf pulse if microwave channel is analog
-        if self.microwave_channel.startswith('a'):
+        if self.microwave1_channel.startswith('a'):
             pi3half_element = self._get_mw_element(length=self.rabi_period / 4,
                                                    increment=0,
                                                    amp=self.microwave_amplitude,
@@ -257,7 +257,7 @@ class ContDDPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=self.microwave_frequency,
                                               phase=0)
         # Use a 180 deg phase shifted pulse as 3pihalf pulse if microwave channel is analog
-        if self.microwave_channel.startswith('a'):
+        if self.microwave1_channel.startswith('a'):
             pi3half_element = self._get_mw_element(length=self.rabi_period / 4,
                                                    increment=0,
                                                    amp=self.microwave_amplitude,
@@ -345,7 +345,7 @@ class ContDDPredefinedGenerator(PredefinedGeneratorBase):
                                               freq=self.microwave_frequency,
                                               phase=0)
         # Use a 180 deg phase shifted pulse as 3pihalf pulse if microwave channel is analog
-        if self.microwave_channel.startswith('a'):
+        if self.microwave1_channel.startswith('a'):
             pi3half_element = self._get_mw_element(length=self.rabi_period / 4,
                                                    increment=0,
                                                    amp=self.microwave_amplitude,

@@ -34,11 +34,11 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
 
     fastcounter_timetagger:
         module.Class: 'swabian_instruments.timetagger_fast_counter.TimeTaggerFastCounter'
-        timetagger_channel_apd_0: 0
-        timetagger_channel_apd_1: 1
+        timetagger_channel_apd_0: 1
         timetagger_channel_detect: 2
-        timetagger_channel_sequence: 3
-        timetagger_sum_channels: 4
+        timetagger_channel_next: 3
+        timetagger_channel_sync: 4
+        timetagger_sum_channels: False
 
     """
 
@@ -46,14 +46,14 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
     _channel_apd_1 = ConfigOption('timetagger_channel_apd_1', missing='info')
     _channel_detect = ConfigOption('timetagger_channel_detect', missing='error')
     _channel_next = ConfigOption('timetagger_channel_next', missing='error')
-    _channel_sequence = ConfigOption('timetagger_channel_sequence', missing='error')
-    _sum_channels = ConfigOption('timetagger_sum_channels', True, missing='warn')
+    _channel_sync = ConfigOption('timetagger_channel_sync', missing='error')
+    _sum_channels = ConfigOption('timetagger_sum_channels', missing='error')
 
     def on_activate(self):
         """ Connect and configure the access to the FPGA.
         """
         self._tagger = tt.createTimeTagger()
-        self._tagger.reset()
+        # self._tagger.reset()
 
         self._number_of_gates = int(100)
         self._bin_width = 1
@@ -108,7 +108,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
 
         # the unit of those entries are seconds per bin. In order to get the
         # current binwidth in seonds use the get_binwidth method.
-        constraints['hardware_binwidth_list'] = [1 / 1000e6]
+        constraints['hardware_binwidth_list'] = [0.1 / 1e9 ,1 / 1e9, 10/1e9, 100/1e9,400/1e9]
 
         # TODO: think maybe about a software_binwidth_list, which will
         #      postprocess the obtained counts. These bins must be integer
@@ -117,7 +117,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         return constraints
 
     def on_deactivate(self):
-        """ Deactivate the FPGA.
+        """ Deactivate the Time Tagger.
         """
         if self.module_state() == 'locked':
             self.pulsed.stop()
@@ -150,7 +150,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
             click_channel=self._channel_apd,
             start_channel=self._channel_detect,
             next_channel=self._channel_next,
-            sync_channel=tt.CHANNEL_UNUSED,
+            sync_channel=self._channel_sync,
             binwidth=int(np.round(self._bin_width * 1000)),
             n_bins=int(self._record_length),
             n_histograms=number_of_gates)
@@ -164,6 +164,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         self.module_state.lock()
         self.pulsed.clear()
         self.pulsed.start()
+        self._tagger.sync()
         self.statusvar = 2
         return 0
 
@@ -192,6 +193,7 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         """
         if self.module_state() == 'locked':
             self.pulsed.start()
+            self._tagger.sync()
             self.statusvar = 2
         return 0
 
@@ -215,8 +217,8 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         care of in this hardware class. A possible overflow of the histogram
         bins must be caught here and taken care of.
         """
-        info_dict = {'elapsed_sweeps': None,
-                     'elapsed_time': None}  # TODO : implement that according to hardware capabilities
+        info_dict = {'elapsed_sweeps': self.pulsed.getCounts(),
+                     'elapsed_time': None}  
         return np.array(self.pulsed.getData(), dtype='int64'), info_dict
 
 
@@ -236,4 +238,3 @@ class TimeTaggerFastCounter(Base, FastCounterInterface):
         """ Returns the width of a single timebin in the timetrace in seconds. """
         width_in_seconds = self._bin_width * 1e-9
         return width_in_seconds
-

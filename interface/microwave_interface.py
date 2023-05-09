@@ -47,6 +47,21 @@ class MicrowaveMode(Enum):
     SWEEP = 3
     ASWEEP = 4
 
+class MicrowaveTriggerMode(Enum):
+    """ Modes for microwave triggers:
+        AUTO: signal generated continuously
+        SINGLE_EXT: trigger generates single sweep
+        STEP_EXT: trigger generates next step
+        START_STOP_EXT: signal generated continuously, stop and start with trigger
+        MANUAL: 
+    """
+
+    AUTO = 0 # For sweep/list
+    SINGLE_EXT = 1 # For sweep/list
+    SINGLE = 2
+    STEP_EXT = 3 # For sweep/list
+    START_STOP_EXT = 4 # For sweep
+    MANUAL = 5 # For sweep/list
 
 class MicrowaveInterface(metaclass=InterfaceMetaclass):
     """This is the Interface class to define the controls for the simple microwave hardware.

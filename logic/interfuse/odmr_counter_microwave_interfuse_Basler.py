@@ -63,9 +63,9 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
         """ Initialisation performed during activation of the module."""
         self._mw_device = self.microwave()
         self._sc_device = self.slowcounter()  # slow counter device
-        width, height = self._sc_device.get_constraints()
+        # width, height = self._sc_device.get_constraints()
         #Initialize the interfuse variable to store the WF data.
-        self._WF_data = np.zeros((height, width, 300),dtype="float64")
+        # self._WF_data = np.zeros((height, width, 300),dtype="float64")
 
     def on_deactivate(self):
         pass
@@ -113,6 +113,8 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
+        width, height = self._sc_device.get_constraints()
+        self._WF_data = np.zeros((height, width, length),dtype="float64")
         self._odmr_length = length
         return 0
 
@@ -123,9 +125,13 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         @return float[]: the photon counts per second
         """
+
+
+
         counts = np.zeros((1, length))
+        self.set_power(self._mw_power)
         for i in range(length):
-            self._mw_device.set_cw_freq_PCIE(i)
+            self._mw_device.set_frequency(self._frequencies[i])
             output = self._sc_device.get_counter(samples=1)
             self._WF_data[:,:,i] = self._WF_data[:,:,i] + output
             #find the PL data at the center of the camara view and output
@@ -146,8 +152,8 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         #save the WF data
         index = len(os.listdir(directory)) + 1
-        data_len = len(self._mw_device.final_freq_list)
-        savedict = {'saveData':self._WF_data[:,:,0:data_len], 'frequency':self._mw_device.final_freq_list}
+        data_len = len(self._frequencies)
+        savedict = {'saveData':self._WF_data[:,:,0:data_len], 'frequency':self._frequencies}
         save_file = directory + '/' + today.strftime("%Y%m%d") + str(index) + '.mat'
         sio.savemat(save_file, savedict)
 
@@ -167,8 +173,9 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
         """
         return self._sc_device.get_counter_channels()
 
-    ### ----------- Microwave interface commands -----------
-
+########################################################################
+################### Microwave interface commands #######################
+########################################################################
     def trigger(self):
 
         return self._mw_device.trigger()
@@ -211,6 +218,14 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
         """
         return self._mw_device.get_status()
 
+    def set_power(self, power=None):
+        """ Sets the microwave source in CW mode, and sets the MW power.
+        Method ignores whether the output is on or off
+
+        @return int: error code (0:OK, -1:error)
+        """
+        return self._mw_device.set_power(power) 
+
     def get_power(self):
         """
         Gets the microwave output power for the currently active mode.
@@ -218,6 +233,14 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
         @return float: the output power in dBm
         """
         return self._mw_device.get_power()
+
+    def set_frequency(self, frequency):
+        """ Sets the microwave source in CW mode, and sets the MW frequency.
+        Method ignores whether the output is on or off
+        
+        @return int: error code (0:OK, -1:error)
+        """
+        return self._mw_device.set_frequency(frequency)
 
     def get_frequency(self):
         """
@@ -260,9 +283,9 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._mw_device.list_on()
+        return self._mw_device.cw_on()
 
-    def set_list(self, frequency=None, power=None):
+    def set_list(self, frequency=None, power=None,trig_mode =None):
         """
         Configures the device for list-mode and optionally sets frequencies and/or power
 
@@ -271,8 +294,9 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         @return list, float, str: current frequencies in Hz, current power in dBm, current mode
         """
-
-        return self._mw_device.set_list(frequency, power)
+        self._frequencies = frequency
+        self._mw_power = power
+        return frequency, power, 'list'
 
     def reset_listpos(self):
         """
@@ -280,8 +304,7 @@ class ODMRCounterMicrowaveInterfuse_Basler(GenericLogic, ODMRCounterInterface,
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._mw_device.reset_listpos()
-
+        return 0
     def sweep_on(self):
         """ Switches on the sweep mode.
 

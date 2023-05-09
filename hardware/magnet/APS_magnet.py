@@ -71,8 +71,8 @@ class APSMagnet(Base, MagnetInterface):
 
         @return int: (0: Ok, -1:error)
         """
-        self.ser_zx = serial.Serial(port=self.addr_zx, baudrate=9600, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
-        self.ser_y = serial.Serial(port=self.addr_y, baudrate=9600, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.ser_zx = serial.Serial(port=self.addr_zx, baudrate=19200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+        self.ser_y = serial.Serial(port=self.addr_y, baudrate=19200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
         self.x_dir = 'ZERO'
         self.y_dir = 'ZERO'
@@ -184,18 +184,28 @@ class APSMagnet(Base, MagnetInterface):
                  'acc_max': None,
                  'acc_step': None}
         
-        axis4 = {'label': 'rho', 'unit': 'T', 'pos_min': 0, 'pos_max': self.rho_constr, 'pos_step': 1e-3,
-                 'vel_min': 0, 'vel_max': 1, 'vel_step': 1e-6}
+        axis4 = {'label': 'rho',
+                 'unit': 'T',
+                 'pos_min': 0,
+                 'pos_max': self.rho_constr,
+                 'pos_step': 1e-3,
+                 'vel_min': 0,
+                 'vel_max': 1,
+                 'vel_step': 1e-6}
 
         # In fact position constraints for rho is dependent on theta and phi, which would need
         # the use of an additional function to calculate
         # going to change the return value to a function rho_max_pos which needs the current theta and
         # phi position
         # get the constraints for the x axis:
-        axis5 = {'label': 'theta', 'unit': 'rad', 'pos_min': 0, 'pos_max': 2*np.pi, 'pos_step': 2*np.pi/100, 'vel_min': 0,
-                 'vel_max': 1, 'vel_step': 1e-6}
-
-        # assign the parameter container for x to a name which will identify it
+        axis5 = {'label': 'theta',
+                 'unit': 'rad',
+                 'pos_min': 0,
+                 'pos_max': 2*np.pi,
+                 'pos_step': 2*np.pi/100,
+                 'vel_min': 0,
+                 'vel_max': 1,
+                 'vel_step': 1e-6}
 
         # assign the parameter container for x to a name which will identify it
         constraints[axis0['label']] = axis0
@@ -238,7 +248,7 @@ class APSMagnet(Base, MagnetInterface):
             internal_counter += 1
 
         if internal_counter == 0:
-            self.log.warning('no parameter_dict was given therefore the '
+            self.log.warning('no valid parameter_dict was given therefore the '
                     'function tell() call was useless')
             return -1
         else:
@@ -737,7 +747,6 @@ class APSMagnet(Base, MagnetInterface):
                       position. Given in spheric coordinates with Units T, rad , rad.
         """
         mypos1 = {}
-        mypos2 = {}
 
         answ_dict = self.get_current_field()
         coord_list = [answ_dict['x'], answ_dict['y'], answ_dict['z']]
@@ -749,12 +758,8 @@ class APSMagnet(Base, MagnetInterface):
         mypos1['y'] = answ_dict['y']
         mypos1['z'] = answ_dict['z']
 
-        mypos2['rho'] = rho
-        mypos2['theta'] = theta
-        mypos2['phi'] = phi
-
         if param_list is None:
-            return mypos2
+            return mypos1
 
         else:
             return {i:mypos1[i] for i in param_list}

@@ -38,14 +38,6 @@ class CameraInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
-    def get_size(self):
-        """ Retrieve size of the image in pixel
-
-        @return tuple: Size (width, height)
-        """
-        pass
-
-    @abstract_interface_method
     def support_live_acquisition(self):
         """ Return whether or not the camera can take care of live acquisition
 
@@ -88,6 +80,38 @@ class CameraInterface(metaclass=InterfaceMetaclass):
         pass
 
     @abstract_interface_method
+    def get_offset(self):
+        """ Retrieve offset of the image in pixel
+
+        @return tuple: Offset (offsetX, offsetY)
+        """
+        pass
+
+    @abstract_interface_method
+    def set_size(self, image_offset):
+        """ set offset of the image in pixel
+
+        @return tuple: offset (offsetX, offsetY)
+        """
+        pass
+
+    @abstract_interface_method
+    def get_size(self):
+        """ Retrieve size of the image in pixel
+
+        @return tuple: Size (width, height)
+        """
+        pass
+
+    @abstract_interface_method
+    def set_size(self, image_size):
+        """ set size of the image in pixel
+
+        @return tuple: Size (width, height)
+        """
+        pass
+
+    @abstract_interface_method
     def set_exposure(self, exposure):
         """ Set the exposure time in seconds
 
@@ -120,6 +144,22 @@ class CameraInterface(metaclass=InterfaceMetaclass):
         """ Get the gain
 
         @return float: exposure gain
+        """
+        pass
+
+    @abstract_interface_method
+    def set_pixel_format(self):
+        """ Set values can each pixel return ("Mono8", "Mono12", etc.)
+
+            @return string: new pixel format
+        """
+        pass
+
+    @abstract_interface_method
+    def get_pixel_format(self):
+        """ Get values can each pixel return ("Mono8", "Mono12", etc.)
+
+            @return string: pixel format
         """
         pass
 

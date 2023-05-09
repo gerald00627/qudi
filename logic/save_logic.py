@@ -25,6 +25,7 @@ import inspect
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.io as sio
 import os
 import sys
 import time
@@ -128,8 +129,12 @@ class SaveLogic(GenericLogic):
     _win_data_dir = ConfigOption('win_data_directory', 'C:/Data/')
     _unix_data_dir = ConfigOption('unix_data_directory', 'Data')
     log_into_daily_directory = ConfigOption('log_into_daily_directory', False, missing='warn')
+    _save_path = ConfigOption('savepath',True)
 
     sigSaveData = QtCore.Signal(object, object, object, object, object, object, object, object, object, object)
+    
+    # sigSaveWFData = QtCore.Signal(object, object)
+
     sigSaveFinished = QtCore.Signal(int)
 
     # Matplotlib style definition for saving plots
@@ -213,6 +218,7 @@ class SaveLogic(GenericLogic):
             self._daily_loghandler = None
 
         self.sigSaveData.connect(self._save_data)
+        # self.sigSaveWFData.connect(self._save_WF_data)
 
     def on_deactivate(self):
         if self._daily_loghandler is not None:
@@ -239,6 +245,9 @@ class SaveLogic(GenericLogic):
 
         self.sigSaveData.emit(data, filepath, parameters, filename, filelabel, timestamp, filetype, fmt, delimiter, plotfig)
 
+    # def save_WF_data(self, data, measurement_type):
+
+    #     self.sigSaveWFData.emit(data, measurement_type)
 
     def _save_data(self, data, filepath=None, parameters=None, filename=None, filelabel=None,
                   timestamp=None, filetype='text', fmt='%.15e', delimiter='\t', plotfig=None):
@@ -573,6 +582,43 @@ class SaveLogic(GenericLogic):
 
         self.sigSaveFinished.emit(0)
 
+    def _save_WF_data(self, data_raw, meas_type):
+        """
+        General save routine for WF data.
+        """
+        # Create timestamp if none is present
+        timestamp = datetime.datetime.now()
+
+        directory = self._save_path + '/' + timestamp.strftime("%Y%m%d")
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+
+        #save the WF data
+        index = len(os.listdir(directory)) + 1
+
+        # savedict = {'saveData':self._WF_data[:,:,0:data_len], 'frequency':self._frequencies}
+
+        savedict = data_raw
+        file_path = directory + '/' + meas_type + '_' + str(index) + '.mat'
+        
+        sio.savemat(file_path, savedict)
+
+        # # try to trace back the functioncall to the class which was calling it.
+        # try:
+        #     frm = inspect.stack()[1]
+        #     # this will get the object, which called the save_data function.
+        #     mod = inspect.getmodule(frm[0])
+        #     # that will extract the name of the class.
+        #     module_name = mod.__name__.split('.')[-1]
+        # except:
+        #     # Sometimes it is not possible to get the object which called the save_data function
+        #     # (such as when calling this from the console).
+        #     module_name = 'UNSPECIFIED'
+
+        self.sigSaveFinished.emit(0)
+
+        return file_path
+
     def save_array_as_text(self, data, filename, filepath='', fmt='%.15e', header='',
                            delimiter='\t', comments='#', append=False):
         """
@@ -647,7 +693,6 @@ class SaveLogic(GenericLogic):
 
         # make the return output consistent
         return os.path.abspath(current_dir)
-
 
     def get_root_directory(self):
         return self.data_dir

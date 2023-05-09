@@ -47,15 +47,17 @@ class PulseStreamer(Base, PulserInterface):
         external_clock_option: 0
     """
 
-    _pulsestreamer_ip = ConfigOption('pulsestreamer_ip', '169.254.8.2', missing='warn')
+    _pulsestreamer_ip = ConfigOption('pulsestreamer_ip', '192.168.1.100', missing='warn')
     _laser_channel = ConfigOption('laser_channel', 0, missing='warn')
-    _uw_x_channel = ConfigOption('uw_x_channel', 1, missing='warn')
+    _mw1_switch = ConfigOption('mw1_switch', 2, missing='warn')
 
     _pixel_start = ConfigOption('pixel_start', 5, missing='warn')
     _pixel_stop = ConfigOption('pixel_stop', 6, missing='warn')
     _sync_in = ConfigOption('sync_in', 7, missing='warn')
-    _mw_switch = ConfigOption('mw_switch', 2, missing='info')
+    _mw2_switch = ConfigOption('mw2_switch', 1, missing='info')
     _mw_trig = ConfigOption('mw_trig', 3, missing='info')
+    _camera_trig = ConfigOption('camera_trig', 4, missing='info')
+    
 
     _use_external_clock = ConfigOption('use_external_clock', False, missing='info')
     _external_clock_option = ConfigOption('external_clock_option', 0, missing='info')
@@ -73,7 +75,9 @@ class PulseStreamer(Base, PulserInterface):
         self.__currently_loaded_waveform = ''  # loaded and armed waveform name
         self.__samples_written = 0
         self._trigger = ps.TriggerStart.SOFTWARE
-        self._laser_mw_on_state = ps.OutputState([], 0, 0)
+        self._laser_on_state = ps.OutputState([self._laser_channel], 0, 0)
+        self._laser_off_state = ps.OutputState([], 0, 0)
+
 
     def on_activate(self):
         """ Establish connection to pulse streamer and tell it to cancel all operations """
@@ -233,9 +237,8 @@ class PulseStreamer(Base, PulserInterface):
 
         return constraints
 
-    def pulser_on(self, trigger=False,  n=-1, rearm=False, final=ps.OutputState([], 0, 0), laser=False):
+    def pulser_on(self, trigger=False,  n=-1, rearm=False, final=None):
         """ Switches the pulsing device on.
-
         @return int: error code (0:OK, -1:error)
         """
         if self._seq:
@@ -245,12 +248,14 @@ class PulseStreamer(Base, PulserInterface):
                 self.pulse_streamer.setTrigger(start=ps.TriggerStart.SOFTWARE)
             if rearm:
                 self.pulse_streamer.setTrigger(start=ps.TriggerStart.HARDWARE_RISING, rearm=ps.TriggerRearm.MANUAL)
-            self.pulse_streamer.stream(self._seq, n_runs = n, final = final)
+            if final:
+                self._final_state = final
+            else:
+                self._final_state = ps.OutputState([], 0, 0)
+            self.pulse_streamer.stream(self._seq, n_runs = n, final = self._final_state)
             self.pulse_streamer.startNow()
             self.__current_status = 1
             return 0
-        elif laser:
-            self.pulse_streamer.constant(ps.OutputState([self._laser_channel], 0, 0))
         else:
             self.log.error('no sequence/pulse pattern prepared for the pulse streamer')
             self.pulser_off()
