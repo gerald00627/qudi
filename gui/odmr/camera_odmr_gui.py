@@ -149,15 +149,27 @@ class WidefieldGUI(GUIBase):
         self.mwsettings.setValue("windowState", self._mw.saveState())
 
         # Get hardware constraints to set limits for input widgets
-        constraints = self._widefield_logic.get_hw_constraints()
+        # constraints = self._widefield_logic.get_hw_constraints()
+        mw1_constraints = self._widefield_logic.ext_microwave1_constraints
+        mw2_constraints = self._widefield_logic.ext_microwave2_constraints
 
         # Adjust range of scientific spinboxes above what is possible in Qt Designer
-        self._mw.cw_frequency_DoubleSpinBox.setMaximum(constraints.max_frequency)
-        self._mw.cw_frequency_DoubleSpinBox.setMinimum(constraints.min_frequency)
-        self._mw.cw_power_DoubleSpinBox.setMaximum(constraints.max_power)
-        self._mw.cw_power_DoubleSpinBox.setMinimum(constraints.min_power)
-        self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
-        self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
+        self._mw.cw_frequency_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
+        self._mw.cw_frequency_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
+        self._mw.cw_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
+        self._mw.cw_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
+        self._mw.sweep_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
+        self._mw.sweep_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
+
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.setMinimum(mw2_constraints.min_frequency)
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.setMaximum(mw2_constraints.max_frequency)
+
+        self._mw.ext_control_mw1_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
+        self._mw.ext_control_mw2_power_DoubleSpinBox.setMinimum(mw2_constraints.min_power)
+        self._mw.ext_control_mw1_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
+        self._mw.ext_control_mw2_power_DoubleSpinBox.setMaximum(mw2_constraints.max_power)
 
         self._create_predefined_methods()
 
@@ -418,8 +430,16 @@ class WidefieldGUI(GUIBase):
         self._mw.pulser_on_off_PushButton.clicked.connect(self.pulser_on_off_clicked)
         self._mw.clear_device_PushButton.clicked.connect(self.clear_pulser_clicked)
 
-        # Camera Setup
+        # External MW Control signals
+        self._mw.ext_control_use_mw1_CheckBox.stateChanged.connect(self.microwave1_settings_changed)
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.editingFinished.connect(self.microwave1_settings_changed)
+        self._mw.ext_control_mw1_power_DoubleSpinBox.editingFinished.connect(self.microwave1_settings_changed)
 
+        self._mw.ext_control_use_mw2_CheckBox.stateChanged.connect(self.microwave2_settings_changed)
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.connect(self.microwave2_settings_changed)
+        self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.connect(self.microwave2_settings_changed)
+
+        # Camera Setup
         self._mw.start_video_Action.setEnabled(True)
         self._mw.start_video_Action.setChecked(self._camera_logic.enabled)
         self._mw.start_video_Action.triggered.connect(self.start_video_clicked)
@@ -541,6 +561,13 @@ class WidefieldGUI(GUIBase):
         self._mw.pulser_on_off_PushButton.clicked.disconnect()
         self._mw.clear_device_PushButton.clicked.disconnect()
 
+        #Disconnect External MW Control Settings
+        self._mw.ext_control_use_mw1_CheckBox.stateChanged.disconnect()
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.ext_control_mw1_power_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.ext_control_use_mw2_CheckBox.stateChanged.disconnect()
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.disconnect()
 
 
         dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
@@ -586,7 +613,7 @@ class WidefieldGUI(GUIBase):
         # make sure the logic keeps track
         groupBox = self._mw.measurement_control_DockWidget.ranges_GroupBox
         gridLayout = groupBox.layout()
-        constraints = self._widefield_logic.get_hw_constraints()
+        mw1_constraints = self._widefield_logic.ext_microwave1_constraints
 
         insertion_row = self._widefield_logic.ranges
         # start
@@ -595,8 +622,8 @@ class WidefieldGUI(GUIBase):
         setattr(self._mw.measurement_control_DockWidget, 'start_label_{}'.format(insertion_row), start_label)
         start_freq_DoubleSpinBox = ScienDSpinBox(groupBox)
         start_freq_DoubleSpinBox.setSuffix('Hz')
-        start_freq_DoubleSpinBox.setMaximum(constraints.max_frequency)
-        start_freq_DoubleSpinBox.setMinimum(constraints.min_frequency)
+        start_freq_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
+        start_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
         start_freq_DoubleSpinBox.setMinimumSize(QtCore.QSize(80, 0))
         start_freq_DoubleSpinBox.setValue(self._widefield_logic.mw_starts[0])
         start_freq_DoubleSpinBox.setMinimumWidth(75)
@@ -630,8 +657,8 @@ class WidefieldGUI(GUIBase):
         setattr(self._mw.measurement_control_DockWidget, 'stop_label_{}'.format(insertion_row), stop_label)
         stop_freq_DoubleSpinBox = ScienDSpinBox(groupBox)
         stop_freq_DoubleSpinBox.setSuffix('Hz')
-        stop_freq_DoubleSpinBox.setMaximum(constraints.max_frequency)
-        stop_freq_DoubleSpinBox.setMinimum(constraints.min_frequency)
+        stop_freq_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
+        stop_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
         stop_freq_DoubleSpinBox.setMinimumSize(QtCore.QSize(80, 0))
         stop_freq_DoubleSpinBox.setValue(self._widefield_logic.mw_stops[0])
         stop_freq_DoubleSpinBox.setMinimumWidth(75)
@@ -770,6 +797,16 @@ class WidefieldGUI(GUIBase):
             self._mw.pixel_format_comboBox.setEnabled(False)
             self._mw.plot_pixel_x_spinBox.setEnabled(False)
             self._mw.plot_pixel_y_spinBox.setEnabled(False)
+
+            self._mw.pulser_on_off_PushButton.setEnabled(False)
+            self._mw.clear_device_PushButton.setEnabled(False)
+            self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_use_mw2_CheckBox.stateChanged.setEnabled(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.setEnabled(False)
+
             
             dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
             for identifier_name in dspinbox_dict:
@@ -865,6 +902,16 @@ class WidefieldGUI(GUIBase):
             self._mw.pixel_format_comboBox.setEnabled(False)
             self._mw.plot_pixel_x_spinBox.setEnabled(False)
             self._mw.plot_pixel_y_spinBox.setEnabled(False)
+
+            self._mw.pulser_on_off_PushButton.setEnabled(False)
+            self._mw.clear_device_PushButton.setEnabled(False)
+            self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_use_mw2_CheckBox.stateChanged.setEnabled(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.setEnabled(False)
+
             if mw_mode != 'cw':
                 self._mw.clear_odmr_PushButton.setEnabled(True)
                 self._mw.action_run_stop.setEnabled(True)
@@ -931,6 +978,15 @@ class WidefieldGUI(GUIBase):
             self._mw.action_resume_odmr.setChecked(False)
             self._mw.action_toggle_cw.setChecked(False)
 
+            self._mw.pulser_on_off_PushButton.setEnabled(True)
+            self._mw.clear_device_PushButton.setEnabled(True)
+            self._mw.ext_control_use_mw1_CheckBox.setEnabled(True)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_use_mw2_CheckBox.stateChanged.setEnabled(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.setEnabled(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.setEnabled(True)
+
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)
         self._mw.action_resume_odmr.blockSignals(False)
@@ -982,6 +1038,68 @@ class WidefieldGUI(GUIBase):
     def clear_pulser_clicked(self):
         "Delete all loaded files in pulser's current memory"
         self._widefield_logic.clear_pulse_generator()
+        return
+
+    @QtCore.Slot()
+    def microwave1_settings_changed(self):
+        """ Shows or hides input widgets which are necessary if an external mw is turned on"""
+        if self._mw.action_run_stop.isChecked():
+            return
+
+        use_ext_microwave1 = self._mw.ext_control_use_mw1_CheckBox.isChecked()
+
+        settings_dict = dict()
+        settings_dict['use_ext_microwave1'] = use_ext_microwave1
+        settings_dict['frequency1'] = self._mw.ext_control_mw1_freq_DoubleSpinBox.value()
+        settings_dict['power1'] = self._mw.ext_control_mw1_power_DoubleSpinBox.value()
+
+        if use_ext_microwave1 and not self._mw.ext_control_mw1_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw1_freq_Label.setVisible(True)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw1_power_Label.setVisible(True)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
+        elif not use_ext_microwave1 and self._mw.ext_control_mw1_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_freq_Label.setVisible(False)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setVisible(False)
+            self._mw.ext_control_mw1_power_Label.setVisible(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setVisible(False)
+
+        self._widefield_logic.set_ext_microwave1_settings(settings_dict)
+        return
+
+    @QtCore.Slot()
+    def microwave2_settings_changed(self):
+        """ Shows or hides input widgets which are necessary if an external mw is turned on"""
+        if self._mw.action_run_stop.isChecked():
+            return
+
+        use_ext_microwave2 = self._mw.ext_control_use_mw2_CheckBox.isChecked()
+
+        settings_dict = dict()
+        settings_dict['use_ext_microwave2'] = use_ext_microwave2
+        settings_dict['frequency2'] = self._mw.ext_control_mw2_freq_DoubleSpinBox.value()
+        settings_dict['power2'] = self._mw.ext_control_mw2_power_DoubleSpinBox.value()
+
+        if use_ext_microwave2 and not self._mw.ext_control_mw2_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw2_freq_Label.setVisible(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw2_power_Label.setVisible(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
+        elif not use_ext_microwave2 and self._mw.ext_control_mw2_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_freq_Label.setVisible(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setVisible(False)
+            self._mw.ext_control_mw2_power_Label.setVisible(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setVisible(False)
+
+        self._widefield_logic.set_ext_microwave2_settings(settings_dict)
         return
 
     def update_plots(self, odmr_data_x, odmr_data_y, x_label=None, unit_label=None):

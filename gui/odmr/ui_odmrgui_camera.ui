@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>866</width>
-    <height>772</height>
+    <width>1262</width>
+    <height>753</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>qudi: Camera control</string>
@@ -21,7 +27,26 @@
     </sizepolicy>
    </property>
    <layout class="QGridLayout" name="gridLayout_4">
-    <item row="0" column="1" rowspan="2">
+    <item row="0" column="0">
+     <widget class="PlotWidget" name="image_PlotWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>1</horstretch>
+        <verstretch>2</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="transformationAnchor">
+       <enum>QGraphicsView::AnchorUnderMouse</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="2" rowspan="2">
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <widget class="QComboBox" name="odmr_channel_ComboBox"/>
@@ -212,25 +237,6 @@
       </item>
      </layout>
     </item>
-    <item row="0" column="0">
-     <widget class="PlotWidget" name="image_PlotWidget">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>1</horstretch>
-        <verstretch>2</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="transformationAnchor">
-       <enum>QGraphicsView::AnchorUnderMouse</enum>
-      </property>
-     </widget>
-    </item>
     <item row="1" column="0">
      <widget class="PlotWidget" name="odmr_PlotWidget">
       <property name="sizePolicy">
@@ -248,7 +254,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>866</width>
+     <width>1262</width>
      <height>21</height>
     </rect>
    </property>
@@ -494,15 +500,15 @@
   </widget>
   <widget class="QDockWidget" name="measurement_control_DockWidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
-     <width>594</width>
-     <height>160</height>
+     <width>990</width>
+     <height>297</height>
     </size>
    </property>
    <property name="allowedAreas">
@@ -515,148 +521,404 @@
     <number>8</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_4">
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
     <layout class="QGridLayout" name="gridLayout_3">
-     <item row="1" column="1">
-      <widget class="ScienDSpinBox" name="cw_frequency_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>Hz</string>
-       </property>
-       <property name="decimals">
-        <number>6</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="4">
-      <widget class="QLabel" name="elapsed_sweeps_label">
-       <property name="text">
-        <string>Elapsed Sweeps:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="runtime_label">
-       <property name="text">
-        <string>Runtime:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="power_label">
-       <property name="text">
-        <string>Power:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="3">
-      <widget class="QLCDNumber" name="elapsed_time_lcd"/>
-     </item>
-     <item row="1" column="3">
-      <widget class="ScienDSpinBox" name="cw_power_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>dBm</string>
-       </property>
-       <property name="decimals">
-        <number>5</number>
-       </property>
-       <property name="minimum">
-        <double>-1000.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>100.000000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="cw_power_label">
-       <property name="text">
-        <string>CW Power:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="ScienDSpinBox" name="sweep_power_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>dBm</string>
-       </property>
-       <property name="decimals">
-        <number>5</number>
-       </property>
-       <property name="minimum">
-        <double>-1000.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>100.000000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="5">
-      <widget class="QLCDNumber" name="elapsed_sweeps_lcd"/>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="cw_frequency_label">
+     <item row="0" column="1">
+      <widget class="QGroupBox" name="groupBox">
        <property name="enabled">
         <bool>true</bool>
        </property>
-       <property name="text">
-        <string>CW Frequency:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="ScienDSpinBox" name="runtime_DoubleSpinBox">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="suffix">
-        <string>s</string>
+       <property name="title">
+        <string>External MW Control</string>
        </property>
-       <property name="decimals">
-        <number>2</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="3">
+           <widget class="QCheckBox" name="ext_control_use_mw2_CheckBox">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="ext_control_mw1_freq_Label">
+            <property name="text">
+             <string>MW1 Freq:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="ext_control_mw1_freq_DoubleSpinBox">
+            <property name="suffix">
+             <string> GHz</string>
+            </property>
+            <property name="decimals">
+             <number>4</number>
+            </property>
+            <property name="value">
+             <double>2.870000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Ext MW2:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="ext_control_use_mw1_CheckBox">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="ext_control_mw2_freq_Label">
+            <property name="text">
+             <string>MW2 Freq:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="ext_control_mw1_power_Label">
+            <property name="text">
+             <string>MW1 Power:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Ext MW1:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLabel" name="ext_control_mw2_power_Label">
+            <property name="text">
+             <string>MW2 Power:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QDoubleSpinBox" name="ext_control_mw2_power_DoubleSpinBox">
+            <property name="suffix">
+             <string> dBm</string>
+            </property>
+            <property name="minimum">
+             <double>-50.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>40.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>-30.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDoubleSpinBox" name="ext_control_mw1_power_DoubleSpinBox">
+            <property name="suffix">
+             <string> dBm</string>
+            </property>
+            <property name="minimum">
+             <double>-50.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>40.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>-30.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QDoubleSpinBox" name="ext_control_mw2_freq_DoubleSpinBox">
+            <property name="suffix">
+             <string> GHz</string>
+            </property>
+            <property name="decimals">
+             <number>4</number>
+            </property>
+            <property name="value">
+             <double>2.870000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
      </item>
-     <item row="3" column="2">
-      <widget class="QLabel" name="elapsed_time_label">
-       <property name="text">
-        <string>Elapsed Time (s):</string>
+     <item row="0" column="2">
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
+       <property name="minimumSize">
+        <size>
+         <width>312</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Measurement Time</string>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_8">
+        <item row="0" column="0">
+         <layout class="QGridLayout" name="gridLayout_2">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetDefaultConstraint</enum>
+          </property>
+          <property name="topMargin">
+           <number>6</number>
+          </property>
+          <item row="2" column="0">
+           <widget class="QLabel" name="elapsed_sweeps_label">
+            <property name="text">
+             <string>Elapsed Sweeps:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="runtime_label">
+            <property name="text">
+             <string>Runtime:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="elapsed_time_label">
+            <property name="text">
+             <string>Elapsed Time (s):</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLCDNumber" name="elapsed_sweeps_lcd"/>
+          </item>
+          <item row="0" column="1">
+           <widget class="ScienDSpinBox" name="runtime_DoubleSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string>s</string>
+            </property>
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <double>1000000000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.010000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLCDNumber" name="elapsed_time_lcd"/>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
      </item>
      <item row="0" column="0">
-      <widget class="QComboBox" name="measurement_type_comboBox"/>
+      <widget class="QGroupBox" name="groupBox_3">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>312</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>CW Control</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
+           <widget class="QLabel" name="power_label">
+            <property name="text">
+             <string>Power:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="ScienDSpinBox" name="sweep_power_DoubleSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string>dBm</string>
+            </property>
+            <property name="decimals">
+             <number>5</number>
+            </property>
+            <property name="minimum">
+             <double>-1000.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>100.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="cw_frequency_label">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>CW Frequency:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="ScienDSpinBox" name="cw_frequency_DoubleSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string>Hz</string>
+            </property>
+            <property name="decimals">
+             <number>6</number>
+            </property>
+            <property name="maximum">
+             <double>1000000000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.010000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="cw_power_label">
+            <property name="text">
+             <string>CW Power:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="ScienDSpinBox" name="cw_power_DoubleSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string>dBm</string>
+            </property>
+            <property name="decimals">
+             <number>5</number>
+            </property>
+            <property name="minimum">
+             <double>-1000.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>100.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QComboBox" name="measurement_type_comboBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>290</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -968,6 +1230,36 @@
    <header>gui/fitsettings</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>gainSpinBox</tabstop>
+  <tabstop>gain_Slider</tabstop>
+  <tabstop>triggerMode_checkBox</tabstop>
+  <tabstop>exposuremode_comboBox</tabstop>
+  <tabstop>exposure_Slider</tabstop>
+  <tabstop>exposureDSpinBox</tabstop>
+  <tabstop>x_pixels_SpinBox</tabstop>
+  <tabstop>y_pixels_SpinBox</tabstop>
+  <tabstop>offset_x_spinBox</tabstop>
+  <tabstop>offset_y_spinBox</tabstop>
+  <tabstop>pixel_format_comboBox</tabstop>
+  <tabstop>plot_pixel_x_spinBox</tabstop>
+  <tabstop>plot_pixel_y_spinBox</tabstop>
+  <tabstop>xy_cb_PlotWidget</tabstop>
+  <tabstop>xy_cb_centiles_RadioButton</tabstop>
+  <tabstop>odmr_PlotWidget</tabstop>
+  <tabstop>image_PlotWidget</tabstop>
+  <tabstop>xy_cb_low_percentile_DoubleSpinBox</tabstop>
+  <tabstop>odmr_channel_ComboBox</tabstop>
+  <tabstop>xy_cb_min_DoubleSpinBox</tabstop>
+  <tabstop>xy_cb_max_DoubleSpinBox</tabstop>
+  <tabstop>xy_cb_high_percentile_DoubleSpinBox</tabstop>
+  <tabstop>xy_cb_manual_RadioButton</tabstop>
+  <tabstop>textBrowser</tabstop>
+  <tabstop>do_fit_PushButton</tabstop>
+  <tabstop>fit_methods_ComboBox</tabstop>
+  <tabstop>image_fit_pushButton</tabstop>
+  <tabstop>fit_range_SpinBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

@@ -146,6 +146,8 @@ class WidefieldMeasurementLogic(GenericLogic):
 
     # PulsedMeasurementLogic control signal
     sigTogglePulser = QtCore.Signal(bool)
+    sigExtMicrowave1SettingsChanged = QtCore.Signal(dict)
+    sigExtMicrowave2SettingsChanged = QtCore.Signal(dict)
 
 
     def __init__(self, config, **kwargs):
@@ -320,7 +322,11 @@ class WidefieldMeasurementLogic(GenericLogic):
         # Connect signals controlling PulsedMeasurement Logic
         self.sigTogglePulser.connect(
             self.pulsedmeasurementlogic().toggle_pulse_generator, QtCore.Qt.QueuedConnection)
-
+        self.sigExtMicrowave1SettingsChanged.connect(
+            self.pulsedmeasurementlogic().set_microwave1_settings, QtCore.Qt.QueuedConnection)
+        self.sigExtMicrowave2SettingsChanged.connect(
+            self.pulsedmeasurementlogic().set_microwave2_settings, QtCore.Qt.QueuedConnection)
+        
         return
 
     def on_deactivate(self):
@@ -376,6 +382,8 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         # Disconnect signals controlling PulsedMeasurementLogic
         self.sigTogglePulser.disconnect()
+        self.sigExtMicrowave1SettingsChanged.disconnect()
+        self.sigExtMicrowave2SettingsChanged.disconnect()
 
     @fc.constructor
     def sv_set_fits(self, val):
@@ -1109,6 +1117,32 @@ class WidefieldMeasurementLogic(GenericLogic):
             self.sigNextLine.emit()
             return
 
+    @QtCore.Slot(dict)
+    def set_ext_microwave1_settings(self, settings_dict=None, **kwargs):
+        """
+
+        @param settings_dict:
+        @param kwargs:
+        """
+        if isinstance(settings_dict, dict):
+            self.sigExtMicrowave1SettingsChanged.emit(settings_dict)
+        else:
+            self.sigExtMicrowave1SettingsChanged.emit(kwargs)
+        return
+
+    @QtCore.Slot(dict)
+    def set_ext_microwave2_settings(self, settings_dict=None, **kwargs):
+        """
+
+        @param settings_dict:
+        @param kwargs:
+        """
+        if isinstance(settings_dict, dict):
+            self.sigExtMicrowave2SettingsChanged.emit(settings_dict)
+        else:
+            self.sigExtMicrowave2SettingsChanged.emit(kwargs)
+        return
+
     def plot_single_pixel(self):
         """ Prepares single curve data for plotting """
 
@@ -1548,7 +1582,18 @@ class WidefieldMeasurementLogic(GenericLogic):
         return self.odmr_plot_x, self.odmr_plot_y, fit_params
     
 
-#######################################################################
+    #######################################################################
+    ###             Pulsed measurement properties                       ###
+    #######################################################################
+    @property
+    def ext_microwave1_constraints(self):
+        return self.pulsedmeasurementlogic().ext_microwave1_constraints
+    
+    @property
+    def ext_microwave2_constraints(self):
+        return self.pulsedmeasurementlogic().ext_microwave2_constraints
+
+    #######################################################################
     ###             Sequence generator properties                       ###
     #######################################################################
     @property

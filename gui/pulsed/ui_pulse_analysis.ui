@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1341</width>
-    <height>703</height>
+    <width>765</width>
+    <height>705</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -911,11 +911,6 @@
    <header>qtwidgets.scientific_spinbox.h</header>
   </customwidget>
   <customwidget>
-   <class>ScienSpinBox</class>
-   <extends>QSpinBox</extends>
-   <header>qtwidgets.scientific_spinbox.h</header>
-  </customwidget>
-  <customwidget>
    <class>PlotWidget</class>
    <extends>QGraphicsView</extends>
    <header>pyqtgraph</header>
@@ -924,6 +919,11 @@
    <class>FitSettingsComboBox</class>
    <extends>QComboBox</extends>
    <header>gui/fitsettings</header>
+  </customwidget>
+  <customwidget>
+   <class>ScienSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>qtwidgets.scientific_spinbox.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
