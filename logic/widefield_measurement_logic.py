@@ -184,12 +184,13 @@ class WidefieldMeasurementLogic(GenericLogic):
         self._pulser = self.pulser()
 
         # Get hardware constraints
-        limits = self.get_hw_constraints()
+        self.mw1_limits = self.ext_microwave1_constraints
+        self.mw2_limits = self.ext_microwave2_constraints
 
         # Set/recall microwave source parameters
-        self.cw_mw_frequency = limits.frequency_in_range(self.cw_mw_frequency)
-        self.cw_mw_power = limits.power_in_range(self.cw_mw_power)
-        self.sweep_mw_power = limits.power_in_range(self.sweep_mw_power)
+        # self.cw_mw_frequency = limits.frequency_in_range(self.cw_mw_frequency)
+        # self.cw_mw_power = limits.power_in_range(self.cw_mw_power)
+        # self.sweep_mw_power = limits.power_in_range(self.sweep_mw_power)
 
         self.gain = self._widefield_camera.get_gain()
         self.trigger_mode = self._widefield_camera.get_trigger_mode()
@@ -220,10 +221,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         #Place holder for currently loaded sequence string
         self.curr_loaded_seq = 'WF_ODMR'
         
-        # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
-        # theoretically this can be changed, but the current counting scheme will not support that
         self.mw_trigger_pol = TriggerEdge.RISING
-        self.set_trigger(self.mw_trigger_pol, self.frame_rate)
 
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
@@ -255,8 +253,20 @@ class WidefieldMeasurementLogic(GenericLogic):
         )
 
         # Switch off microwave and set CW frequency and power
-        self.mw_off()
-        self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
+        self.mw1_off()
+        self.mw2_off()
+
+        # if self.pulsedmeasurementlogic.use_ext_microwave1:
+        #     self.set_microwave1_settings(frequency=self.__microwave1_freq,
+        #                                 power=self.__microwave1_power,
+        #                                 use_ext_microwave1=True)
+
+        # if self.use_ext_microwave2:
+        #     self.set_microwave2_settings(frequency=self.__microwave2_freq,
+        #                                 power=self.__microwave2_power,
+        #                                 use_ext_microwave2=True)
+
+        # self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
 
         # Connect signals
         self.sigNextLine.connect(self._scan_widefield_odmr_line, QtCore.Qt.QueuedConnection)
@@ -345,7 +355,8 @@ class WidefieldMeasurementLogic(GenericLogic):
                                'running but can not be stopped after 30 sec.')
                 break
         # Switch off microwave source for sure (also if CW mode is active or module is still locked)
-        self._mw_device.off()
+        self.mw1_off()
+        self.mw2_off()
 
         # Disconnect signals
         self.sigNextLine.disconnect()
@@ -464,7 +475,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             tau_end = []
             num_points = []
             tau_array = []
-            reference = []
+            # reference = []
 
             if 'tau_start' in self.generate_method_params.get(self.curr_loaded_seq).keys():
                 tau_start = self.generate_method_params.get(self.curr_loaded_seq)['tau_start']
@@ -478,21 +489,20 @@ class WidefieldMeasurementLogic(GenericLogic):
             if 'num_of_points' in self.generate_method_params.get(self.curr_loaded_seq).keys():
                 num_points = self.generate_method_params.get(self.curr_loaded_seq)['num_of_points']
 
-            if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                reference = self.generate_method_params.get(self.curr_loaded_seq)['reference']
+            # if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
+            #     reference = self.generate_method_params.get(self.curr_loaded_seq)['reference']
 
             if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
                 self.tau_array = tau_start + np.arange(num_points) * tau_step
             elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
+                self.tau_array = np.geomspace(tau_start, tau_end, num_points)
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
                 self.tau_array = np.geomspace(tau_start, tau_end, num_points)
             else:
                 self.log.warning('Unable to initialize plot for this sequence.')
     
             if type(tau_array) != np.ndarray:
                 self.tau_array = np.array(self.tau_array)
-
-            # # this is where curves are added for multiple sources
-            # if reference:
                 
             # else:
             self.odmr_plot_x = self.tau_array
@@ -615,29 +625,30 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.sigParameterUpdated.emit(real_params)
         input_limits, output_limits = self._widefield_camera.get_channel_limits()
         self.sigCameraLimits.emit((limits, input_limits, output_limits))
+
         return real_params
 
-    def set_cw_parameters(self, frequency, power):
-        """ Set the desired new cw mode parameters.
+    # def set_cw_parameters(self, frequency, power):
+    #     """ Set the desired new cw mode parameters.
 
-        @param float frequency: frequency to set in Hz
-        @param float power: power to set in dBm
+    #     @param float frequency: frequency to set in Hz
+    #     @param float power: power to set in dBm
 
-        @return (float, float): actually set frequency in Hz, actually set power in dBm
-        """
-        if self.module_state() != 'locked' and isinstance(frequency, (int, float)) and isinstance(power, (int, float)):
-            constraints = self.get_hw_constraints()
-            frequency_to_set = constraints.frequency_in_range(frequency)
-            power_to_set = constraints.power_in_range(power)
-            self.cw_mw_frequency, self.cw_mw_power, dummy = self._mw_device.set_cw(frequency_to_set,
-                                                                                   power_to_set)
-        else:
-            self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
-                             'no integer or float.')
+    #     @return (float, float): actually set frequency in Hz, actually set power in dBm
+    #     """
+    #     if self.module_state() != 'locked' and isinstance(frequency, (int, float)) and isinstance(power, (int, float)):
+    #         constraints = self.get_hw_constraints()
+    #         frequency_to_set = constraints.frequency_in_range(frequency)
+    #         power_to_set = constraints.power_in_range(power)
+    #         self.cw_mw_frequency, self.cw_mw_power, dummy = self._mw_device.set_cw(frequency_to_set,
+    #                                                                                power_to_set)
+    #     else:
+    #         self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
+    #                          'no integer or float.')
 
-        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-        self.sigParameterUpdated.emit(param_dict)
-        return self.cw_mw_frequency, self.cw_mw_power
+    #     param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+    #     self.sigParameterUpdated.emit(param_dict)
+    #     return self.cw_mw_frequency, self.cw_mw_power
 
     def set_sweep_parameters(self, starts, stops, steps, power):
         """ Set the desired frequency parameters for list and sweep mode
@@ -827,7 +838,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             self._mw_device.reset_listpos()
         return
 
-    def mw_off(self):
+    def mw1_off(self):
         """ Switching off the MW source.
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
@@ -837,6 +848,19 @@ class WidefieldMeasurementLogic(GenericLogic):
             self.log.error('Switching off microwave source failed.')
 
         mode, is_running = self._mw_device.get_status()
+        self.sigOutputStateUpdated.emit(mode, is_running)
+        return mode, is_running
+
+    def mw2_off(self):
+        """ Switching off the MW source.
+
+        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+        """
+        error_code = self._mw_device2.off()
+        if error_code < 0:
+            self.log.error('Switching off microwave source failed.')
+
+        mode, is_running = self._mw_device2.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
@@ -897,8 +921,6 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
-            # self.set_trigger(self.mw_trigger_pol, self.frame_rate)
-
             self.module_state.lock()
             self._clearOdmrData = False
             self.stopRequested = False
@@ -910,9 +932,14 @@ class WidefieldMeasurementLogic(GenericLogic):
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
 
-            #sets the microwave settings and turns on output
+            # Sets the microwave trigger settings
+            self.set_trigger(self.mw_trigger_pol, self.frame_rate)
+
+
+            # Sets the microwave settings and turns on output
             # mode, is_running = self.mw_sweep_on()
             mode, is_running = self.mw_cw_on()
+
 
             # odmr_status = self._start_widefield_odmr_counter()
             # if odmr_status < 0:
@@ -928,27 +955,11 @@ class WidefieldMeasurementLogic(GenericLogic):
 
             # Configure camera exposuremode / trigger mode 
             # TODO it should automatically update the camera settings and reflect it on gui too
-
             cam_trig_mode = self._pulsedmeasurementlogic.measurement_information.get('cam_trig_mode')
             cam_exp_mode = self._pulsedmeasurementlogic.measurement_information.get('cam_exp_mode')
 
             self._widefield_camera.set_trigger_mode(cam_trig_mode)
             self._widefield_camera.set_exposure_mode(cam_exp_mode)
-
-            # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
-            #     self._widefield_camera.set_trigger_mode(False)
-            #     self._widefield_camera.set_exposure_mode('Timed')
-            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
-            #     self._widefield_camera.set_trigger_mode(True)
-            #     self._widefield_camera.set_exposure_mode('Timed')
-            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
-            #     self._widefield_camera.set_trigger_mode(True)
-            #     self._widefield_camera.set_exposure_mode('TriggerWidth')
-            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
-            #     self._widefield_camera.set_trigger_mode(True)
-            #     self._widefield_camera.set_exposure_mode('TriggerWidth')
-            # else: 
-            #     pass
 
             self._initialize_odmr_plots()
            
@@ -957,20 +968,6 @@ class WidefieldMeasurementLogic(GenericLogic):
             num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
 
             self.num_imgs = self.odmr_plot_x.size*num_curves
-
-            # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
-            #     self.num_imgs = self.odmr_plot_x.size
-            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
-            #     if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-            #         self.num_imgs = 2*self.odmr_plot_x.size
-            #     else:
-            #         self.num_imgs = self.odmr_plot_x.size
-            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
-            #     self.num_imgs = 2*self.odmr_plot_x.size
-            # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFexp3':
-            #     self.num_imgs = 3*self.odmr_plot_x.size
-            # else: 
-            #     pass
 
             self.odmr_raw_data = np.zeros(
             [self._widefield_camera.get_size()[0],
@@ -990,6 +987,7 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.log.error('Can not start ODMR scan. Logic is already locked.')
                 return -1
 
+            # Set the trigger polarity (RISING/FALLING) of the mw-source input trigger
             self.set_trigger(self.mw_trigger_pol, self.frame_rate)
 
             self.module_state.lock()
@@ -1049,7 +1047,8 @@ class WidefieldMeasurementLogic(GenericLogic):
             # Stop measurement if stop has been requested
             if self.stopRequested:
                 self.stopRequested = False
-                self.mw_off()
+                self.mw1_off()
+                self.mw2_off()
                 self._stop_widefield_odmr_counter()
                 self._pulser.pulser_off()
                 self.save_WF_data()
@@ -1537,49 +1536,49 @@ class WidefieldMeasurementLogic(GenericLogic):
     #     odmr_matrix_range = odmr_matrix_dp[:, y_args]
     #     return odmr_matrix_range
 
-    def perform_odmr_measurement(self, freq_start, freq_step, freq_stop, power, channel, runtime,
-                                 fit_function='No Fit', save_after_meas=True, name_tag=''):
-        """ An independant method, which can be called by a task with the proper input values
-            to perform an odmr measurement.
+    # def perform_odmr_measurement(self, freq_start, freq_step, freq_stop, power, channel, runtime,
+    #                              fit_function='No Fit', save_after_meas=True, name_tag=''):
+    #     """ An independant method, which can be called by a task with the proper input values
+    #         to perform an odmr measurement.
 
-        @return
-        """
-        timeout = 30
-        start_time = time.time()
-        while self.module_state() != 'idle':
-            time.sleep(0.5)
-            timeout -= (time.time() - start_time)
-            if timeout <= 0:
-                self.log.error('perform_odmr_measurement failed. Logic module was still locked '
-                               'and 30 sec timeout has been reached.')
-                return tuple()
+    #     @return
+    #     """
+    #     timeout = 30
+    #     start_time = time.time()
+    #     while self.module_state() != 'idle':
+    #         time.sleep(0.5)
+    #         timeout -= (time.time() - start_time)
+    #         if timeout <= 0:
+    #             self.log.error('perform_odmr_measurement failed. Logic module was still locked '
+    #                            'and 30 sec timeout has been reached.')
+    #             return tuple()
 
-        # set all relevant parameter:
-        self.set_sweep_parameters(freq_start, freq_stop, freq_step, power)
-        self.set_runtime(runtime)
+    #     # set all relevant parameter:
+    #     self.set_sweep_parameters(freq_start, freq_stop, freq_step, power)
+    #     self.set_runtime(runtime)
 
-        # start the scan
-        self.start_widefield_odmr_scan()
+    #     # start the scan
+    #     self.start_widefield_odmr_scan()
 
-        # wait until the scan has started
-        while self.module_state() != 'locked':
-            time.sleep(1)
-        # wait until the scan has finished
-        while self.module_state() == 'locked':
-            time.sleep(1)
+    #     # wait until the scan has started
+    #     while self.module_state() != 'locked':
+    #         time.sleep(1)
+    #     # wait until the scan has finished
+    #     while self.module_state() == 'locked':
+    #         time.sleep(1)
 
-        # Perform fit if requested
-        if fit_function != 'No Fit':
-            self.do_fit(fit_function, channel_index=channel)
-            fit_params = self.fc.current_fit_param
-        else:
-            fit_params = None
+    #     # Perform fit if requested
+    #     if fit_function != 'No Fit':
+    #         self.do_fit(fit_function, channel_index=channel)
+    #         fit_params = self.fc.current_fit_param
+    #     else:
+    #         fit_params = None
 
-        # Save data if requested
-        if save_after_meas:
-            self.save_odmr_data(tag=name_tag)
+    #     # Save data if requested
+    #     if save_after_meas:
+    #         self.save_odmr_data(tag=name_tag)
 
-        return self.odmr_plot_x, self.odmr_plot_y, fit_params
+    #     return self.odmr_plot_x, self.odmr_plot_y, fit_params
     
 
     #######################################################################

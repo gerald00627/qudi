@@ -397,9 +397,7 @@ class PulsedMeasurementLogic(GenericLogic):
         settings_dict['frequency2'] = float(self.__microwave2_freq)
         settings_dict['use_ext_microwave2'] = bool(self.__use_ext_microwave2)
         return settings_dict
-
-    
-
+  
     @ext_microwave1_settings.setter
     def ext_microwave1_settings(self, settings_dict):
         if isinstance(settings_dict, dict):
@@ -407,7 +405,7 @@ class PulsedMeasurementLogic(GenericLogic):
         return
     
     @ext_microwave2_settings.setter
-    def ext_microwave1_settings(self, settings_dict):
+    def ext_microwave2_settings(self, settings_dict):
         if isinstance(settings_dict, dict):
             self.set_microwave2_settings(settings_dict)
         return

@@ -108,7 +108,7 @@ class WidefieldGUI(GUIBase):
     sigCwMwOn = QtCore.Signal()
     sigMwOff = QtCore.Signal()
     sigMwPowerChanged = QtCore.Signal(float)
-    sigMwCwParamsChanged = QtCore.Signal(float, float)
+    # sigMwCwParamsChanged = QtCore.Signal(float, float)
     sigCamParamsChanged = QtCore.Signal(dict)
     sigMwSweepParamsChanged = QtCore.Signal(list, list, list, float)
     sigFrameRateChanged = QtCore.Signal(float)
@@ -345,15 +345,16 @@ class WidefieldGUI(GUIBase):
 
         # Control/values-changed signals to logic
         self.sigCwMwOn.connect(self._widefield_logic.mw_cw_on, QtCore.Qt.QueuedConnection)
-        self.sigMwOff.connect(self._widefield_logic.mw_off, QtCore.Qt.QueuedConnection)
+        self.sigMwOff.connect(self._widefield_logic.mw1_off, QtCore.Qt.QueuedConnection)
+        self.sigMwOff.connect(self._widefield_logic.mw2_off, QtCore.Qt.QueuedConnection)
         self.sigClearData.connect(self._widefield_logic.clear_widefield_odmr_data, QtCore.Qt.QueuedConnection)
         self.sigStartOdmrScan.connect(self._widefield_logic.start_widefield_odmr_scan, QtCore.Qt.QueuedConnection)
         self.sigStopOdmrScan.connect(self._widefield_logic.stop_widefield_odmr_scan, QtCore.Qt.QueuedConnection)
         self.sigContinueOdmrScan.connect(self._widefield_logic.continue_widefield_odmr_scan,
                                          QtCore.Qt.QueuedConnection)
         self.sigDoFit.connect(self._widefield_logic.do_fit, QtCore.Qt.QueuedConnection)
-        self.sigMwCwParamsChanged.connect(self._widefield_logic.set_cw_parameters,
-                                          QtCore.Qt.QueuedConnection)
+        # self.sigMwCwParamsChanged.connect(self._widefield_logic.set_cw_parameters,
+                                        #   QtCore.Qt.QueuedConnection)
         self.sigCamParamsChanged.connect(self._widefield_logic.set_camera_parameters,
                                          QtCore.Qt.QueuedConnection)
         self.sigMwSweepParamsChanged.connect(self._widefield_logic.set_sweep_parameters,
@@ -527,7 +528,7 @@ class WidefieldGUI(GUIBase):
         self.sigStopOdmrScan.disconnect()
         self.sigContinueOdmrScan.disconnect()
         self.sigDoFit.disconnect()
-        self.sigMwCwParamsChanged.disconnect()
+        # self.sigMwCwParamsChanged.disconnect()
         self.sigCamParamsChanged.disconnect()
         self.sigMwSweepParamsChanged.disconnect()
         self.sigRuntimeChanged.disconnect()
@@ -1439,7 +1440,7 @@ class WidefieldGUI(GUIBase):
         """ Change CW frequency and power of microwave source """
         frequency = self._mw.cw_frequency_DoubleSpinBox.value()
         power = self._mw.cw_power_DoubleSpinBox.value()
-        self.sigMwCwParamsChanged.emit(frequency, power)
+        # self.sigMwCwParamsChanged.emit(frequency, power)
         return
 
     def change_camera_params(self):

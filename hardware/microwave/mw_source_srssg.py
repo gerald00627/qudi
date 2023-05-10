@@ -396,7 +396,7 @@ class MicrowaveSRSSG(Base, MicrowaveInterface):
             trigger timing
         """
 
-        self.log.warning('No external trigger channel can be set in this '
+        self.log.warning('No external trigger channel can be set for SRSSG '
                          'hardware. Method will be skipped.')
         return pol, timing
 
