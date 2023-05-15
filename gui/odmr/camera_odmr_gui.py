@@ -804,9 +804,9 @@ class WidefieldGUI(GUIBase):
             self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
             self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
             self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
-            self._mw.ext_control_use_mw2_CheckBox.stateChanged.setEnabled(False)
-            self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.setEnabled(False)
-            self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.setEnabled(False)
+            self._mw.ext_control_use_mw2_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
 
             
             dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
@@ -909,9 +909,9 @@ class WidefieldGUI(GUIBase):
             self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
             self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
             self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
-            self._mw.ext_control_use_mw2_CheckBox.stateChanged.setEnabled(False)
-            self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.setEnabled(False)
-            self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.setEnabled(False)
+            self._mw.ext_control_use_mw2_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
 
             if mw_mode != 'cw':
                 self._mw.clear_odmr_PushButton.setEnabled(True)
@@ -984,9 +984,9 @@ class WidefieldGUI(GUIBase):
             self._mw.ext_control_use_mw1_CheckBox.setEnabled(True)
             self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
             self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
-            self._mw.ext_control_use_mw2_CheckBox.stateChanged.setEnabled(True)
-            self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.setEnabled(True)
-            self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.setEnabled(True)
+            self._mw.ext_control_use_mw2_CheckBox.setEnabled(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
 
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)

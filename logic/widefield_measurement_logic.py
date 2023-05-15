@@ -171,8 +171,12 @@ class WidefieldMeasurementLogic(GenericLogic):
                             'fitting_busy': False}
         
         # Get connectors
-        self._mw_device = self.microwave1()
-        self._mw_device2 = self.microwave2()
+        # self._mw_device = self.microwave1()
+        # self._mw_device2 = self.microwave2()
+        self._mw_device2 = self.microwave1()
+        self._mw_device = self.microwave2()
+
+
 
         self._fit_logic = self.fitlogic()
         self._widefield_camera = self.widefieldcamera()
@@ -1054,6 +1058,10 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.save_WF_data()
                 self.module_state.unlock()
                 return
+
+            # Automatic save every 110 sweeps
+            if self.elapsed_sweeps%110 == 0:
+                self.save_WF_data()
 
             # if during the scan a clearing of the ODMR data is needed:
             if self._clearOdmrData:
