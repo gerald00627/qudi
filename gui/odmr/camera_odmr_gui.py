@@ -411,6 +411,9 @@ class WidefieldGUI(GUIBase):
         # self._widefield_logic.sigSamplingSettingsUpdated.connect(self.generation_parameters_updated)
         # self._widefield_logic.sigPredefinedSequenceGenerated.connect(self.predefined_generated)
 
+        # self._widefield_logic.sigExtMicrowave1SettingsUpdated.connect(self.microwave1_settings_updated)
+        # self._widefield_logic.sigExtMicrowave2SettingsUpdated.connect(self.microwave2_settings_updated)
+
         # connect settings signals
         self._mw.actionSettings.triggered.connect(self._menu_settings)
         self._sd.accepted.connect(self.update_settings)
@@ -521,6 +524,10 @@ class WidefieldGUI(GUIBase):
         self._widefield_logic.sigGeneratorSettingsUpdated.disconnect()
         self._widefield_logic.sigSamplingSettingsUpdated.disconnect()
         self._widefield_logic.sigPredefinedSequenceGenerated.disconnect()
+
+        # self._widefield_logic.sigExtMicrowave1SettingsUpdated.disconnect()
+        # self._widefield_logic.sigExtMicrowave2SettingsUpdated.disconnect()
+
         self.sigCwMwOn.disconnect()
         self.sigMwOff.disconnect()
         self.sigClearData.disconnect()

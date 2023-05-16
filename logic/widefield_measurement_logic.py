@@ -176,8 +176,6 @@ class WidefieldMeasurementLogic(GenericLogic):
         self._mw_device2 = self.microwave1()
         self._mw_device = self.microwave2()
 
-
-
         self._fit_logic = self.fitlogic()
         self._widefield_camera = self.widefieldcamera()
         self._save_logic = self.savelogic()
@@ -707,10 +705,41 @@ class WidefieldMeasurementLogic(GenericLogic):
         # if self.module_state() == 'locked':
         #     self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
         # else:
-        self.cw_mw_frequency, \
-        self.cw_mw_power, \
-        mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+
+
+        # self.cw_mw_frequency, \
+        # self.cw_mw_power, \
+        # mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
+        # param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+        # self.sigParameterUpdated.emit(param_dict)
+        # if mode != 'cw':
+        #     self.log.error('Switching to CW microwave output mode failed.')
+        # else:
+        #     err_code = self._mw_device.cw_on()
+        #     if err_code < 0:
+        #         self.log.error('Activation of microwave output failed.')
+
+        # mode, is_running = self._mw_device.get_status()
+        # self.sigOutputStateUpdated.emit(mode, is_running)
+        
+        self.log.warning('mw_cw_on called')
+        return
+
+        # return mode, is_running
+    
+    def mw1_cw_on(self):
+        """
+        Switching on the mw1 source in cw mode.
+
+        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+        """
+
+        mw1_power = self.ext_microwave1_settings.get('power1')
+        mw1_freq = self.ext_microwave1_settings.get('frequency1') # in Hz
+        
+        mw1_freq, mw1_power, mode = self._mw_device.set_cw(mw1_power,mw1_freq)
+
+        param_dict = {'cw_mw_frequency': mw1_freq, 'cw_mw_power': mw1_power}
         self.sigParameterUpdated.emit(param_dict)
         if mode != 'cw':
             self.log.error('Switching to CW microwave output mode failed.')
@@ -720,6 +749,31 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
+        self.sigOutputStateUpdated.emit(mode, is_running)
+        return mode, is_running
+    
+    def mw2_cw_on(self):
+        """
+        Switching on the mw1 source in cw mode.
+
+        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+        """
+
+        mw2_power = self.ext_microwave2_settings.get('power2')
+        mw2_freq = self.ext_microwave2_settings.get('frequency2') # in Hz
+        
+        mw2_freq, mw2_power, mode = self._mw_device2.set_cw(mw2_power,mw2_freq)
+
+        param_dict = {'cw_mw_frequency': mw2_freq, 'cw_mw_power': mw2_power}
+        self.sigParameterUpdated.emit(param_dict)
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
+        else:
+            err_code = self._mw_device2.cw_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
+
+        mode, is_running = self._mw_device2.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
@@ -942,9 +996,20 @@ class WidefieldMeasurementLogic(GenericLogic):
 
             # Sets the microwave settings and turns on output
             # mode, is_running = self.mw_sweep_on()
-            mode, is_running = self.mw_cw_on()
-
-
+                        
+            if (self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 and 
+                self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2):
+                self.log.error('Measurement started with no MW source')
+            elif ((self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 == False) and 
+                (self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2 == False)):
+                self.log.error('Measurement started with no MW source')
+            
+            if self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 == True:
+                self.mw1_cw_on()
+            
+            if self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2 == True:    
+                self.mw2_cw_on()
+            
             # odmr_status = self._start_widefield_odmr_counter()
             # if odmr_status < 0:
             #     mode, is_running = self._mw_device.get_status()
@@ -1076,8 +1141,11 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self._pulser.pulser_on(n=-1,final=self._pulser._laser_off_state) 
 
                 # Collect Count data
-                for i in range(len(self.final_freq_list)):
-                    self._mw_device.set_frequency(self.final_freq_list[i])
+                for i in range(len(self.final_freq_list)): 
+                    if self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 == True:
+                        self._mw_device.set_frequency(self.final_freq_list[i])
+                    elif self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2 == True:
+                        self._mw_device2.set_frequency(self.final_freq_list[i])
                     self._widefield_camera.begin_acquisition(1)
                     error,new_counts = self._widefield_camera.grab(1)
                     self.odmr_raw_data[:,:,i] += np.squeeze(new_counts)
@@ -1599,7 +1667,15 @@ class WidefieldMeasurementLogic(GenericLogic):
     @property
     def ext_microwave2_constraints(self):
         return self.pulsedmeasurementlogic().ext_microwave2_constraints
+    
+    @property
+    def ext_microwave1_settings(self):
+        return self.pulsedmeasurementlogic().ext_microwave1_settings
 
+    @property
+    def ext_microwave2_settings(self):
+        return self.pulsedmeasurementlogic().ext_microwave2_settings
+    
     #######################################################################
     ###             Sequence generator properties                       ###
     #######################################################################
