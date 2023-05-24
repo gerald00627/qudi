@@ -115,6 +115,7 @@ class WidefieldGUI(GUIBase):
     sigGPIOSettingsChanged = QtCore.Signal(dict,dict)
     sigFitChanged = QtCore.Signal(str)
     sigRuntimeChanged = QtCore.Signal(float)
+    sigAutosaveNumChanged = QtCore.Signal(int)
     sigDoFit = QtCore.Signal(str, object, object, int, int)
     sigSaveMeasurement = QtCore.Signal(str, list, list)
     sigChangeMeasurementType = QtCore.Signal(str)
@@ -271,6 +272,7 @@ class WidefieldGUI(GUIBase):
         self._mw.runtime_DoubleSpinBox.setValue(self._widefield_logic.run_time)
         self._mw.elapsed_time_lcd.display(int(np.rint(self._widefield_logic.elapsed_time)))
         self._mw.elapsed_sweeps_lcd.display(self._widefield_logic.elapsed_sweeps)
+        self._mw.autosave_num_spinBox.setValue(self._widefield_logic.autosave_num)
 
         self._sd.frame_rate_DoubleSpinBox.setValue(self._widefield_logic.frame_rate)
 
@@ -331,6 +333,8 @@ class WidefieldGUI(GUIBase):
         self._mw.sweep_power_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
         self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
         self._mw.runtime_DoubleSpinBox.editingFinished.connect(self.change_runtime)
+        self._mw.autosave_num_spinBox.editingFinished.connect(self.change_autosave_num)
+
 
         # Internal trigger signals
         self._mw.clear_odmr_PushButton.clicked.connect(self.clear_odmr_data)
@@ -360,6 +364,7 @@ class WidefieldGUI(GUIBase):
         self.sigMwSweepParamsChanged.connect(self._widefield_logic.set_sweep_parameters,
                                              QtCore.Qt.QueuedConnection)
         self.sigRuntimeChanged.connect(self._widefield_logic.set_runtime, QtCore.Qt.QueuedConnection)
+        self.sigAutosaveNumChanged.connect(self._widefield_logic.set_autosave_num, QtCore.Qt.QueuedConnection)
         self.sigFrameRateChanged.connect(self._widefield_logic.set_frame_rate,
                                          QtCore.Qt.QueuedConnection)
         self.sigGPIOSettingsChanged.connect(self._widefield_logic.set_gpio_settings, QtCore.Qt.QueuedConnection)
@@ -539,6 +544,7 @@ class WidefieldGUI(GUIBase):
         self.sigCamParamsChanged.disconnect()
         self.sigMwSweepParamsChanged.disconnect()
         self.sigRuntimeChanged.disconnect()
+        self.sigAutosaveNumChanged.disconnect()
         self.sigFrameRateChanged.disconnect()
         self.sigGPIOSettingsChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
@@ -586,6 +592,7 @@ class WidefieldGUI(GUIBase):
         self._mw.cw_power_DoubleSpinBox.editingFinished.disconnect()
         self._mw.sweep_power_DoubleSpinBox.editingFinished.disconnect()
         self._mw.runtime_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.autosave_num_spinBox.editingFinished.disconnect()
         self._mw.xy_cb_max_DoubleSpinBox.valueChanged.disconnect()
         self._mw.xy_cb_min_DoubleSpinBox.valueChanged.disconnect()
         self._mw.xy_cb_high_percentile_DoubleSpinBox.valueChanged.disconnect()
@@ -823,6 +830,7 @@ class WidefieldGUI(GUIBase):
             self._mw.measurement_control_DockWidget.add_range_button.setEnabled(False)
             self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(False)
             self._mw.runtime_DoubleSpinBox.setEnabled(False)
+            self._mw.autosave_num_spinBox.setEnabled(False)
             self._sd.frame_rate_DoubleSpinBox.setEnabled(False)
             self.sigStartOdmrScan.emit()
         else:
@@ -859,6 +867,7 @@ class WidefieldGUI(GUIBase):
             self._mw.measurement_control_DockWidget.add_range_button.setEnabled(False)
             self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(False)
             self._mw.runtime_DoubleSpinBox.setEnabled(False)
+            self._mw.autosave_num_spinBox.setEnabled(False)
             self._sd.frame_rate_DoubleSpinBox.setEnabled(False)
             self.sigContinueOdmrScan.emit()
         else:
@@ -932,6 +941,7 @@ class WidefieldGUI(GUIBase):
                 self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(False)
                 self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
                 self._mw.runtime_DoubleSpinBox.setEnabled(False)
+                self._mw.autosave_num_spinBox.setEnabled(False)
                 self._sd.frame_rate_DoubleSpinBox.setEnabled(False)
                 self._mw.action_run_stop.setChecked(True)
                 self._mw.action_resume_odmr.setChecked(True)
@@ -948,6 +958,7 @@ class WidefieldGUI(GUIBase):
                 self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(True)
                 self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
                 self._mw.runtime_DoubleSpinBox.setEnabled(True)
+                self._mw.autosave_num_spinBox.setEnabled(True)
                 self._sd.frame_rate_DoubleSpinBox.setEnabled(True)
                 self._mw.action_run_stop.setChecked(False)
                 self._mw.action_resume_odmr.setChecked(False)
@@ -981,6 +992,7 @@ class WidefieldGUI(GUIBase):
                 self._mw.measurement_control_DockWidget.add_range_button.setEnabled(True)
             self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(True)
             self._mw.runtime_DoubleSpinBox.setEnabled(True)
+            self._mw.autosave_num_spinBox.setEnabled(True)
             self._sd.frame_rate_DoubleSpinBox.setEnabled(True)
             self._mw.action_run_stop.setChecked(False)
             self._mw.action_resume_odmr.setChecked(False)
@@ -1272,6 +1284,12 @@ class WidefieldGUI(GUIBase):
             self._mw.runtime_DoubleSpinBox.setValue(param)
             self._mw.runtime_DoubleSpinBox.blockSignals(False)
 
+        param = param_dict.get('autosave_num')
+        if param is not None:
+            self._mw.autosave_num_spinBox.blockSignals(True)      
+            self._mw.autosave_num_spinBox.setValue(param)
+            self._mw.autosave_num_spinBox.blockSignals(False)
+            
         param = param_dict.get('frame_rate')
         if param is not None:
             self._sd.frame_rate_DoubleSpinBox.blockSignals(True)
@@ -1506,6 +1524,12 @@ class WidefieldGUI(GUIBase):
         """ Change time after which microwave sweep is stopped """
         runtime = self._mw.runtime_DoubleSpinBox.value()
         self.sigRuntimeChanged.emit(runtime)
+        return
+    
+    def change_autosave_num(self):
+        """ Change time after which microwave sweep is stopped """
+        autosave_num = self._mw.autosave_num_spinBox.value()      
+        self.sigAutosaveNumChanged.emit(autosave_num)
         return
 
     def save_data(self):

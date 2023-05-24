@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1262</width>
-    <height>753</height>
+    <height>854</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -245,6 +245,9 @@
         <verstretch>1</verstretch>
        </sizepolicy>
       </property>
+      <property name="toolTipDuration">
+       <number>1</number>
+      </property>
      </widget>
     </item>
    </layout>
@@ -336,13 +339,6 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_5">
     <layout class="QGridLayout" name="gridLayout_5">
-     <item row="12" column="0">
-      <widget class="QLabel" name="plotpixel_y_Label">
-       <property name="text">
-        <string>Plot Pixel Y:</string>
-       </property>
-      </widget>
-     </item>
      <item row="11" column="0">
       <widget class="QLabel" name="plotpixel_x_Label">
        <property name="text">
@@ -353,11 +349,32 @@
      <item row="10" column="1">
       <widget class="QComboBox" name="pixel_format_comboBox"/>
      </item>
+     <item row="12" column="0">
+      <widget class="QLabel" name="plotpixel_y_Label">
+       <property name="text">
+        <string>Plot Pixel Y:</string>
+       </property>
+      </widget>
+     </item>
      <item row="8" column="1">
       <widget class="QSpinBox" name="offset_x_spinBox"/>
      </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="offsetY_Label">
+       <property name="text">
+        <string>Offset Y:</string>
+       </property>
+      </widget>
+     </item>
      <item row="1" column="1">
       <widget class="QSpinBox" name="gainSpinBox"/>
+     </item>
+     <item row="10" column="0">
+      <widget class="QLabel" name="pixelFormat_Label">
+       <property name="text">
+        <string>Pixel Format:</string>
+       </property>
+      </widget>
      </item>
      <item row="3" column="1">
       <widget class="QComboBox" name="exposuremode_comboBox"/>
@@ -369,29 +386,6 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
-      <widget class="QLabel" name="offsetY_Label">
-       <property name="text">
-        <string>Offset Y:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="10" column="0">
-      <widget class="QLabel" name="pixelFormat_Label">
-       <property name="text">
-        <string>Pixel Format:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="12" column="1">
-      <widget class="QSpinBox" name="plot_pixel_y_spinBox"/>
-     </item>
-     <item row="11" column="1">
-      <widget class="QSpinBox" name="plot_pixel_x_spinBox"/>
-     </item>
-     <item row="9" column="1">
-      <widget class="QSpinBox" name="offset_y_spinBox"/>
-     </item>
      <item row="3" column="0">
       <widget class="QLabel" name="exposuremode_Label">
        <property name="text">
@@ -399,31 +393,17 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="gain_label">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Gain (dB):</string>
-       </property>
-      </widget>
+     <item row="9" column="1">
+      <widget class="QSpinBox" name="offset_y_spinBox"/>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="exposure_label">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Exposure (s):</string>
-       </property>
-      </widget>
+     <item row="12" column="1">
+      <widget class="QSpinBox" name="plot_pixel_y_spinBox"/>
+     </item>
+     <item row="11" column="1">
+      <widget class="QSpinBox" name="plot_pixel_x_spinBox"/>
+     </item>
+     <item row="7" column="1">
+      <widget class="QSpinBox" name="y_pixels_SpinBox"/>
      </item>
      <item row="5" column="1">
       <widget class="ScienDSpinBox" name="exposureDSpinBox">
@@ -454,8 +434,18 @@
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
-      <widget class="QSpinBox" name="y_pixels_SpinBox"/>
+     <item row="4" column="0">
+      <widget class="QLabel" name="exposure_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Exposure (s):</string>
+       </property>
+      </widget>
      </item>
      <item row="6" column="1">
       <widget class="QSpinBox" name="x_pixels_SpinBox"/>
@@ -485,6 +475,19 @@
       <widget class="QSlider" name="exposure_Slider">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="gain_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Gain (dB):</string>
        </property>
       </widget>
      </item>
@@ -682,95 +685,6 @@
        </layout>
       </widget>
      </item>
-     <item row="0" column="2">
-      <widget class="QGroupBox" name="groupBox_2">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>312</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="title">
-        <string>Measurement Time</string>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_8">
-        <item row="0" column="0">
-         <layout class="QGridLayout" name="gridLayout_2">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetDefaultConstraint</enum>
-          </property>
-          <property name="topMargin">
-           <number>6</number>
-          </property>
-          <item row="2" column="0">
-           <widget class="QLabel" name="elapsed_sweeps_label">
-            <property name="text">
-             <string>Elapsed Sweeps:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="runtime_label">
-            <property name="text">
-             <string>Runtime:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="elapsed_time_label">
-            <property name="text">
-             <string>Elapsed Time (s):</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLCDNumber" name="elapsed_sweeps_lcd"/>
-          </item>
-          <item row="0" column="1">
-           <widget class="ScienDSpinBox" name="runtime_DoubleSpinBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="suffix">
-             <string>s</string>
-            </property>
-            <property name="decimals">
-             <number>2</number>
-            </property>
-            <property name="maximum">
-             <double>1000000000.000000000000000</double>
-            </property>
-            <property name="singleStep">
-             <double>0.010000000000000</double>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLCDNumber" name="elapsed_time_lcd"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QGroupBox" name="groupBox_3">
        <property name="enabled">
@@ -920,6 +834,115 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="2">
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>312</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Measurement Time</string>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_8">
+        <item row="0" column="0">
+         <layout class="QGridLayout" name="gridLayout_2">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetDefaultConstraint</enum>
+          </property>
+          <property name="topMargin">
+           <number>6</number>
+          </property>
+          <item row="2" column="0">
+           <widget class="QLabel" name="elapsed_sweeps_label">
+            <property name="text">
+             <string>Elapsed Sweeps:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="runtime_label">
+            <property name="text">
+             <string>Runtime:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="elapsed_time_label">
+            <property name="text">
+             <string>Elapsed Time (s):</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLCDNumber" name="elapsed_sweeps_lcd"/>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLCDNumber" name="elapsed_time_lcd"/>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="elapsed_sweeps_label_2">
+            <property name="text">
+             <string>Autosave Every N Sweeps:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="ScienDSpinBox" name="runtime_DoubleSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string>s</string>
+            </property>
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <double>1000000000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.010000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QSpinBox" name="autosave_num_spinBox">
+            <property name="toolTip">
+             <string>N = 0 for autosave off</string>
+            </property>
+            <property name="maximum">
+             <number>100000000</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -974,7 +997,7 @@
       <string>Fit Function:</string>
      </property>
     </widget>
-    <widget class="QTextBrowser" name="textBrowser">
+    <widget class="QTextBrowser" name="odmr_fit_results_DisplayWidget">
      <property name="geometry">
       <rect>
        <x>30</x>
@@ -1254,7 +1277,7 @@
   <tabstop>xy_cb_max_DoubleSpinBox</tabstop>
   <tabstop>xy_cb_high_percentile_DoubleSpinBox</tabstop>
   <tabstop>xy_cb_manual_RadioButton</tabstop>
-  <tabstop>textBrowser</tabstop>
+  <tabstop>odmr_fit_results_DisplayWidget</tabstop>
   <tabstop>do_fit_PushButton</tabstop>
   <tabstop>fit_methods_ComboBox</tabstop>
   <tabstop>image_fit_pushButton</tabstop>

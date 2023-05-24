@@ -66,7 +66,7 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
     _support_live = ConfigOption('support_live', True)
     _image_size = ConfigOption('image_size', (1936, 1216))
     _image_offset = ConfigOption('image_offset', (602, 812))
-    _plot_pixel = ConfigOption('plot_pixel', (90, 90)) 
+    _plot_pixel = ConfigOption('plot_pixel', (70, 70)) 
     _trigger_mode = ConfigOption('trigger_mode', False)
     _exposure_mode = ConfigOption('exposure_mode','Timed')
     _exposure = ConfigOption('exposure', 10e-3)

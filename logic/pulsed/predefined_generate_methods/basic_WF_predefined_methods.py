@@ -180,7 +180,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
         block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
             ensemble=block_ensemble, created_blocks=created_blocks)
-        block_ensemble.measurement_information['cam_exp_mode'] = 'TriggerWidth'
+        block_ensemble.measurement_information['cam_exp_mode'] = 'Timed'
         block_ensemble.measurement_information['cam_trig_mode'] = True
 
         # Append ensemble to created_ensembles list

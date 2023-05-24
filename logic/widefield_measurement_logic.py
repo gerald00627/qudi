@@ -171,10 +171,10 @@ class WidefieldMeasurementLogic(GenericLogic):
                             'fitting_busy': False}
         
         # Get connectors
-        # self._mw_device = self.microwave1()
-        # self._mw_device2 = self.microwave2()
-        self._mw_device2 = self.microwave1()
-        self._mw_device = self.microwave2()
+        self._mw_device = self.microwave1()
+        self._mw_device2 = self.microwave2()
+        # self._mw_device2 = self.microwave1()
+        # self._mw_device = self.microwave2()
 
         self._fit_logic = self.fitlogic()
         self._widefield_camera = self.widefieldcamera()
@@ -222,12 +222,14 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         #Place holder for currently loaded sequence string
         self.curr_loaded_seq = 'WF_ODMR'
+        self.param_dict = []
         
         self.mw_trigger_pol = TriggerEdge.RISING
 
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
+        self.autosave_num = 500
 
         self.range_to_fit = 0
         self.matrix_range = 0
@@ -480,19 +482,20 @@ class WidefieldMeasurementLogic(GenericLogic):
             # reference = []
 
             if 'tau_start' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                tau_start = self.generate_method_params.get(self.curr_loaded_seq)['tau_start']
+                # tau_start = self.generate_method_params.get(self.curr_loaded_seq)['tau_start']
+                tau_start = self.param_dict.get('tau_start')
 
             if 'tau_step' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                tau_step = self.generate_method_params.get(self.curr_loaded_seq)['tau_step']
+                # tau_step = self.generate_method_params.get(self.curr_loaded_seq)['tau_step']
+                tau_step = self.param_dict.get('tau_step')
 
             if 'tau_end' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                tau_end = self.generate_method_params.get(self.curr_loaded_seq)['tau_end']
+                # tau_end = self.generate_method_params.get(self.curr_loaded_seq)['tau_end']
+                tau_end = self.param_dict.get('tau_end')
 
             if 'num_of_points' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-                num_points = self.generate_method_params.get(self.curr_loaded_seq)['num_of_points']
-
-            # if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-            #     reference = self.generate_method_params.get(self.curr_loaded_seq)['reference']
+                # num_points = self.generate_method_params.get(self.curr_loaded_seq)['num_of_points']
+                num_points = self.param_dict.get('num_of_points')
 
             if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
                 self.tau_array = tau_start + np.arange(num_points) * tau_step
@@ -590,6 +593,21 @@ class WidefieldMeasurementLogic(GenericLogic):
         update_dict = {'run_time': self.run_time}
         self.sigParameterUpdated.emit(update_dict)
         return self.run_time
+    
+    def set_autosave_num(self,autosavenum):
+        """
+        Sets the num of sweeps before autosaving for measurement
+
+        @param float autosave_num: number of sweeps before each autosave
+        """
+        if isinstance(autosavenum,int):
+            self.autosave_num = autosavenum
+        else:
+            self.log.warning('set_autosave_num failed.')
+        update_dict = {'autosave_num': self.autosave_num}
+        self.sigParameterUpdated.emit(update_dict)
+        
+        return
     
     def change_measurement_type(self, measurement_type):
         """
@@ -997,10 +1015,10 @@ class WidefieldMeasurementLogic(GenericLogic):
             # Sets the microwave settings and turns on output
             # mode, is_running = self.mw_sweep_on()
                         
-            if (self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 and 
-                self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2):
-                self.log.error('Measurement started with no MW source')
-            elif ((self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 == False) and 
+            # if (self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 and 
+            #     self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2):
+            #     self.log.error('Measurement started with no MW source')
+            if ((self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave1 == False) and 
                 (self._pulsedmeasurementlogic._PulsedMeasurementLogic__use_ext_microwave2 == False)):
                 self.log.error('Measurement started with no MW source')
             
@@ -1124,8 +1142,10 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.module_state.unlock()
                 return
 
-            # Automatic save every 110 sweeps
-            if self.elapsed_sweeps%110 == 0:
+            # Automatic save every autosave_num sweeps
+            if self.autosave_num == 0:
+                pass
+            elif self.elapsed_sweeps%self.autosave_num == 0:
                 self.save_WF_data()
 
             # if during the scan a clearing of the ODMR data is needed:
@@ -1133,7 +1153,6 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
 
-            # TODO this if loop can eventually be solved using predefined method 
             if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
                 # for CW odmr, pulse streamer is on the whole time
 
@@ -1235,9 +1254,9 @@ class WidefieldMeasurementLogic(GenericLogic):
             self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:] - data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
         elif num_curves == 3:
             # TODO assumes specific order of pulsing, currently only plotting l-bg
-            data_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
-            data_u = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
-            data_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
+            data_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/3)))
+            data_u = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/3)))
+            data_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/3)))
             for i in range(int(self.num_imgs/3)):
                 data_l[:,:,i] = self.odmr_raw_data[:,:,3*i]
                 data_u[:,:,i] = self.odmr_raw_data[:,:,3*i+1]
@@ -1826,6 +1845,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         if sample_and_load:
             self.status_dict['sampload_busy'] = True
         self.sigGeneratePredefinedSequence.emit(generator_method_name, kwarg_dict)
+        self.param_dict = kwarg_dict
         self.curr_loaded_seq = generator_method_name
         return
 
