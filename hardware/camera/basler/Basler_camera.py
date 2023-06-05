@@ -68,6 +68,7 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
     _image_offset = ConfigOption('image_offset', (602, 812))
     _plot_pixel = ConfigOption('plot_pixel', (70, 70)) 
     _trigger_mode = ConfigOption('trigger_mode', False)
+    _trigger_source = ConfigOption('trigger_source', 'Line4')
     _exposure_mode = ConfigOption('exposure_mode','Timed')
     _exposure = ConfigOption('exposure', 10e-3)
     
@@ -116,6 +117,7 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         self._gain = self.set_gain(self._gain)
         self._pixel_format = self.set_pixel_format(self._pixel_format)
         self._trigger_mode = self.set_trigger_mode(self._trigger_mode)
+        self._trigger_source = self.set_trigger_source(self._trigger_source)
         self._exposure_mode = self.set_exposure_mode(self._exposure_mode)
         self._image_offset = self.set_offset(eval(self._image_offset))
         self._plot_pixel = eval(self._plot_pixel)
@@ -524,6 +526,9 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         if "trigger_mode" in camera_params:
             set_params["trigger_mode"] = self.set_trigger_mode(camera_params["trigger_mode"])
 
+        # if "trigger_source" in camera_params:
+        #     set_params["trigger_source"] = self.set_trigger_source(camera_params["trigger_source"])
+ 
         if "exposure_mode" in camera_params:
             set_params["exposure_mode"] = self.set_exposure_mode(camera_params["exposure_mode"])
 
@@ -575,6 +580,23 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
 
         return self._trigger_mode
 
+    def set_trigger_source(self, line):
+        """ Set the trigger source (bool)
+
+        @return bool: trigger source
+        """
+        self.camera.TriggerSource.SetValue(line)
+
+        self._trigger_mode = self.get_trigger_mode()
+        
+        return self._trigger_mode
+
+    def get_trigger_source(self):
+
+        self._trigger_source = self.camera.TriggerSource.GetValue()
+
+        return self._trigger_source
+    
     def set_exposure_mode(self, mode):
         """ Set the exposure mode (string)
 

@@ -93,10 +93,10 @@ class WidefieldMeasurementLogic(GenericLogic):
     cw_mw_power = StatusVar('cw_mw_power', -30)
     sweep_mw_power = StatusVar('sweep_mw_power', -30)
     fit_range = StatusVar('fit_range', 0)
-    mw_starts = StatusVar('mw_starts', [2800e6])
-    mw_stops = StatusVar('mw_stops', [2950e6])
+    mw_starts = StatusVar('mw_starts', [2760e6])
+    mw_stops = StatusVar('mw_stops', [2980e6])
     mw_steps = StatusVar('mw_steps', [2e6])
-    run_time = StatusVar('run_time', 60)
+    run_time = StatusVar('run_time', 10)
     ranges = StatusVar('ranges', 1)
     fc = StatusVar('fits', None)
 
@@ -111,7 +111,7 @@ class WidefieldMeasurementLogic(GenericLogic):
     sigMeasurementChanged = QtCore.Signal(dict)
     sigCameraLimits = QtCore.Signal(tuple)
     sigOutputStateUpdated = QtCore.Signal(str, bool)
-    sigOdmrPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray,str,str)
+    sigOdmrPlotsUpdated = QtCore.Signal(np.ndarray,np.ndarray,np.ndarray,np.ndarray,str,str)
     sigOdmrFitUpdated = QtCore.Signal(np.ndarray, np.ndarray, dict, str)
     sigOdmrElapsedTimeUpdated = QtCore.Signal(float, int)
 
@@ -240,6 +240,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         self.tau_array = []
         self.num_imgs = []
+        self.num_curves = []
 
         # Set flags
         # for stopping a measurement
@@ -459,7 +460,9 @@ class WidefieldMeasurementLogic(GenericLogic):
             
             self.odmr_plot_x = np.array(self.final_freq_list)
             self.odmr_plot_y = np.zeros(self.odmr_plot_x.size)
-
+            self.odmr_plot_y1 = np.zeros(self.odmr_plot_x.size)
+            self.odmr_plot_y2 = np.zeros(self.odmr_plot_x.size)
+            
             range_to_fit = self.range_to_fit
 
             self.odmr_fit_x = np.arange(self.mw_starts[range_to_fit],
@@ -468,7 +471,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
             self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
 
-            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,'Frequency','Hz')
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,self.odmr_plot_y1,self.odmr_plot_y2,'Frequency','Hz')
             current_fit = self.fc.current_fit
             self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
         else:
@@ -497,7 +500,10 @@ class WidefieldMeasurementLogic(GenericLogic):
                 # num_points = self.generate_method_params.get(self.curr_loaded_seq)['num_of_points']
                 num_points = self.param_dict.get('num_of_points')
 
+            #TODO This part should be generated from predefined methods
             if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
+                self.tau_array = tau_start + np.arange(num_points) * tau_step
+            elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'upperWFrabi':
                 self.tau_array = tau_start + np.arange(num_points) * tau_step
             elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'T1WFtwocurve':
                 self.tau_array = np.geomspace(tau_start, tau_end, num_points)
@@ -520,7 +526,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
             # self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
 
-            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,'Seconds','s')
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,self.odmr_plot_y1,self.odmr_plot_y2,'Seconds','s')
             # current_fit = self.fc.current_fit
             # self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
 
@@ -1052,9 +1058,9 @@ class WidefieldMeasurementLogic(GenericLogic):
            
             # Initialize raw data array
 
-            num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
+            self.num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
 
-            self.num_imgs = self.odmr_plot_x.size*num_curves
+            self.num_imgs = self.odmr_plot_x.size*self.num_curves
 
             self.odmr_raw_data = np.zeros(
             [self._widefield_camera.get_size()[0],
@@ -1196,7 +1202,7 @@ class WidefieldMeasurementLogic(GenericLogic):
             if self._clearOdmrData:
                 self.odmr_plot_y[:, :] = 0
 
-            # Plot single pixel data
+            # Set single pixel data
             self.plot_single_pixel()
 
             # Update elapsed time/sweeps
@@ -1206,7 +1212,7 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.stopRequested = True
             # Fire update signals
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
-            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,None,None)
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,self.odmr_plot_y1,self.odmr_plot_y2,None,None)
             
             self.sigNextLine.emit()
             return
@@ -1240,11 +1246,13 @@ class WidefieldMeasurementLogic(GenericLogic):
     def plot_single_pixel(self):
         """ Prepares single curve data for plotting """
 
-        num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
+        self.num_curves = self._pulsedmeasurementlogic.measurement_information.get('number_of_curves')
 
-        if num_curves == 1:
+        if self.num_curves == 1:
             self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
-        elif num_curves == 2:
+            self.odmr_plot_y1 = np.array([])
+            self.odmr_plot_y2 = np.array([])
+        elif self.num_curves == 2:
             #TODO this assumes a specific order, and only plots a single curve (subtracted bg) 
             data_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
             data_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
@@ -1252,35 +1260,25 @@ class WidefieldMeasurementLogic(GenericLogic):
                 data_l[:,:,i] = self.odmr_raw_data[:,:,2*i]
                 data_bg[:,:,i] = self.odmr_raw_data[:,:,2*i+1]
             self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:] - data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
-        elif num_curves == 3:
-            # TODO assumes specific order of pulsing, currently only plotting l-bg
+            # self.odmr_plot_y1 = data_l[self.plot_pixel_x, self.plot_pixel_y,:]
+            # self.odmr_plot_y2 = data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+            self.odmr_plot_y1 = np.array([])
+            self.odmr_plot_y2 = np.array([])
+        elif self.num_curves == 3:
+            # TODO assumes specific order of pulsing, currently only plotting l
             data_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/3)))
             data_u = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/3)))
             data_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/3)))
             for i in range(int(self.num_imgs/3)):
                 data_l[:,:,i] = self.odmr_raw_data[:,:,3*i]
-                data_u[:,:,i] = self.odmr_raw_data[:,:,3*i+1]
-                data_bg[:,:,i] = self.odmr_raw_data[:,:,3*i+2]
-            self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:] - data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+                data_bg[:,:,i] = self.odmr_raw_data[:,:,3*i+1]
+                data_u[:,:,i] = self.odmr_raw_data[:,:,3*i+2]
+            # self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:] - data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+            self.odmr_plot_y = data_l[self.plot_pixel_x, self.plot_pixel_y,:]
+            self.odmr_plot_y1 = data_bg[self.plot_pixel_x, self.plot_pixel_y,:]
+            self.odmr_plot_y2 = data_u[self.plot_pixel_x, self.plot_pixel_y,:]
         else: 
             self.log.warning('Number of curves exceeds 3')
-
-        # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
-        #         self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
-        # elif self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'rabiWF':
-        #     if 'reference' in self.generate_method_params.get(self.curr_loaded_seq).keys():
-        #         # split data
-        #         rabi_l = np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
-        #         rabi_bg= np.zeros((self._widefield_camera.get_size()[0], self._widefield_camera.get_size()[1],int(self.num_imgs/2)))
-        #         for i in range(int(self.num_imgs/2)):
-        #             rabi_l[:,:,i] = self.odmr_raw_data[:,:,2*i]
-        #             rabi_bg[:,:,i] = self.odmr_raw_data[:,:,2*i+1]
-
-        #         self.odmr_plot_y = rabi_l[self.plot_pixel_x, self.plot_pixel_y,:] - rabi_bg[self.plot_pixel_x, self.plot_pixel_y,:]
-        #     else:
-        #         self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
-        # else:   
-        #     self.odmr_plot_y = self.odmr_raw_data[self.plot_pixel_x, self.plot_pixel_y,:]
 
         return 
 
@@ -1291,7 +1289,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         """
         try:
             self.plot_single_pixel()
-            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,None,None)
+            self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y,self.odmr_plot_y1,self.odmr_plot_y2,None,None)
         except:
             self.log.debug('Unable to change ODMR pixel plot')
             pass

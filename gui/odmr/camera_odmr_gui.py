@@ -25,7 +25,6 @@ import numpy as np
 
 from core.connector import Connector
 from core.util import units
-from gui.colordefs import QudiPalettePale as Palette
 from gui.guibase import GUIBase
 from gui.colordefs import ColorScaleInferno
 from gui.colordefs import QudiPalettePale as palette
@@ -155,12 +154,12 @@ class WidefieldGUI(GUIBase):
         mw2_constraints = self._widefield_logic.ext_microwave2_constraints
 
         # Adjust range of scientific spinboxes above what is possible in Qt Designer
-        self._mw.cw_frequency_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
-        self._mw.cw_frequency_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
-        self._mw.cw_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
-        self._mw.cw_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
-        self._mw.sweep_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
-        self._mw.sweep_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
+        # self._mw.cw_frequency_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
+        # self._mw.cw_frequency_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
+        # self._mw.cw_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
+        # self._mw.cw_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
+        # self._mw.sweep_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
+        # self._mw.sweep_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
 
         self._mw.ext_control_mw1_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
         self._mw.ext_control_mw2_freq_DoubleSpinBox.setMinimum(mw2_constraints.min_frequency)
@@ -226,20 +225,45 @@ class WidefieldGUI(GUIBase):
 
         # self._mw.odmr_channel_ComboBox.activated.connect(self.update_channel)
 
-        self.odmr_image = pg.PlotDataItem(self._widefield_logic.odmr_plot_x,
-                                          self._widefield_logic.odmr_plot_y,
-                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+        # self.odmr_image = pg.PlotDataItem(self._widefield_logic.odmr_plot_x,
+        #                                   self._widefield_logic.odmr_plot_y,
+        #                                   pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+        #                                   symbol='o',
+        #                                   symbolPen=palette.c1,
+        #                                   symbolBrush=palette.c1,
+        #                                   symbolSize=7)
+
+        # Append three data structs to odmr image for 3 curves 
+        self.odmr_image = []
+
+        self.odmr_image.append(pg.PlotDataItem(pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                           symbol='o',
                                           symbolPen=palette.c1,
                                           symbolBrush=palette.c1,
-                                          symbolSize=7)
+                                          symbolSize=7))
+        self._mw.odmr_PlotWidget.addItem(self.odmr_image[-1])
+
+        self.odmr_image.append(pg.PlotDataItem(pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+                                          symbol='o',
+                                          symbolPen=palette.c3,
+                                          symbolBrush=palette.c3,
+                                          symbolSize=7))
+        self._mw.odmr_PlotWidget.addItem(self.odmr_image[-1])
+
+        self.odmr_image.append(pg.PlotDataItem(pen=pg.mkPen(palette.c4, style=QtCore.Qt.DotLine),
+                                          symbol='o',
+                                          symbolPen=palette.c4,
+                                          symbolBrush=palette.c4,
+                                          symbolSize=7))
+        self._mw.odmr_PlotWidget.addItem(self.odmr_image[-1])
+
 
         self.odmr_fit_image = pg.PlotDataItem(self._widefield_logic.odmr_fit_x,
                                               self._widefield_logic.odmr_fit_y,
                                               pen=pg.mkPen(palette.c2))
 
         # Add the display item to the xy and xz ViewWidget, which was defined in the UI file.
-        self._mw.odmr_PlotWidget.addItem(self.odmr_image)
+        # self._mw.odmr_PlotWidget.addItem(self.odmr_image)
         self._mw.odmr_PlotWidget.setLabel(axis='left', text='Counts', units='Counts/s')
         self._mw.odmr_PlotWidget.setLabel(axis='bottom', text='Frequency', units='Hz')
         self._mw.odmr_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
@@ -265,9 +289,9 @@ class WidefieldGUI(GUIBase):
 
         self.update_camera_limits(self._widefield_logic.get_camera_limits())
 
-        self._mw.cw_frequency_DoubleSpinBox.setValue(self._widefield_logic.cw_mw_frequency)
-        self._mw.cw_power_DoubleSpinBox.setValue(self._widefield_logic.cw_mw_power)
-        self._mw.sweep_power_DoubleSpinBox.setValue(self._widefield_logic.sweep_mw_power)
+        # self._mw.cw_frequency_DoubleSpinBox.setValue(self._widefield_logic.cw_mw_frequency)
+        # self._mw.cw_power_DoubleSpinBox.setValue(self._widefield_logic.cw_mw_power)
+        # self._mw.sweep_power_DoubleSpinBox.setValue(self._widefield_logic.sweep_mw_power)
 
         self._mw.runtime_DoubleSpinBox.setValue(self._widefield_logic.run_time)
         self._mw.elapsed_time_lcd.display(int(np.rint(self._widefield_logic.elapsed_time)))
@@ -316,7 +340,7 @@ class WidefieldGUI(GUIBase):
         #                       Connect signals                                #
         ########################################################################
         # Internal user input changed signals
-        self._mw.cw_frequency_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
+        # self._mw.cw_frequency_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
 
         self._mw.gainSpinBox.editingFinished.connect(self.change_camera_params)
         self._mw.triggerMode_checkBox.stateChanged.connect(self.change_camera_params)
@@ -330,8 +354,8 @@ class WidefieldGUI(GUIBase):
         self._mw.plot_pixel_x_spinBox.editingFinished.connect(self.change_camera_params)
         self._mw.plot_pixel_y_spinBox.editingFinished.connect(self.change_camera_params)
 
-        self._mw.sweep_power_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
-        self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
+        # self._mw.sweep_power_DoubleSpinBox.editingFinished.connect(self.change_sweep_params)
+        # self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
         self._mw.runtime_DoubleSpinBox.editingFinished.connect(self.change_runtime)
         self._mw.autosave_num_spinBox.editingFinished.connect(self.change_autosave_num)
 
@@ -559,7 +583,7 @@ class WidefieldGUI(GUIBase):
         self._mw.action_toggle_cw.triggered.disconnect()
         self._mw.action_RestoreDefault.triggered.disconnect()
         self._mw.do_fit_PushButton.clicked.disconnect()
-        self._mw.cw_frequency_DoubleSpinBox.editingFinished.disconnect()
+        # self._mw.cw_frequency_DoubleSpinBox.editingFinished.disconnect()
         self._mw.gainSpinBox.editingFinished.disconnect()
         self._mw.triggerMode_checkBox.stateChanged.disconnect()
         self._mw.exposuremode_comboBox.currentTextChanged.disconnect()
@@ -589,8 +613,8 @@ class WidefieldGUI(GUIBase):
             dspinbox_type_list = dspinbox_dict[identifier_name]
             [dspinbox_type.editingFinished.disconnect() for dspinbox_type in dspinbox_type_list]
 
-        self._mw.cw_power_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.sweep_power_DoubleSpinBox.editingFinished.disconnect()
+        # self._mw.cw_power_DoubleSpinBox.editingFinished.disconnect()
+        # self._mw.sweep_power_DoubleSpinBox.editingFinished.disconnect()
         self._mw.runtime_DoubleSpinBox.editingFinished.disconnect()
         self._mw.autosave_num_spinBox.editingFinished.disconnect()
         self._mw.xy_cb_max_DoubleSpinBox.valueChanged.disconnect()
@@ -688,7 +712,7 @@ class WidefieldGUI(GUIBase):
         starts = self.get_frequencies_from_spinboxes('start')
         stops = self.get_frequencies_from_spinboxes('stop')
         steps = self.get_frequencies_from_spinboxes('step')
-        power = self._mw.sweep_power_DoubleSpinBox.value()
+        power = self._mw.ext_control_mw1_power_DoubleSpinBox.value()
 
         self.sigMwSweepParamsChanged.emit(starts, stops, steps, power)
         self._mw.fit_range_SpinBox.setMaximum(self._widefield_logic.ranges)
@@ -721,7 +745,7 @@ class WidefieldGUI(GUIBase):
         starts = self.get_frequencies_from_spinboxes('start')
         stops = self.get_frequencies_from_spinboxes('stop')
         steps = self.get_frequencies_from_spinboxes('step')
-        power = self._mw.sweep_power_DoubleSpinBox.value()
+        power = self._mw.ext_control_mw1_power_DoubleSpinBox.value()
         self.sigMwSweepParamsChanged.emit(starts, stops, steps, power)
 
         # in case the removed range is the one selected for fitting right now adjust the value
@@ -798,9 +822,9 @@ class WidefieldGUI(GUIBase):
             self._mw.action_resume_odmr.setEnabled(False)
             self._mw.action_toggle_cw.setEnabled(False)
             self._mw.odmr_PlotWidget.removeItem(self.odmr_fit_image)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_power_DoubleSpinBox.setEnabled(False)
+            # self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.gainSpinBox.setEnabled(False)
             self._mw.triggerMode_checkBox.setEnabled(False)
             self._mw.exposuremode_comboBox.setEnabled(False)
@@ -845,9 +869,9 @@ class WidefieldGUI(GUIBase):
             self._mw.action_run_stop.setEnabled(False)
             self._mw.action_resume_odmr.setEnabled(False)
             self._mw.action_toggle_cw.setEnabled(False)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_power_DoubleSpinBox.setEnabled(False)
+            # self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.gainSpinBox.setEnabled(False)
             self._mw.triggerMode_checkBox.stateChanged.setEnabled(False)
             self._mw.exposuremode_comboBox.currentTextChanged.setEnabled(False)
@@ -883,8 +907,8 @@ class WidefieldGUI(GUIBase):
             self._mw.action_run_stop.setEnabled(False)
             self._mw.action_resume_odmr.setEnabled(False)
             self._mw.action_toggle_cw.setEnabled(False)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_power_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self.sigCwMwOn.emit()
         else:
             self._mw.action_toggle_cw.setEnabled(False)
@@ -906,8 +930,8 @@ class WidefieldGUI(GUIBase):
         # Update measurement status (activate/deactivate widgets/actions)
         if is_running:
             self._mw.action_resume_odmr.setEnabled(False)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_power_DoubleSpinBox.setEnabled(False)
+            # self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.gainSpinBox.setEnabled(False)
             self._mw.triggerMode_checkBox.setEnabled(False)
             self._mw.exposuremode_comboBox.setEnabled(False)
@@ -939,7 +963,7 @@ class WidefieldGUI(GUIBase):
                     [dspinbox_type.setEnabled(False) for dspinbox_type in dspinbox_type_list]
                 self._mw.measurement_control_DockWidget.add_range_button.setEnabled(False)
                 self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(False)
-                self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
+                # self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
                 self._mw.runtime_DoubleSpinBox.setEnabled(False)
                 self._mw.autosave_num_spinBox.setEnabled(False)
                 self._sd.frame_rate_DoubleSpinBox.setEnabled(False)
@@ -956,7 +980,7 @@ class WidefieldGUI(GUIBase):
                     [dspinbox_type.setEnabled(True) for dspinbox_type in dspinbox_type_list]
                 self._mw.measurement_control_DockWidget.add_range_button.setEnabled(True)
                 self._mw.measurement_control_DockWidget.remove_range_button.setEnabled(True)
-                self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
+                # self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
                 self._mw.runtime_DoubleSpinBox.setEnabled(True)
                 self._mw.autosave_num_spinBox.setEnabled(True)
                 self._sd.frame_rate_DoubleSpinBox.setEnabled(True)
@@ -965,9 +989,9 @@ class WidefieldGUI(GUIBase):
                 self._mw.action_toggle_cw.setChecked(True)
         else:
             self._mw.action_resume_odmr.setEnabled(True)
-            self._mw.cw_power_DoubleSpinBox.setEnabled(True)
-            self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
-            self._mw.cw_frequency_DoubleSpinBox.setEnabled(True)
+            # self._mw.cw_power_DoubleSpinBox.setEnabled(True)
+            # self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
+            # self._mw.cw_frequency_DoubleSpinBox.setEnabled(True)
             self._mw.gainSpinBox.setEnabled(True)
             self._mw.triggerMode_checkBox.setEnabled(True)
             self._mw.exposuremode_comboBox.setEnabled(True)
@@ -1122,12 +1146,23 @@ class WidefieldGUI(GUIBase):
         self._widefield_logic.set_ext_microwave2_settings(settings_dict)
         return
 
-    def update_plots(self, odmr_data_x, odmr_data_y, x_label=None, unit_label=None):
+    def update_plots(self, odmr_data_x, odmr_data_y, odmr_data_y1 = None, odmr_data_y2 = None,  x_label=None, unit_label=None):
         """ Refresh the plot widgets with new data. Also set x_label and unit """
 
         # Update mean signal plot
         # self.odmr_image.setData(odmr_data_x, odmr_data_y,[self.display_channel])
-        self.odmr_image.setData(odmr_data_x, odmr_data_y)
+
+        if odmr_data_y2.size != 0:
+            self.odmr_image[2].setData(x=odmr_data_x,y = odmr_data_y2)
+            self.odmr_image[1].setData(x=odmr_data_x,y = odmr_data_y1)
+            self.odmr_image[0].setData(x=odmr_data_x,y = odmr_data_y)
+        else:
+            try:
+                self.odmr_image[0].setData(x=odmr_data_x, y=odmr_data_y) # Blue curve, -1
+                self.odmr_image[1].setData() # Red curve, 0
+                self.odmr_image[2].setData() # Green, +1
+            except:
+                pass
         # self.update_colorbar(cb_range)
 
         if x_label:
@@ -1247,11 +1282,11 @@ class WidefieldGUI(GUIBase):
         The update will block the GUI signals from emitting a change back to the
         logic.
         """
-        param = param_dict.get('sweep_mw_power')
-        if param is not None:
-            self._mw.sweep_power_DoubleSpinBox.blockSignals(True)
-            self._mw.sweep_power_DoubleSpinBox.setValue(param)
-            self._mw.sweep_power_DoubleSpinBox.blockSignals(False)
+        # param = param_dict.get('sweep_mw_power')
+        # if param is not None:
+        #     self._mw.sweep_power_DoubleSpinBox.blockSignals(True)
+        #     self._mw.sweep_power_DoubleSpinBox.setValue(param)
+        #     self._mw.sweep_power_DoubleSpinBox.blockSignals(False)
 
         mw_starts = param_dict.get('mw_starts')
         mw_steps = param_dict.get('mw_steps')
@@ -1296,17 +1331,17 @@ class WidefieldGUI(GUIBase):
             self._sd.frame_rate_DoubleSpinBox.setValue(param)
             self._sd.frame_rate_DoubleSpinBox.blockSignals(False)
 
-        param = param_dict.get('cw_mw_frequency')
-        if param is not None:
-            self._mw.cw_frequency_DoubleSpinBox.blockSignals(True)
-            self._mw.cw_frequency_DoubleSpinBox.setValue(param)
-            self._mw.cw_frequency_DoubleSpinBox.blockSignals(False)
+        # param = param_dict.get('cw_mw_frequency')
+        # if param is not None:
+        #     self._mw.cw_frequency_DoubleSpinBox.blockSignals(True)
+        #     self._mw.cw_frequency_DoubleSpinBox.setValue(param)
+        #     self._mw.cw_frequency_DoubleSpinBox.blockSignals(False)
 
-        param = param_dict.get('cw_mw_power')
-        if param is not None:
-            self._mw.cw_power_DoubleSpinBox.blockSignals(True)
-            self._mw.cw_power_DoubleSpinBox.setValue(param)
-            self._mw.cw_power_DoubleSpinBox.blockSignals(False)
+        # param = param_dict.get('cw_mw_power')
+        # if param is not None:
+        #     self._mw.cw_power_DoubleSpinBox.blockSignals(True)
+        #     self._mw.cw_power_DoubleSpinBox.setValue(param)
+        #     self._mw.cw_power_DoubleSpinBox.blockSignals(False)
 
         param = param_dict.get('gain')
         if param is not None:
@@ -1461,12 +1496,12 @@ class WidefieldGUI(GUIBase):
     #                           Change Methods                                 #
     ############################################################################
 
-    def change_cw_params(self):
-        """ Change CW frequency and power of microwave source """
-        frequency = self._mw.cw_frequency_DoubleSpinBox.value()
-        power = self._mw.cw_power_DoubleSpinBox.value()
+    # def change_cw_params(self):
+    #     """ Change CW frequency and power of microwave source """
+    #     frequency = self._mw.cw_frequency_DoubleSpinBox.value()
+    #     power = self._mw.cw_power_DoubleSpinBox.value()
         # self.sigMwCwParamsChanged.emit(frequency, power)
-        return
+    #     return
 
     def change_camera_params(self):
         """ Change camera properties """
