@@ -156,7 +156,10 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
 
         @return bool: Success ?
         """
-        
+        # Check if camera is in trigger mode 
+        if self._trigger_mode:
+            self._trigger_mode = self.set_trigger_mode(False)
+
         if self._support_live:
             self._live = True
             self._acquiring = False
@@ -174,6 +177,10 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
 
         @return bool: Success ?
         """
+        # Check if camera is in trigger mode 
+        if self._trigger_mode:
+            self._trigger_mode = self.set_trigger_mode(False)
+        
         self.camera.StartGrabbingMax(1)
 
         if self._live:
@@ -551,6 +558,20 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
 
         return set_params, limits
 
+    def get_camera_parameters(self):
+
+        get_params = dict()
+
+        get_params["gain"] = self.get_gain()
+        get_params["trigger_mode"] = self.get_trigger_mode()
+        get_params["exposure_mode"] = self.get_exposure_mode()
+        get_params["exposure_time"] = self.get_exposure() # in s
+        get_params["image_size"] = self.get_size() 
+        get_params["image_offset"] = self.get_offset()
+        get_params["pixel_format"] = self.get_pixel_format()
+
+        return get_params
+
     def set_trigger_mode(self, mode):
         """ Set the trigger mode (bool)
 
@@ -648,6 +669,10 @@ class CameraBasler(Base, CameraInterface, WidefieldCameraInterface):
         self.camera.Close()
         return
 
+    def open_camera(self):
+        self.camera.Open()
+        return
+        
 ######################################################################
 ####                End Widefield Camera Interface                ####
 ###################################################################### 

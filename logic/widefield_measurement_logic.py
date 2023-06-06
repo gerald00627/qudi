@@ -248,13 +248,13 @@ class WidefieldMeasurementLogic(GenericLogic):
         # for clearing the ODMR data during a measurement
         self._clearOdmrData = False
 
-        # Initalize the ODMR data arrays (mean signal)
+       # Initalize the ODMR data arrays (mean signal)
         self._initialize_odmr_plots()
         # Raw data array
         self.odmr_raw_data = np.zeros(
-            [self.odmr_plot_x.size,
-             self._widefield_camera._image_size[0],
-             self._widefield_camera._image_size[1]]
+            [self._widefield_camera._image_size[0],
+             self._widefield_camera._image_size[1],
+             self.odmr_plot_x.size]
         )
 
         # Switch off microwave and set CW frequency and power
@@ -654,6 +654,17 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         return real_params
 
+    def update_camera_parameters(self):
+        """ 
+        Retrieve the camera parameters from the camera and update GUI
+
+        @return dict params: params from camera        
+        """
+        camera_params = self._widefield_camera.get_camera_parameters()
+        self.sigParameterUpdated.emit(camera_params)
+
+        return 
+
     # def set_cw_parameters(self, frequency, power):
     #     """ Set the desired new cw mode parameters.
 
@@ -1013,10 +1024,8 @@ class WidefieldMeasurementLogic(GenericLogic):
             self._startTime = time.time()
             self.sigOdmrElapsedTimeUpdated.emit(self.elapsed_time, self.elapsed_sweeps)
 
-
             # Sets the microwave trigger settings
             self.set_trigger(self.mw_trigger_pol, self.frame_rate)
-
 
             # Sets the microwave settings and turns on output
             # mode, is_running = self.mw_sweep_on()
@@ -1047,12 +1056,12 @@ class WidefieldMeasurementLogic(GenericLogic):
             #     return -1
 
             # Configure camera exposuremode / trigger mode 
-            # TODO it should automatically update the camera settings and reflect it on gui too
             cam_trig_mode = self._pulsedmeasurementlogic.measurement_information.get('cam_trig_mode')
             cam_exp_mode = self._pulsedmeasurementlogic.measurement_information.get('cam_exp_mode')
-
             self._widefield_camera.set_trigger_mode(cam_trig_mode)
             self._widefield_camera.set_exposure_mode(cam_exp_mode)
+            update_dict = {'trigger_mode': cam_trig_mode, 'exposure_mode': cam_exp_mode}
+            self.sigParameterUpdated.emit(update_dict)
 
             self._initialize_odmr_plots()
            
@@ -1471,6 +1480,13 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.log.info('WF data saved to:\n{0}'.format(filepath))
 
         return
+
+    def connect_camera(self,connect_cam):
+
+        if connect_cam:
+            self._widefield_camera.open_camera()
+        else:
+            self._widefield_camera.close_odmr()
 
     def get_camera_limits(self):
         """ Return limits from camera

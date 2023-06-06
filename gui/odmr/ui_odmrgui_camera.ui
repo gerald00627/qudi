@@ -322,7 +322,7 @@
    <property name="minimumSize">
     <size>
      <width>200</width>
-     <height>355</height>
+     <height>398</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -339,7 +339,33 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_5">
     <layout class="QGridLayout" name="gridLayout_5">
+     <item row="8" column="0">
+      <widget class="QLabel" name="x_pixels_label">
+       <property name="text">
+        <string>Width (Pixels):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QSpinBox" name="y_pixels_SpinBox"/>
+     </item>
+     <item row="11" column="1">
+      <widget class="QSpinBox" name="offset_y_spinBox"/>
+     </item>
+     <item row="14" column="1">
+      <widget class="QSpinBox" name="plot_pixel_y_spinBox"/>
+     </item>
+     <item row="13" column="1">
+      <widget class="QSpinBox" name="plot_pixel_x_spinBox"/>
+     </item>
      <item row="11" column="0">
+      <widget class="QLabel" name="offsetY_Label">
+       <property name="text">
+        <string>Offset Y:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0">
       <widget class="QLabel" name="plotpixel_x_Label">
        <property name="text">
         <string>Plot Pixel X:</string>
@@ -347,65 +373,103 @@
       </widget>
      </item>
      <item row="10" column="1">
+      <widget class="QSpinBox" name="offset_x_spinBox"/>
+     </item>
+     <item row="12" column="1">
       <widget class="QComboBox" name="pixel_format_comboBox"/>
      </item>
-     <item row="12" column="0">
+     <item row="14" column="0">
       <widget class="QLabel" name="plotpixel_y_Label">
        <property name="text">
         <string>Plot Pixel Y:</string>
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
-      <widget class="QSpinBox" name="offset_x_spinBox"/>
-     </item>
-     <item row="9" column="0">
-      <widget class="QLabel" name="offsetY_Label">
-       <property name="text">
-        <string>Offset Y:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QSpinBox" name="gainSpinBox"/>
-     </item>
-     <item row="10" column="0">
-      <widget class="QLabel" name="pixelFormat_Label">
-       <property name="text">
-        <string>Pixel Format:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QComboBox" name="exposuremode_comboBox"/>
-     </item>
-     <item row="8" column="0">
-      <widget class="QLabel" name="offsetX_Label">
-       <property name="text">
-        <string>Offset X:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
+     <item row="5" column="0">
       <widget class="QLabel" name="exposuremode_Label">
        <property name="text">
         <string>Exposure Mode:</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="1">
-      <widget class="QSpinBox" name="offset_y_spinBox"/>
-     </item>
-     <item row="12" column="1">
-      <widget class="QSpinBox" name="plot_pixel_y_spinBox"/>
-     </item>
-     <item row="11" column="1">
-      <widget class="QSpinBox" name="plot_pixel_x_spinBox"/>
-     </item>
-     <item row="7" column="1">
-      <widget class="QSpinBox" name="y_pixels_SpinBox"/>
+     <item row="12" column="0">
+      <widget class="QLabel" name="pixelFormat_Label">
+       <property name="text">
+        <string>Pixel Format:</string>
+       </property>
+      </widget>
      </item>
      <item row="5" column="1">
+      <widget class="QComboBox" name="exposuremode_comboBox"/>
+     </item>
+     <item row="10" column="0">
+      <widget class="QLabel" name="offsetX_Label">
+       <property name="text">
+        <string>Offset X:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QPushButton" name="update_from_cam_PushButton">
+       <property name="toolTip">
+        <string>Update GUI from pylon settings</string>
+       </property>
+       <property name="text">
+        <string>Update GUI</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="exposure_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Exposure (s):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="y_pixels_label">
+       <property name="text">
+        <string>Height (Pixels):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QSpinBox" name="x_pixels_SpinBox"/>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="triggerMode_checkBox">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="triggermode_Label">
+       <property name="text">
+        <string>Trigger Mode:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="gain_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Gain (dB):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
       <widget class="ScienDSpinBox" name="exposureDSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -427,74 +491,13 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="0">
-      <widget class="QLabel" name="x_pixels_label">
-       <property name="text">
-        <string>Width (Pixels):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="exposure_label">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Exposure (s):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QSpinBox" name="x_pixels_SpinBox"/>
-     </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="y_pixels_label">
-       <property name="text">
-        <string>Height (Pixels):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="triggermode_Label">
-       <property name="text">
-        <string>Trigger Mode:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QCheckBox" name="triggerMode_checkBox">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="0">
-      <widget class="QSlider" name="exposure_Slider">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
+     <item row="1" column="1">
+      <widget class="QSpinBox" name="gainSpinBox"/>
      </item>
      <item row="0" column="0">
-      <widget class="QLabel" name="gain_label">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
+      <widget class="QRadioButton" name="cam_connect_RadioButton">
        <property name="text">
-        <string>Gain (dB):</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QSlider" name="gain_Slider">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <string>Connect Cam</string>
        </property>
       </widget>
      </item>
@@ -909,7 +912,7 @@
       </sizepolicy>
      </property>
     </widget>
-    <widget class="QPushButton" name="image_fit_pushButton">
+    <widget class="QPushButton" name="image_fit_PushButton">
      <property name="geometry">
       <rect>
        <x>160</x>
@@ -1127,12 +1130,8 @@
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>gainSpinBox</tabstop>
-  <tabstop>gain_Slider</tabstop>
   <tabstop>triggerMode_checkBox</tabstop>
   <tabstop>exposuremode_comboBox</tabstop>
-  <tabstop>exposure_Slider</tabstop>
-  <tabstop>exposureDSpinBox</tabstop>
   <tabstop>x_pixels_SpinBox</tabstop>
   <tabstop>y_pixels_SpinBox</tabstop>
   <tabstop>offset_x_spinBox</tabstop>
@@ -1153,7 +1152,7 @@
   <tabstop>odmr_fit_results_DisplayWidget</tabstop>
   <tabstop>do_fit_PushButton</tabstop>
   <tabstop>fit_methods_ComboBox</tabstop>
-  <tabstop>image_fit_pushButton</tabstop>
+  <tabstop>image_fit_PushButton</tabstop>
   <tabstop>fit_range_SpinBox</tabstop>
  </tabstops>
  <resources/>

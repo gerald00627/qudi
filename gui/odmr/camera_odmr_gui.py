@@ -108,6 +108,9 @@ class WidefieldGUI(GUIBase):
     sigMwOff = QtCore.Signal()
     sigMwPowerChanged = QtCore.Signal(float)
     # sigMwCwParamsChanged = QtCore.Signal(float, float)
+
+    sigUpdateFromCam = QtCore.Signal()
+    sigConnectCam = QtCore.Signal(bool)
     sigCamParamsChanged = QtCore.Signal(dict)
     sigMwSweepParamsChanged = QtCore.Signal(list, list, list, float)
     sigFrameRateChanged = QtCore.Signal(float)
@@ -300,6 +303,11 @@ class WidefieldGUI(GUIBase):
 
         self._sd.frame_rate_DoubleSpinBox.setValue(self._widefield_logic.frame_rate)
 
+        #######################################################################
+        #                    Camera Settings Window                           #
+        #######################################################################
+
+        self._mw.cam_connect_RadioButton.setChecked(True)
         self._mw.gainSpinBox.setValue(self._widefield_logic.gain)
         self._mw.triggerMode_checkBox.setChecked(self._widefield_logic.trigger_mode)
 
@@ -342,6 +350,9 @@ class WidefieldGUI(GUIBase):
         # Internal user input changed signals
         # self._mw.cw_frequency_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
 
+        self._mw.update_from_cam_PushButton.clicked.connect(self.update_from_cam)
+        self._mw.cam_connect_RadioButton.clicked.connect(self.toggle_cam_connect)
+
         self._mw.gainSpinBox.editingFinished.connect(self.change_camera_params)
         self._mw.triggerMode_checkBox.stateChanged.connect(self.change_camera_params)
         self._mw.exposuremode_comboBox.currentTextChanged.connect(self.change_camera_params)
@@ -358,7 +369,6 @@ class WidefieldGUI(GUIBase):
         # self._mw.cw_power_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
         self._mw.runtime_DoubleSpinBox.editingFinished.connect(self.change_runtime)
         self._mw.autosave_num_spinBox.editingFinished.connect(self.change_autosave_num)
-
 
         # Internal trigger signals
         self._mw.clear_odmr_PushButton.clicked.connect(self.clear_odmr_data)
@@ -383,6 +393,8 @@ class WidefieldGUI(GUIBase):
         self.sigDoFit.connect(self._widefield_logic.do_fit, QtCore.Qt.QueuedConnection)
         # self.sigMwCwParamsChanged.connect(self._widefield_logic.set_cw_parameters,
                                         #   QtCore.Qt.QueuedConnection)
+        self.sigConnectCam.connect(self._widefield_logic.connect_camera,QtCore.Qt.QueuedConnection)
+        self.sigUpdateFromCam.connect(self._widefield_logic.update_camera_parameters,QtCore.Qt.QueuedConnection)
         self.sigCamParamsChanged.connect(self._widefield_logic.set_camera_parameters,
                                          QtCore.Qt.QueuedConnection)
         self.sigMwSweepParamsChanged.connect(self._widefield_logic.set_sweep_parameters,
@@ -485,7 +497,7 @@ class WidefieldGUI(GUIBase):
         self._camera_logic.sigAcquisitionFinished.connect(self.acquisition_finished)
         self._camera_logic.sigVideoFinished.connect(self.enable_start_image_action)
 
-        # starting the physical measurement
+        # starting camera 
         self.sigVideoStart.connect(self._camera_logic.start_loop)
         self.sigVideoStop.connect(self._camera_logic.stop_loop)
         self.sigImageStart.connect(self._camera_logic.start_single_acquistion)
@@ -565,6 +577,8 @@ class WidefieldGUI(GUIBase):
         self.sigContinueOdmrScan.disconnect()
         self.sigDoFit.disconnect()
         # self.sigMwCwParamsChanged.disconnect()
+        self.sigConnectCam.disconnect()
+        self.sigUpdateFromCam.disconnect()
         self.sigCamParamsChanged.disconnect()
         self.sigMwSweepParamsChanged.disconnect()
         self.sigRuntimeChanged.disconnect()
@@ -574,6 +588,8 @@ class WidefieldGUI(GUIBase):
         self.sigSaveMeasurement.disconnect()
         self.sigChangeMeasurementType.disconnect()
         # self.sigMeasurementChanged.disconnect()
+
+        self._mw.cam_connect_RadioButton.clicked.disconnect()
         self._mw.xy_cb_manual_RadioButton.clicked.disconnect()
         self._mw.xy_cb_centiles_RadioButton.clicked.disconnect()
         self._mw.clear_odmr_PushButton.clicked.disconnect()
@@ -1502,6 +1518,15 @@ class WidefieldGUI(GUIBase):
     #     power = self._mw.cw_power_DoubleSpinBox.value()
         # self.sigMwCwParamsChanged.emit(frequency, power)
     #     return
+
+    def toggle_cam_connect(self):
+        """ Connect/disconnect from camera """
+        connect_cam = self._mw.cam_connect_RadioButton.isChecked()
+        self.sigConnectCam.emit(connect_cam)
+
+    def update_from_cam(self):
+        """ Update the camera settings from pylon """
+        self.sigUpdateFromCam.emit()
 
     def change_camera_params(self):
         """ Change camera properties """
