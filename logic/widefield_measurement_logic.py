@@ -89,8 +89,8 @@ class WidefieldMeasurementLogic(GenericLogic):
 
     measurement_type = StatusVar('measurement_type', 'rabi')
 
-    cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
-    cw_mw_power = StatusVar('cw_mw_power', -30)
+    # cw_mw_frequency = StatusVar('cw_mw_frequency', 2870e6)
+    # cw_mw_power = StatusVar('cw_mw_power', -30)
     sweep_mw_power = StatusVar('sweep_mw_power', -30)
     fit_range = StatusVar('fit_range', 0)
     mw_starts = StatusVar('mw_starts', [2760e6])
@@ -229,7 +229,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
-        self.autosave_num = 500
+        self.autosave_num = 1000
 
         self.range_to_fit = 0
         self.matrix_range = 0
@@ -789,7 +789,7 @@ class WidefieldMeasurementLogic(GenericLogic):
     
     def mw2_cw_on(self):
         """
-        Switching on the mw1 source in cw mode.
+        Switching on the mw2 source in cw mode.
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
@@ -1168,7 +1168,8 @@ class WidefieldMeasurementLogic(GenericLogic):
                 self.elapsed_sweeps = 0
                 self._startTime = time.time()
 
-            if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+            # if self.generate_method_params.get(self.curr_loaded_seq)['name'] == 'ODMR':
+            if 'ranges' in self.generate_method_params.get(self.curr_loaded_seq):
                 # for CW odmr, pulse streamer is on the whole time
 
                 # Laser and MW switch constant output, THIS SHOULD BE MOVED TO LAST to make ESR AND pulsed all work.
@@ -1451,7 +1452,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         data_raw['Count_data'] = self.odmr_raw_data
         data_raw['Sweep_values'] = self.odmr_plot_x
 
-        data_raw['CWPower_dBm'] = self.cw_mw_power
+        # data_raw['CWPower_dBm'] = self.cw_mw_power
         data_raw['SweepPower_dBm'] = self.sweep_mw_power
         data_raw['RunTime_s'] = self.run_time
         data_raw['NumSweeps'] = self.elapsed_sweeps

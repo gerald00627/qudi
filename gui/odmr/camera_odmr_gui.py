@@ -164,10 +164,10 @@ class WidefieldGUI(GUIBase):
         # self._mw.sweep_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
         # self._mw.sweep_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
 
-        self._mw.ext_control_mw1_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency)
-        self._mw.ext_control_mw2_freq_DoubleSpinBox.setMinimum(mw2_constraints.min_frequency)
-        self._mw.ext_control_mw1_freq_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency)
-        self._mw.ext_control_mw2_freq_DoubleSpinBox.setMaximum(mw2_constraints.max_frequency)
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency*1e-9) 
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.setMinimum(mw2_constraints.min_frequency*1e-9)
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency*1e-9)
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.setMaximum(mw2_constraints.max_frequency*1e-9)
 
         self._mw.ext_control_mw1_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
         self._mw.ext_control_mw2_power_DoubleSpinBox.setMinimum(mw2_constraints.min_power)
@@ -1110,7 +1110,7 @@ class WidefieldGUI(GUIBase):
 
         settings_dict = dict()
         settings_dict['use_ext_microwave1'] = use_ext_microwave1
-        settings_dict['frequency1'] = self._mw.ext_control_mw1_freq_DoubleSpinBox.value()
+        settings_dict['frequency1'] = self._mw.ext_control_mw1_freq_DoubleSpinBox.value()*1e9
         settings_dict['power1'] = self._mw.ext_control_mw1_power_DoubleSpinBox.value()
 
         if use_ext_microwave1 and not self._mw.ext_control_mw1_freq_DoubleSpinBox.isVisible():
@@ -1141,7 +1141,7 @@ class WidefieldGUI(GUIBase):
 
         settings_dict = dict()
         settings_dict['use_ext_microwave2'] = use_ext_microwave2
-        settings_dict['frequency2'] = self._mw.ext_control_mw2_freq_DoubleSpinBox.value()
+        settings_dict['frequency2'] = self._mw.ext_control_mw2_freq_DoubleSpinBox.value()*1e9
         settings_dict['power2'] = self._mw.ext_control_mw2_power_DoubleSpinBox.value()
 
         if use_ext_microwave2 and not self._mw.ext_control_mw2_freq_DoubleSpinBox.isVisible():
@@ -1559,7 +1559,9 @@ class WidefieldGUI(GUIBase):
             steps.append(step)
             stops.append(stop)
 
-        power = self._mw.sweep_power_DoubleSpinBox.value()
+        # power = self._mw.sweep_power_DoubleSpinBox.value()
+        power = self._mw.ext_control_mw1_power_DoubleSpinBox.value()
+
         self.sigMwSweepParamsChanged.emit(starts, stops, steps, power)
         return
 

@@ -187,7 +187,7 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences
     
-    def generate_WF_upper_rabi(self, name='upperWFrabi', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=40, reference=True):
+    def generate_WF_mw2_rabi(self, name='mw2WFrabi', tau_start=10.0e-9, tau_step=10.0e-9, num_of_points=40, reference=True):
         """
 
         """
@@ -503,5 +503,53 @@ class BasicPredefinedGenerator(PredefinedGeneratorBase):
         block_ensemble.measurement_information['cam_exp_mode'] = 'Timed'
         block_ensemble.measurement_information['cam_trig_mode'] = False
 
+        created_ensembles.append(block_ensemble)
+        return created_blocks, created_ensembles, created_sequences
+    
+    def generate_WF_pulsedodmr_mw1(self, name='WFpulsedODMRmw1', ranges = True):
+        """"""
+        created_blocks = list()
+        created_ensembles = list()
+        created_sequences = list()
+
+        # create the elements
+        waiting_element = self._get_idle_element(length=self.wait_time, increment=0)
+        laser_element = self._get_laser_element(length=self.laser_length,
+                                                     increment=0)
+        delay_element = self._get_delay_gate_element()
+        mw_element = self._get_mw1_element(length=self.rabi_period1 / 2,
+                                            increment=0,
+                                            amp=self.microwave1_amplitude,
+                                            freq=self.microwave1_frequency,
+                                            phase=0)
+
+        # Create block and append to created_blocks list
+        pulsedwfodmr_block = PulseBlock(name=name)      
+        
+        pulsedwfodmr_block.append(mw_element)
+        pulsedwfodmr_block.append(delay_element)
+        pulsedwfodmr_block.append(laser_element)
+        pulsedwfodmr_block.append(waiting_element)
+
+        created_blocks.append(pulsedwfodmr_block)
+
+        # Create block ensemble
+        block_ensemble = PulseBlockEnsemble(name=name, rotating_frame=False)
+        block_ensemble.append((pulsedwfodmr_block.name, 0))
+
+        # add metadata to invoke settings later on
+        number_of_lasers = 1
+        block_ensemble.measurement_information['number_of_curves'] = 1
+        block_ensemble.measurement_information['laser_ignore_list'] = list()
+        block_ensemble.measurement_information['controlled_variable'] = []
+        block_ensemble.measurement_information['units'] = ('Hz', '')
+        block_ensemble.measurement_information['labels'] = ('Tau<sub>pulse spacing</sub>', 'Signal')
+        block_ensemble.measurement_information['number_of_lasers'] = number_of_lasers
+        block_ensemble.measurement_information['counting_length'] = self._get_ensemble_count_length(
+            ensemble=block_ensemble, created_blocks=created_blocks)
+        block_ensemble.measurement_information['cam_exp_mode'] = 'Timed'
+        block_ensemble.measurement_information['cam_trig_mode'] = False
+
+        # append ensemble to created ensembles
         created_ensembles.append(block_ensemble)
         return created_blocks, created_ensembles, created_sequences

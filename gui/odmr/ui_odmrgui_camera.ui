@@ -699,16 +699,10 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QDoubleSpinBox" name="ext_control_mw1_freq_DoubleSpinBox">
-            <property name="suffix">
-             <string>Hz</string>
-            </property>
-            <property name="decimals">
-             <number>4</number>
-            </property>
-            <property name="value">
-             <double>2.870000000000000</double>
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="ext_control_use_mw1_CheckBox">
+            <property name="text">
+             <string/>
             </property>
            </widget>
           </item>
@@ -719,13 +713,6 @@
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QCheckBox" name="ext_control_use_mw1_CheckBox">
-            <property name="text">
-             <string/>
             </property>
            </widget>
           </item>
@@ -743,16 +730,6 @@
            <widget class="QLabel" name="ext_control_mw1_power_Label">
             <property name="text">
              <string>MW1 Power:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Ext MW1:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -801,13 +778,48 @@
             </property>
            </widget>
           </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Ext MW1:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="3">
            <widget class="QDoubleSpinBox" name="ext_control_mw2_freq_DoubleSpinBox">
             <property name="suffix">
-             <string>Hz</string>
+             <string> GHz</string>
             </property>
             <property name="decimals">
-             <number>4</number>
+             <number>6</number>
+            </property>
+            <property name="maximum">
+             <double>1000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>2.870000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="ext_control_mw1_freq_DoubleSpinBox">
+            <property name="suffix">
+             <string> GHz</string>
+            </property>
+            <property name="decimals">
+             <number>6</number>
+            </property>
+            <property name="maximum">
+             <double>100.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
             </property>
             <property name="value">
              <double>2.870000000000000</double>
@@ -912,7 +924,7 @@
       </sizepolicy>
      </property>
     </widget>
-    <widget class="QPushButton" name="image_fit_PushButton">
+    <widget class="QPushButton" name="image_fit_pushButton">
      <property name="geometry">
       <rect>
        <x>160</x>
@@ -1152,7 +1164,7 @@
   <tabstop>odmr_fit_results_DisplayWidget</tabstop>
   <tabstop>do_fit_PushButton</tabstop>
   <tabstop>fit_methods_ComboBox</tabstop>
-  <tabstop>image_fit_PushButton</tabstop>
+  <tabstop>image_fit_pushButton</tabstop>
   <tabstop>fit_range_SpinBox</tabstop>
  </tabstops>
  <resources/>
