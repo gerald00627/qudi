@@ -396,7 +396,7 @@ def estimate_lorentzian_peak (self, x_axis, data, params):
 
     @param numpy.array x_axis: 1D axis values
     @param numpy.array data: 1D data, should have the same dimension as x_axis.
-    @param lmfit.Parameters params: object includes parameter dictionary which
+    @param lmfit.Paramete`rs params: object includes parameter dictionary which
                                     can be set
 
     @return tuple (error, params):
@@ -485,6 +485,12 @@ def make_lorentziandouble_fit(self, x_axis, data, estimator, units=None, add_par
                                     'error': (result.params['l0_center'].stderr +
                                               result.params['l1_center'].stderr),
                                     'unit': units[0]}
+    
+    result_str_dict['Field Intensity'] = {'value': (result.params['l1_center'].value -
+                                            result.params['l0_center'].value)/5600000,
+                                'error': (result.params['l0_center'].stderr +
+                                            result.params['l1_center'].stderr)/5600000,
+                                'unit': 'G'}
 
     result_str_dict['Contrast 0'] = {'value': abs(result.params['l0_contrast'].value),
                                      'error': result.params['l0_contrast'].stderr,

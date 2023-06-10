@@ -205,6 +205,11 @@ class WidefieldGUI(GUIBase):
         self._mw.clear_device_PushButton.setToolTip('Clear the sequence from the Pulser')
         self._mw.Pulser_ToolBar.addWidget(self._mw.clear_device_PushButton)
 
+        self._mw.plot_seq_PushButton = QtWidgets.QPushButton()
+        self._mw.plot_seq_PushButton.setText('Plot Sequence')
+        self._mw.plot_seq_PushButton.setToolTip('Plots the currently uploaded sequence')
+        self._mw.Pulser_ToolBar.addWidget(self._mw.plot_seq_PushButton)
+
         # self._mw.current_loaded_asset_Label = QtWidgets.QLabel(self._mw)
         # sizepolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred,QtWidgets.QSizePolicy.Fixed)
         # sizepolicy.setHorizontalStretch(0)
@@ -474,6 +479,8 @@ class WidefieldGUI(GUIBase):
         # Pulser toolbar
         self._mw.pulser_on_off_PushButton.clicked.connect(self.pulser_on_off_clicked)
         self._mw.clear_device_PushButton.clicked.connect(self.clear_pulser_clicked)
+        self._mw.plot_seq_PushButton.clicked.connect(self.plot_seq_clicked)
+
 
         # External MW Control signals
         self._mw.ext_control_use_mw1_CheckBox.stateChanged.connect(self.microwave1_settings_changed)
@@ -614,6 +621,8 @@ class WidefieldGUI(GUIBase):
 
         self._mw.pulser_on_off_PushButton.clicked.disconnect()
         self._mw.clear_device_PushButton.clicked.disconnect()
+        self._mw.plot_seq_PushButton.clicked.disconnect()    
+
 
         #Disconnect External MW Control Settings
         self._mw.ext_control_use_mw1_CheckBox.stateChanged.disconnect()
@@ -855,6 +864,7 @@ class WidefieldGUI(GUIBase):
 
             self._mw.pulser_on_off_PushButton.setEnabled(False)
             self._mw.clear_device_PushButton.setEnabled(False)
+            self._mw.plot_seq_PushButton.setEnabled(False)    
             self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
             self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
             self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
@@ -962,6 +972,7 @@ class WidefieldGUI(GUIBase):
 
             self._mw.pulser_on_off_PushButton.setEnabled(False)
             self._mw.clear_device_PushButton.setEnabled(False)
+            self._mw.plot_seq_PushButton.setEnabled(False)    
             self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
             self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
             self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
@@ -1040,6 +1051,7 @@ class WidefieldGUI(GUIBase):
 
             self._mw.pulser_on_off_PushButton.setEnabled(True)
             self._mw.clear_device_PushButton.setEnabled(True)
+            self._mw.plot_seq_PushButton.setEnabled(True)    
             self._mw.ext_control_use_mw1_CheckBox.setEnabled(True)
             self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
             self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
@@ -1098,6 +1110,12 @@ class WidefieldGUI(GUIBase):
     def clear_pulser_clicked(self):
         "Delete all loaded files in pulser's current memory"
         self._widefield_logic.clear_pulse_generator()
+        return
+    
+    @QtCore.Slot()
+    def plot_seq_clicked(self):
+        "Plot the currently loaded sequence"
+        self._widefield_logic.pulsedmeasurementlogic().pulsegenerator()._seq.plot()
         return
 
     @QtCore.Slot()

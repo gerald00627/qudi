@@ -26,228 +26,300 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QGridLayout" name="gridLayout_4">
+   <layout class="QGridLayout" name="gridLayout_9">
     <item row="0" column="0">
-     <widget class="PlotWidget" name="image_PlotWidget">
+     <widget class="QGroupBox" name="groupBox_3">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>1</horstretch>
-        <verstretch>2</verstretch>
+       <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
+      <property name="title">
+       <string/>
       </property>
-      <property name="transformationAnchor">
-       <enum>QGraphicsView::AnchorUnderMouse</enum>
-      </property>
+      <layout class="QGridLayout" name="gridLayout_6">
+       <item row="0" column="0">
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="1" column="0">
+          <widget class="PlotWidget" name="image_PlotWidget">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>1</horstretch>
+             <verstretch>2</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="transformationAnchor">
+            <enum>QGraphicsView::AnchorUnderMouse</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="comboBox">
+           <property name="editable">
+            <bool>true</bool>
+           </property>
+           <property name="currentText">
+            <string>ODMR Fit</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="PlotWidget" name="image_fit_PlotWidget">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>1</horstretch>
+             <verstretch>2</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="transformationAnchor">
+            <enum>QGraphicsView::AnchorUnderMouse</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="PlotWidget" name="odmr_PlotWidget">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTipDuration">
+            <number>1</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QComboBox" name="comboBox_2">
+           <property name="editable">
+            <bool>true</bool>
+           </property>
+           <property name="currentText">
+            <string>Optical Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
      </widget>
     </item>
-    <item row="0" column="2" rowspan="2">
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QComboBox" name="odmr_channel_ComboBox"/>
-      </item>
-      <item>
-       <widget class="ScienDSpinBox" name="xy_cb_max_DoubleSpinBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>100</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="mouseTracking">
-         <bool>true</bool>
-        </property>
-        <property name="acceptDrops">
-         <bool>true</bool>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="accelerated">
-         <bool>true</bool>
-        </property>
-        <property name="suffix">
-         <string>c</string>
-        </property>
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="minimum">
-         <double>-1000000000.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>1000000000.000000000000000</double>
-        </property>
-        <property name="value">
-         <double>100000.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="ScienDSpinBox" name="xy_cb_high_percentile_DoubleSpinBox">
-        <property name="maximumSize">
-         <size>
-          <width>100</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="suffix">
-         <string>%</string>
-        </property>
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="minimum">
-         <double>0.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>100.000000000000000</double>
-        </property>
-        <property name="singleStep">
-         <double>0.100000000000000</double>
-        </property>
-        <property name="value">
-         <double>100.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="PlotWidget" name="xy_cb_PlotWidget">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>80</width>
-          <height>16777215</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="ScienDSpinBox" name="xy_cb_low_percentile_DoubleSpinBox">
-        <property name="maximumSize">
-         <size>
-          <width>100</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="suffix">
-         <string>%</string>
-        </property>
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="minimum">
-         <double>0.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>100.000000000000000</double>
-        </property>
-        <property name="singleStep">
-         <double>0.100000000000000</double>
-        </property>
-        <property name="value">
-         <double>0.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="ScienDSpinBox" name="xy_cb_min_DoubleSpinBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>100</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="mouseTracking">
-         <bool>true</bool>
-        </property>
-        <property name="acceptDrops">
-         <bool>true</bool>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="accelerated">
-         <bool>true</bool>
-        </property>
-        <property name="suffix">
-         <string>c</string>
-        </property>
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="minimum">
-         <double>-1000000000.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>10000000.000000000000000</double>
-        </property>
-        <property name="value">
-         <double>1000.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="xy_cb_manual_RadioButton">
-        <property name="text">
-         <string>Manual</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="xy_cb_centiles_RadioButton">
-        <property name="text">
-         <string>Percentiles</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="1" column="0">
-     <widget class="PlotWidget" name="odmr_PlotWidget">
+    <item row="0" column="1">
+     <widget class="QGroupBox" name="groupBox_4">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
         <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
+        <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <property name="toolTipDuration">
-       <number>1</number>
+      <property name="title">
+       <string/>
       </property>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="0" column="0">
+        <widget class="QComboBox" name="odmr_channel_ComboBox"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="ScienDSpinBox" name="xy_cb_max_DoubleSpinBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
+         <property name="acceptDrops">
+          <bool>true</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="accelerated">
+          <bool>true</bool>
+         </property>
+         <property name="suffix">
+          <string>c</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>-1000000000.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>1000000000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>100000.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="ScienDSpinBox" name="xy_cb_high_percentile_DoubleSpinBox">
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="suffix">
+          <string>%</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>0.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>100.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>100.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="PlotWidget" name="xy_cb_PlotWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>80</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="ScienDSpinBox" name="xy_cb_low_percentile_DoubleSpinBox">
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="suffix">
+          <string>%</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>0.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>100.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>0.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="ScienDSpinBox" name="xy_cb_min_DoubleSpinBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
+         <property name="acceptDrops">
+          <bool>true</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="accelerated">
+          <bool>true</bool>
+         </property>
+         <property name="suffix">
+          <string>c</string>
+         </property>
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>-1000000000.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>10000000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>1000.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QRadioButton" name="xy_cb_manual_RadioButton">
+         <property name="text">
+          <string>Manual</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QRadioButton" name="xy_cb_centiles_RadioButton">
+         <property name="text">
+          <string>Percentiles</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
@@ -1159,7 +1231,6 @@
   <tabstop>odmr_channel_ComboBox</tabstop>
   <tabstop>xy_cb_min_DoubleSpinBox</tabstop>
   <tabstop>xy_cb_max_DoubleSpinBox</tabstop>
-  <tabstop>xy_cb_high_percentile_DoubleSpinBox</tabstop>
   <tabstop>xy_cb_manual_RadioButton</tabstop>
   <tabstop>odmr_fit_results_DisplayWidget</tabstop>
   <tabstop>do_fit_PushButton</tabstop>
