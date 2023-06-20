@@ -119,6 +119,7 @@ class WidefieldGUI(GUIBase):
     sigRuntimeChanged = QtCore.Signal(float)
     sigAutosaveNumChanged = QtCore.Signal(int)
     sigDoFit = QtCore.Signal(str, object, object, int, int)
+    sigDoImageFit = QtCore.Signal(str, object, object, int, int)
     sigSaveMeasurement = QtCore.Signal(str, list, list)
     sigChangeMeasurementType = QtCore.Signal(str)
 
@@ -291,6 +292,18 @@ class WidefieldGUI(GUIBase):
         self._mw.xy_cb_PlotWidget.setMouseEnabled(x=False, y=False)
 
         ########################################################################
+        #                  Configuration of the fit Colorbar                       #
+        ########################################################################
+        # create color bar
+        self.fit_xy_cb = ColorBar(self.my_colors.cmap_normed, width=100, cb_min=0, cb_max=100)
+
+        self._mw.fit_xy_cb_PlotWidget.addItem(self.fit_xy_cb)
+        self._mw.fit_xy_cb_PlotWidget.hideAxis('bottom')
+        self._mw.fit_xy_cb_PlotWidget.setLabel('left', 'Counts', units='N')
+        self._mw.fit_xy_cb_PlotWidget.setMouseEnabled(x=False, y=False)
+
+
+        ########################################################################
         #          Configuration of the various display Widgets                #
         ########################################################################
         # Take the default values from logic:
@@ -347,7 +360,7 @@ class WidefieldGUI(GUIBase):
         self._fsd = FitSettingsDialog(self._widefield_logic.fc)
         self._fsd.sigFitsUpdated.connect(self._mw.fit_methods_ComboBox.setFitFunctions)
         self._fsd.applySettings()
-        self._mw.action_FitSettings.triggered.connect(self._fsd.show)
+        self._mw.action_Fit_Settings.triggered.connect(self._fsd.show)
 
         ########################################################################
         #                       Connect signals                                #
@@ -383,6 +396,7 @@ class WidefieldGUI(GUIBase):
         self._mw.action_Save.triggered.connect(self.save_data)
         self._mw.action_RestoreDefault.triggered.connect(self.restore_defaultview)
         self._mw.do_fit_PushButton.clicked.connect(self.do_fit)
+        self._mw.image_fit_pushButton.clicked.connect(self.image_fit)
         self._mw.fit_range_SpinBox.editingFinished.connect(self.update_fit_range)
         self._mw.measurement_type_comboBox.currentTextChanged.connect(self._change_measurement_type)
 
@@ -396,6 +410,7 @@ class WidefieldGUI(GUIBase):
         self.sigContinueOdmrScan.connect(self._widefield_logic.continue_widefield_odmr_scan,
                                          QtCore.Qt.QueuedConnection)
         self.sigDoFit.connect(self._widefield_logic.do_fit, QtCore.Qt.QueuedConnection)
+        self.sigDoImageFit.connect(self._widefield_logic.do_image_fit, QtCore.Qt.QueuedConnection)
         # self.sigMwCwParamsChanged.connect(self._widefield_logic.set_cw_parameters,
                                         #   QtCore.Qt.QueuedConnection)
         self.sigConnectCam.connect(self._widefield_logic.connect_camera,QtCore.Qt.QueuedConnection)
@@ -413,6 +428,7 @@ class WidefieldGUI(GUIBase):
         self.sigChangeMeasurementType.connect(self._widefield_logic.change_measurement_type, QtCore.Qt.QueuedConnection)
 
         # Update signals coming from logic:
+        self._widefield_logic.sigPlotImageFit.connect(self.update_image_fit,QtCore.Qt.QueuedConnection)
         self._widefield_logic.sigParameterUpdated.connect(self.update_parameter,
                                                      QtCore.Qt.QueuedConnection)
         self._widefield_logic.sigCameraLimits.connect(self.update_camera_limits,
@@ -514,12 +530,20 @@ class WidefieldGUI(GUIBase):
         # TODO: save XY data
         # self._mw.actionSave_XY_Scan.triggered.connect(self.save_xy_scan_data)
 
+        # Loading Optical Image
         raw_data_image = self._camera_logic.get_last_image()
         self._image = pg.ImageItem(image=raw_data_image, axisOrder='row-major')
         self._mw.image_PlotWidget.addItem(self._image)
         self._mw.image_PlotWidget.setAspectLocked(True)
 
         self._image.setLookupTable(self.my_colors.lut)
+
+        # Loading Image Fit 
+        # fitted_data_image = self._widefield_logic.fit_image()
+        # self._fitted_image = pg.ImageItem(image=fitted_image)
+        self._fitted_image = pg.ImageItem()
+        self._mw.image_fit_PlotWidget.addItem(self._fitted_image)
+        self._mw.image_fit_PlotWidget.setAspectLocked(True)
 
         # Connect the buttons and inputs for the colorbar
         self._mw.xy_cb_manual_RadioButton.clicked.connect(self.update_xy_cb_range)
@@ -529,6 +553,16 @@ class WidefieldGUI(GUIBase):
         self._mw.xy_cb_max_DoubleSpinBox.valueChanged.connect(self.shortcut_to_xy_cb_manual)
         self._mw.xy_cb_low_percentile_DoubleSpinBox.valueChanged.connect(self.shortcut_to_xy_cb_centiles)
         self._mw.xy_cb_high_percentile_DoubleSpinBox.valueChanged.connect(self.shortcut_to_xy_cb_centiles)
+
+        # Connect the buttons and inputs for the fit colorbar
+        self._mw.fit_xy_cb_manual_RadioButton.clicked.connect(self.update_fitted_xy_cb_range)
+        self._mw.fit_xy_cb_centiles_RadioButton.clicked.connect(self.update_fitted_xy_cb_range)
+
+        self._mw.fit_xy_cb_min_DoubleSpinBox.valueChanged.connect(self.shortcut_to_fitted_xy_cb_manual)
+        self._mw.fit_xy_cb_max_DoubleSpinBox.valueChanged.connect(self.shortcut_to_fitted_xy_cb_manual)
+        self._mw.fit_xy_cb_low_percentile_DoubleSpinBox.valueChanged.connect(self.shortcut_to_fitted_xy_cb_centiles)
+        self._mw.fit_xy_cb_high_percentile_DoubleSpinBox.valueChanged.connect(self.shortcut_to_fitted_xy_cb_centiles)
+
 
         # Show the Main ODMR GUI:
         self.show()
@@ -583,6 +617,7 @@ class WidefieldGUI(GUIBase):
         self.sigStopOdmrScan.disconnect()
         self.sigContinueOdmrScan.disconnect()
         self.sigDoFit.disconnect()
+        self.sigDoImageFit.disconnect()
         # self.sigMwCwParamsChanged.disconnect()
         self.sigConnectCam.disconnect()
         self.sigUpdateFromCam.disconnect()
@@ -606,6 +641,7 @@ class WidefieldGUI(GUIBase):
         self._mw.action_toggle_cw.triggered.disconnect()
         self._mw.action_RestoreDefault.triggered.disconnect()
         self._mw.do_fit_PushButton.clicked.disconnect()
+        self._mw.image_fit_pushButton.clicked.disconnect()
         # self._mw.cw_frequency_DoubleSpinBox.editingFinished.disconnect()
         self._mw.gainSpinBox.editingFinished.disconnect()
         self._mw.triggerMode_checkBox.stateChanged.disconnect()
@@ -648,7 +684,7 @@ class WidefieldGUI(GUIBase):
         self._mw.xy_cb_low_percentile_DoubleSpinBox.valueChanged.disconnect()
         self._fsd.sigFitsUpdated.disconnect()
         self._mw.fit_range_SpinBox.editingFinished.disconnect()
-        self._mw.action_FitSettings.triggered.disconnect()
+        self._mw.action_Fit_Settings.triggered.disconnect()
         self.saveWindowGeometry(self._mw)
         self._mw.close()
         return 0
@@ -1273,6 +1309,12 @@ class WidefieldGUI(GUIBase):
         self.sigDoFit.emit(fit_function, None, None, self._mw.odmr_channel_ComboBox.currentIndex(),
                            self._mw.fit_range_SpinBox.value())
         return
+    
+    def image_fit(self):
+        fit_function = self._mw.fit_methods_ComboBox.getCurrentFit()[0]
+        self.sigDoImageFit.emit(fit_function, None, None, self._mw.odmr_channel_ComboBox.currentIndex(),
+                           self._mw.fit_range_SpinBox.value())
+        pass
 
     def update_fit(self, x_data, y_data, result_str_dict, current_fit):
         """ Update the shown fit. """
@@ -1762,6 +1804,85 @@ class WidefieldGUI(GUIBase):
         """Redraw xy colour bar and scan image."""
         self.refresh_xy_colorbar()
         self.refresh_xy_image()
+
+# Image Fit functions
+    
+    # def image_fit(self):
+    
+    #     pass
+
+    def update_image_fit(self,fitted_img):
+        """
+        Get the image data from the logic and print it on the window
+        """
+        self._fitted_image.setImage(image=fitted_img)
+        self.update_xy_cb_range()
+        # levels = (0., 1.)
+        # self._image.setImage(image=raw_data_image, levels=levels)
+
+    def update_fitted_xy_cb_range(self):
+        """Redraw xy colour bar and scan image."""
+        self.refresh_fitted_xy_colorbar()
+        self.refresh_fitted_xy_image()
+
+    def refresh_fitted_xy_colorbar(self):
+        """ Adjust the xy colorbar.
+
+        Calls the refresh method from colorbar, which takes either the lowest
+        and higherst value in the image or predefined ranges. Note that you can
+        invert the colorbar if the lower border is bigger then the higher one.
+        """
+        fit_cb_range = self.get_fitted_xy_cb_range()
+        self.fit_xy_cb.refresh_colorbar(fit_cb_range[0], fit_cb_range[1])
+
+    def refresh_fitted_xy_image(self):
+        """ Update the current XY image from the logic.
+
+        Everytime the scanner is scanning a line in xy the
+        image is rebuild and updated in the GUI.
+        """
+        self._fitted_image.getViewBox().updateAutoRange()
+
+        fitted_xy_image_data = self.image_fit()
+
+        fit_cb_range = self.get_fitted_xy_cb_range()
+
+        # Now update image with new color scale, and update colorbar
+        self._fitted_image.setImage(image=fitted_xy_image_data, levels=(fit_cb_range[0], fit_cb_range[1]))
+        self.refresh_xy_colorbar()
+
+    def get_fitted_xy_cb_range(self):
+        """ Determines the cb_min and cb_max values for the xy scan image
+        """
+        # If "Manual" is checked, or the image data is empty (all zeros), then take manual cb range.
+        if self._mw.fit_xy_cb_manual_RadioButton.isChecked() or np.max(self._fitted_image.image) == 0.0:
+            fit_cb_min = self._mw.fit_xy_cb_min_DoubleSpinBox.value()
+            fit_cb_max = self._mw.fit_xy_cb_max_DoubleSpinBox.value()
+
+        # Otherwise, calculate cb range from percentiles.
+        else:
+            # xy_image_nonzero = self._image.image[np.nonzero(self._image.image)]
+
+            # Read centile range
+            fit_low_centile = self._mw.fit_xy_cb_low_percentile_DoubleSpinBox.value()
+            fit_high_centile = self._mw.fit_xy_cb_high_percentile_DoubleSpinBox.value()
+
+            fit_cb_min = np.percentile(self._fitted_image.image, fit_low_centile)
+            fit_cb_max = np.percentile(self._fitted_image.image, fit_high_centile)
+
+        fit_cb_range = [fit_cb_min, fit_cb_max]
+
+        return fit_cb_range
+    
+    def shortcut_to_fitted_xy_cb_manual(self):
+        """Someone edited the absolute counts range for the xy colour bar, better update."""
+        self._mw.fit_xy_cb_manual_RadioButton.setChecked(True)
+        self.update_fitted_xy_cb_range()
+
+    def shortcut_to_fitted_xy_cb_centiles(self):
+        """Someone edited the centiles range for the xy colour bar, better update."""
+        self._mw.fit_xy_cb_centiles_RadioButton.setChecked(True)
+        self.update_fitted_xy_cb_range()
 
 # save functions
 

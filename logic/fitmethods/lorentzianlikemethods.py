@@ -514,7 +514,7 @@ def make_lorentziandouble_fit(self, x_axis, data, estimator, units=None, add_par
     return result
 
 def estimate_lorentziandouble_dip(self, x_axis, data, params,
-                                  threshold_fraction=0.3,
+                                  threshold_fraction=0.3,   
                                   minimal_threshold=0.01,
                                   sigma_threshold_fraction=0.3):
     """ Provide an estimator for double lorentzian dip with offset.

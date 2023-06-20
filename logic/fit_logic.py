@@ -36,7 +36,6 @@ from core.util.mutex import Mutex
 from core.config import load, save
 from core.configoption import ConfigOption
 
-
 class FitLogic(GenericLogic):
     """
     Documentation to add a new fit model/estimator/function can be found in
@@ -252,7 +251,7 @@ class FitLogic(GenericLogic):
 
     def load_fits(self, filename):
         """ Load collection of fits from YAML file.
-            @param filename str: path of file containing fits in YAML format
+            @param filename str: path of file containing fits in `YAML format
 
             @return dict: validated fit dictionary with function references and parameter objects
         """

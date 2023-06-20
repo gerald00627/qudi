@@ -37,7 +37,11 @@ from core.connector import Connector
 from core.configoption import ConfigOption
 from core.statusvariable import StatusVar
 
-
+#gpu fit imports
+import pygpufit.gpufit as gf
+import mat73
+from os.path import dirname, join as pjoin
+from scipy import signal
 
 class WidefieldMeasurementLogic(GenericLogic):
     """This is the Logic class for Widefield Measurements."""
@@ -114,6 +118,7 @@ class WidefieldMeasurementLogic(GenericLogic):
     sigOdmrPlotsUpdated = QtCore.Signal(np.ndarray,np.ndarray,np.ndarray,np.ndarray,str,str)
     sigOdmrFitUpdated = QtCore.Signal(np.ndarray, np.ndarray, dict, str)
     sigOdmrElapsedTimeUpdated = QtCore.Signal(float, int)
+    sigPlotImageFit = QtCore.Signal(np.ndarray)
 
     # SequenceGeneratorLogic control signals
     sigSavePulseBlock = QtCore.Signal(object)
@@ -1361,7 +1366,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.sigOdmrFitUpdated.emit(
             self.odmr_fit_x, self.odmr_fit_y, result_str_dict, self.fc.current_fit)
         return
-
+    
     def save_odmr_data(self, tag=None, colorscale_range=None, percentile_range=None):
         """ Saves the current ODMR data to a file."""
         timestamp = datetime.datetime.now()
@@ -1633,6 +1638,115 @@ class WidefieldMeasurementLogic(GenericLogic):
                              )
 
         return fig
+
+    def do_image_fit(self, fit_function=None, array_data = None, channel_index=0, fit_range=0):
+        """
+        """
+
+        # pull in data
+        data_dir = r"Z:\Montana_setup\samples and data\CrI3_NV\Flake#3_CrI3_twisted_3L+3L_Quinn\Pulsed_ESR\5K\40G_temp_test_v2\RawData"
+        mat_fname = pjoin(data_dir, "005_ESR.mat")
+        mat_data = mat73.loadmat(mat_fname)
+
+        # extract data
+        raw_data = np.array(mat_data['outputdata']['ave']['mean'])
+        frequency = np.array(mat_data['outputdata']['freq'], dtype=np.float32)
+
+        # Reshape data
+        data_normalized = raw_data/raw_data[:, :, 1, np.newaxis]
+
+        # initialize num_fits and num_points
+        n_fits = raw_data.shape[0]*raw_data.shape[1]
+        number_points = raw_data.shape[2]
+        data = np.array(np.reshape(data_normalized, (n_fits, number_points)), dtype=np.float32)
+
+        # taking only one lorentzian and every other data point 
+        # lower peak
+        raw_data_test = raw_data[:, :, :int(raw_data.shape[-1]/2)-1:2]
+        frequency_test = frequency[:int(raw_data.shape[-1]/2)-1:2]
+        data_normalized_test = data_normalized[:, :, :int(raw_data.shape[-1]/2)-1:2]
+
+        n_fits_test = raw_data_test.shape[0]*raw_data_test.shape[1]
+        number_points_test = raw_data_test.shape[2]
+        data_test = np.array(np.reshape(data_normalized_test, (n_fits_test, number_points_test)), dtype=np.float32)
+
+        # upper peak
+        raw_data_test_upper = raw_data[:, :, int(raw_data.shape[-1]/2)::2]
+        frequency_test_upper = frequency[int(raw_data.shape[-1]/2)::2]
+        data_normalized_test_upper = data_normalized[:, :, int(raw_data.shape[-1]/2)::2]
+
+        n_fits_test_upper = raw_data_test_upper.shape[0]*raw_data_test_upper.shape[1]
+        number_points_test_upper = raw_data_test_upper.shape[2]
+        data_test_upper = np.array(np.reshape(data_normalized_test_upper, (n_fits_test_upper, number_points_test_upper)), dtype=np.float32)
+
+        # initialize user info 
+        testing_f1 = np.arange(0,40)
+        testing_f1_upper = np.arange(0,41)
+
+        # User Info
+        user_info = testing_f1
+
+        # tolerance
+        tolerance = 1e-9
+
+        # maximum number of iterations
+        max_number_iterations = 20
+
+        # Parameters to Fit
+        #parameters_to_fit = np.ones(7, dtype=np.float32)
+
+        estimator_id = 0
+
+        # model ID
+        # model_id = gf.ModelID.LORENTZ_1D
+        model_id = gf.ModelID.GAUSS_1D
+
+        # Initial parameters
+        number_fits = 0
+        initial_parameters = initialize_parameters(data_test,Amp1=None,center1=22,width1=10,offset1=1)
+        initial_parameters_upper = initialize_parameters(data_test_upper,Amp1=None,center1=25,width1=10,offset1=1)
+
+        # run Gpufit
+        parameters, states, chi_squares, number_iterations, execution_time = gf.fit(data_test, None, model_id, initial_parameters, tolerance, max_number_iterations, None, estimator_id, user_info=None)
+        parameters_upper, states_upper, chi_squares_upper, number_iterations_upper, execution_time_upper = gf.fit(data_test_upper, None, model_id, initial_parameters_upper, tolerance, max_number_iterations, None, estimator_id, user_info=None)
+
+        # plot data for lower
+        n=22000
+        plt.plot(frequency_test,data_test[n,:],'.',c='blue')
+        plt.plot(frequency_test,lorentz_1D(testing_f1,parameters[n]),c='orange')
+        plt.show()
+
+        fcf = parameters[0][1]*0.003+2.7
+        print(f'fitted central frequency: {fcf}')
+
+        # plot data for upper
+        plt.plot(frequency_test_upper,data_test_upper[n,:],'.',c='blue')
+        plt.plot(frequency_test_upper,lorentz_1D(testing_f1_upper,parameters_upper[n]),c='orange')
+        plt.show()
+
+        fcf = parameters_upper[0][1]*0.003+2.92
+        print(f'fitted central frequency: {fcf}')
+
+        # fitting information
+
+        # exec_time_lower = execution_time
+        # exec_time_upper = execution_time_upper
+        # ratio = np.sum(states == 1) / parameters.shape[0] * 100
+        # print(f'ratio max iterations exceeded  {ratio} %')
+
+        # plot final fitted data        
+        final_data = parameters.reshape(raw_data_test.shape[0],raw_data_test.shape[1],4)
+        final_data_upper = parameters.reshape(raw_data_test_upper.shape[0],raw_data_test_upper.shape[1],4)      
+        # shw = plt.imshow((final_data_upper[:,:,1]-final_data[:,:,1]+40)*0.003/(2*2.8*10**(-3)),cmap='seismic',interpolation='none',vmin=21,vmax=25)
+        # colorbar = plt.colorbar(shw)
+        # plt.show()
+
+        final_field_data = (final_data_upper[:,:,1]-final_data[:,:,1]+40)*0.003/(2*2.8*10**(-3))
+        # Send signal for plotting data
+        self.sigPlotImageFit.emit(final_field_data)
+
+        return
+
 
     # def select_odmr_matrix_data(self, odmr_matrix, nch, freq_range):
     #     odmr_matrix_dp = odmr_matrix[:, nch]
@@ -1953,3 +2067,38 @@ class WidefieldMeasurementLogic(GenericLogic):
             self.pulsedmeasurementlogic().pulse_generator_off()
             self.sigClearPulseGenerator.emit()
         return
+    
+    #######################################################################
+    ###                       Gpufit Methods                            ###
+    #######################################################################
+
+    def initialize_parameters(data,center1=None,width1=None,Amp1=None,offset1=1):
+        Amp1_array = np.min(data,axis=1)-np.max(data,axis=1)
+                    
+        assert center1 is not None
+        assert width1 is not None
+        
+        center1_array = center1 * np.ones(data.shape[0])
+        width1_array = width1 * np.ones(data.shape[0])
+        offset1_array = offset1 * np.ones(data.shape[0])
+        
+        return np.array(np.stack((Amp1_array,center1_array,width1_array,offset1_array),axis=1), dtype=np.float32)
+
+    def lorentz_1D(x, p):
+        amp = p[0]
+        center = p[1]
+        width = p[2]
+        offset= p[3]
+        y = (amp * (width**2))/((x-center)**2 + (width)**2) + offset
+        return y 
+
+    def gauss_1D(x, p):
+        amp = p[0]
+        center = p[1]
+        width = p[2]
+        offset= p[3]
+        y = amp * (np.e ** (-(x-center)**2/(2*width**2))) + offset
+        return y 
+
+    def linear(x, p):
+        return p[0] + p[1]*x
