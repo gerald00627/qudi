@@ -127,6 +127,19 @@ class ODMRGui(GUIBase):
         self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
         self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
+        # Ext MW Control settings 
+        # TODO constraints separately.
+        # self._mw.ext_control_mw1_freq_DoubleSpinBox.setMinimum(mw1_constraints.min_frequency*1e-9) 
+        # self._mw.ext_control_mw2_freq_DoubleSpinBox.setMinimum(mw2_constraints.min_frequency*1e-9)
+        # self._mw.ext_control_mw1_freq_DoubleSpinBox.setMaximum(mw1_constraints.max_frequency*1e-9)
+        # self._mw.ext_control_mw2_freq_DoubleSpinBox.setMaximum(mw2_constraints.max_frequency*1e-9)
+
+        # self._mw.ext_control_mw1_power_DoubleSpinBox.setMinimum(mw1_constraints.min_power)
+        # self._mw.ext_control_mw2_power_DoubleSpinBox.setMinimum(mw2_constraints.min_power)
+        # self._mw.ext_control_mw1_power_DoubleSpinBox.setMaximum(mw1_constraints.max_power)
+        # self._mw.ext_control_mw2_power_DoubleSpinBox.setMaximum(mw2_constraints.max_power)
+
+
         # Add grid layout for ranges
         groupBox = QtWidgets.QGroupBox(self._mw.dockWidgetContents_3)
         groupBox.setAlignment(QtCore.Qt.AlignLeft)
@@ -343,6 +356,16 @@ class ODMRGui(GUIBase):
         ########################################################################
         #                       Connect signals                                #
         ########################################################################
+
+        # External MW Control signals
+        self._mw.ext_control_use_mw1_CheckBox.stateChanged.connect(self.microwave1_settings_changed)
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.editingFinished.connect(self.microwave1_settings_changed)
+        self._mw.ext_control_mw1_power_DoubleSpinBox.editingFinished.connect(self.microwave1_settings_changed)
+
+        self._mw.ext_control_use_mw2_CheckBox.stateChanged.connect(self.microwave2_settings_changed)
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.connect(self.microwave2_settings_changed)
+        self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.connect(self.microwave2_settings_changed)
+
         # Internal user input changed signals
         self._mw.cw_frequency_DoubleSpinBox.editingFinished.connect(self.change_cw_params)
 
@@ -457,6 +480,14 @@ class ODMRGui(GUIBase):
         for identifier_name in dspinbox_dict:
             dspinbox_type_list = dspinbox_dict[identifier_name]
             [dspinbox_type.editingFinished.disconnect() for dspinbox_type in dspinbox_type_list]
+
+        #Disconnect External MW Control Settings
+        self._mw.ext_control_use_mw1_CheckBox.stateChanged.disconnect()
+        self._mw.ext_control_mw1_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.ext_control_mw1_power_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.ext_control_use_mw2_CheckBox.stateChanged.disconnect()
+        self._mw.ext_control_mw2_freq_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.ext_control_mw2_power_DoubleSpinBox.editingFinished.disconnect()
 
         self._mw.cw_power_DoubleSpinBox.editingFinished.disconnect()
         self._mw.sweep_power_DoubleSpinBox.editingFinished.disconnect()
@@ -670,6 +701,12 @@ class ODMRGui(GUIBase):
             self._mw.cw_power_DoubleSpinBox.setEnabled(False)
             self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_use_mw2_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
             dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
             for identifier_name in dspinbox_dict:
                 dspinbox_type_list = dspinbox_dict[identifier_name]
@@ -696,6 +733,12 @@ class ODMRGui(GUIBase):
             self._mw.cw_power_DoubleSpinBox.setEnabled(False)
             self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_use_mw2_CheckBox.setEnabled(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
             dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
             for identifier_name in dspinbox_dict:
                 dspinbox_type_list = dspinbox_dict[identifier_name]
@@ -716,6 +759,7 @@ class ODMRGui(GUIBase):
 
     def toggle_cw_mode(self, is_checked):
         """ Starts or stops CW microwave output if no measurement is running. """
+        #TODO check for ext mw 
         if is_checked:
             self._mw.action_run_stop.setEnabled(False)
             self._mw.action_resume_odmr.setEnabled(False)
@@ -763,6 +807,12 @@ class ODMRGui(GUIBase):
                 self._mw.action_run_stop.setChecked(True)
                 self._mw.action_resume_odmr.setChecked(True)
                 self._mw.action_toggle_cw.setChecked(False)
+                self._mw.ext_control_use_mw1_CheckBox.setEnabled(False)
+                self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+                self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+                self._mw.ext_control_use_mw2_CheckBox.setEnabled(False)
+                self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+                self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
             else:
                 self._mw.clear_odmr_PushButton.setEnabled(False)
                 self._mw.action_run_stop.setEnabled(False)
@@ -805,6 +855,12 @@ class ODMRGui(GUIBase):
             self._mw.action_run_stop.setChecked(False)
             self._mw.action_resume_odmr.setChecked(False)
             self._mw.action_toggle_cw.setChecked(False)
+            self._mw.ext_control_use_mw1_CheckBox.setEnabled(True)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_use_mw2_CheckBox.setEnabled(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
 
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)
@@ -1137,4 +1193,66 @@ class ODMRGui(GUIBase):
             pcile_range = [low_centile, high_centile]
 
         self.sigSaveMeasurement.emit(filetag, cb_range, pcile_range)
+        return
+
+    @QtCore.Slot()
+    def microwave1_settings_changed(self):
+        """ Shows or hides input widgets which are necessary if an external mw is turned on"""
+        if self._mw.action_run_stop.isChecked():
+            return
+
+        use_ext_microwave1 = self._mw.ext_control_use_mw1_CheckBox.isChecked()
+
+        settings_dict = dict()
+        settings_dict['use_ext_microwave1'] = use_ext_microwave1
+        settings_dict['frequency1'] = self._mw.ext_control_mw1_freq_DoubleSpinBox.value()*1e9
+        settings_dict['power1'] = self._mw.ext_control_mw1_power_DoubleSpinBox.value()
+
+        if use_ext_microwave1 and not self._mw.ext_control_mw1_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw1_freq_Label.setVisible(True)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw1_power_Label.setVisible(True)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(True)
+        elif not use_ext_microwave1 and self._mw.ext_control_mw1_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw1_freq_Label.setVisible(False)
+            self._mw.ext_control_mw1_freq_DoubleSpinBox.setVisible(False)
+            self._mw.ext_control_mw1_power_Label.setVisible(False)
+            self._mw.ext_control_mw1_power_DoubleSpinBox.setVisible(False)
+
+        self._odmr_logic.set_ext_microwave1_settings(settings_dict)
+        return
+    
+    @QtCore.Slot()
+    def microwave2_settings_changed(self):
+        """ Shows or hides input widgets which are necessary if an external mw is turned on"""
+        if self._mw.action_run_stop.isChecked():
+            return
+
+        use_ext_microwave2 = self._mw.ext_control_use_mw2_CheckBox.isChecked()
+
+        settings_dict = dict()
+        settings_dict['use_ext_microwave2'] = use_ext_microwave2
+        settings_dict['frequency2'] = self._mw.ext_control_mw2_freq_DoubleSpinBox.value()*1e9
+        settings_dict['power2'] = self._mw.ext_control_mw2_power_DoubleSpinBox.value()
+
+        if use_ext_microwave2 and not self._mw.ext_control_mw2_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw2_freq_Label.setVisible(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw2_power_Label.setVisible(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setVisible(True)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(True)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(True)
+        elif not use_ext_microwave2 and self._mw.ext_control_mw2_freq_DoubleSpinBox.isVisible():
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setEnabled(False)
+            self._mw.ext_control_mw2_freq_Label.setVisible(False)
+            self._mw.ext_control_mw2_freq_DoubleSpinBox.setVisible(False)
+            self._mw.ext_control_mw2_power_Label.setVisible(False)
+            self._mw.ext_control_mw2_power_DoubleSpinBox.setVisible(False)
+
+        self._odmr_logic.set_ext_microwave2_settings(settings_dict)
         return

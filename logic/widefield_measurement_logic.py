@@ -204,7 +204,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         self.exposure_mode = self._widefield_camera.get_exposure_mode()
         self.exposure_modes = self._widefield_camera.limits["exposure_modes"]
         self.exposure_time = self._widefield_camera.get_exposure()
-        self.image_width, self.image_height = self._widefield_camera.get_size()
+        # self.image_width, self.image_height = self._widefield_camera.get_size()
         self.offset_x, self.offset_y = self._widefield_camera.get_offset()
         self.pixel_format = self._widefield_camera.get_pixel_format()
         self.pixel_formats = self._widefield_camera.limits["pixel_formats"]
@@ -1639,18 +1639,20 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         return fig
 
-    def do_image_fit(self, fit_function=None, array_data = None, channel_index=0, fit_range=0):
+    def do_image_fit(self, fit_function=None, array_data = None, fit_range=0):
         """
         """
 
-        # pull in data
-        data_dir = r"Z:\Montana_setup\samples and data\CrI3_NV\Flake#3_CrI3_twisted_3L+3L_Quinn\Pulsed_ESR\5K\40G_temp_test_v2\RawData"
-        mat_fname = pjoin(data_dir, "005_ESR.mat")
-        mat_data = mat73.loadmat(mat_fname)
+        # # pull in data
+        # data_dir = r"Z:\Montana_setup\samples and data\CrI3_NV\Flake#3_CrI3_twisted_3L+3L_Quinn\Pulsed_ESR\5K\40G_temp_test_v2\RawData"
+        # mat_fname = pjoin(data_dir, "005_ESR.mat")
+        # mat_data = mat73.loadmat(mat_fname)
+        # # extract data
+        # raw_data = np.array(mat_data['outputdata']['ave']['mean'])
+        # frequency = np.array(mat_data['outputdata']['freq'], dtype=np.float32)
 
-        # extract data
-        raw_data = np.array(mat_data['outputdata']['ave']['mean'])
-        frequency = np.array(mat_data['outputdata']['freq'], dtype=np.float32)
+        raw_data = np.array(self.odmr_raw_data)
+        frequency = np.array(self.odmr_plot_x*1e-9,dtype=np.float32)
 
         # Reshape data
         data_normalized = raw_data/raw_data[:, :, 1, np.newaxis]
@@ -1703,29 +1705,29 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         # Initial parameters
         number_fits = 0
-        initial_parameters = initialize_parameters(data_test,Amp1=None,center1=22,width1=10,offset1=1)
-        initial_parameters_upper = initialize_parameters(data_test_upper,Amp1=None,center1=25,width1=10,offset1=1)
+        initial_parameters = self.initialize_parameters(data_test,Amp1=None,center1=22,width1=10,offset1=1)
+        initial_parameters_upper = self.initialize_parameters(data_test_upper,Amp1=None,center1=25,width1=10,offset1=1)
 
         # run Gpufit
         parameters, states, chi_squares, number_iterations, execution_time = gf.fit(data_test, None, model_id, initial_parameters, tolerance, max_number_iterations, None, estimator_id, user_info=None)
         parameters_upper, states_upper, chi_squares_upper, number_iterations_upper, execution_time_upper = gf.fit(data_test_upper, None, model_id, initial_parameters_upper, tolerance, max_number_iterations, None, estimator_id, user_info=None)
 
         # plot data for lower
-        n=22000
-        plt.plot(frequency_test,data_test[n,:],'.',c='blue')
-        plt.plot(frequency_test,lorentz_1D(testing_f1,parameters[n]),c='orange')
-        plt.show()
+        # n=22000
+        # plt.plot(frequency_test,data_test[n,:],'.',c='blue')
+        # plt.plot(frequency_test,self.lorentz_1D(testing_f1,parameters[n]),c='orange')
+        # plt.show()
 
-        fcf = parameters[0][1]*0.003+2.7
-        print(f'fitted central frequency: {fcf}')
+        # fcf = parameters[0][1]*0.003+2.7
+        # print(f'fitted central frequency: {fcf}')
 
         # plot data for upper
-        plt.plot(frequency_test_upper,data_test_upper[n,:],'.',c='blue')
-        plt.plot(frequency_test_upper,lorentz_1D(testing_f1_upper,parameters_upper[n]),c='orange')
-        plt.show()
+        # plt.plot(frequency_test_upper,data_test_upper[n,:],'.',c='blue')
+        # plt.plot(frequency_test_upper,self.lorentz_1D(testing_f1_upper,parameters_upper[n]),c='orange')
+        # plt.show()
 
-        fcf = parameters_upper[0][1]*0.003+2.92
-        print(f'fitted central frequency: {fcf}')
+        # fcf = parameters_upper[0][1]*0.003+2.92
+        # print(f'fitted central frequency: {fcf}')
 
         # fitting information
 
@@ -1736,7 +1738,7 @@ class WidefieldMeasurementLogic(GenericLogic):
 
         # plot final fitted data        
         final_data = parameters.reshape(raw_data_test.shape[0],raw_data_test.shape[1],4)
-        final_data_upper = parameters.reshape(raw_data_test_upper.shape[0],raw_data_test_upper.shape[1],4)      
+        final_data_upper = parameters_upper.reshape(raw_data_test_upper.shape[0],raw_data_test_upper.shape[1],4)      
         # shw = plt.imshow((final_data_upper[:,:,1]-final_data[:,:,1]+40)*0.003/(2*2.8*10**(-3)),cmap='seismic',interpolation='none',vmin=21,vmax=25)
         # colorbar = plt.colorbar(shw)
         # plt.show()
@@ -2072,7 +2074,7 @@ class WidefieldMeasurementLogic(GenericLogic):
     ###                       Gpufit Methods                            ###
     #######################################################################
 
-    def initialize_parameters(data,center1=None,width1=None,Amp1=None,offset1=1):
+    def initialize_parameters(self,data,center1=None,width1=None,Amp1=None,offset1=1):
         Amp1_array = np.min(data,axis=1)-np.max(data,axis=1)
                     
         assert center1 is not None
@@ -2084,7 +2086,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         
         return np.array(np.stack((Amp1_array,center1_array,width1_array,offset1_array),axis=1), dtype=np.float32)
 
-    def lorentz_1D(x, p):
+    def lorentz_1D(self,x, p):
         amp = p[0]
         center = p[1]
         width = p[2]
@@ -2092,7 +2094,7 @@ class WidefieldMeasurementLogic(GenericLogic):
         y = (amp * (width**2))/((x-center)**2 + (width)**2) + offset
         return y 
 
-    def gauss_1D(x, p):
+    def gauss_1D(self,x, p):
         amp = p[0]
         center = p[1]
         width = p[2]
@@ -2100,5 +2102,5 @@ class WidefieldMeasurementLogic(GenericLogic):
         y = amp * (np.e ** (-(x-center)**2/(2*width**2))) + offset
         return y 
 
-    def linear(x, p):
+    def linear(self,x, p):
         return p[0] + p[1]*x

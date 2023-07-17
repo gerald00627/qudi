@@ -138,8 +138,6 @@ class ODMRCounterInterfuse(GenericLogic, ODMRCounterInterface):
 
         counts = self._sc_device.get_measurements(['counts'])[0]
     
-        
-
         return False, counts
 
     def close_odmr(self):

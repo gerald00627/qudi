@@ -386,4 +386,3 @@ class CameraLogic(GenericLogic):
                              rotation=90
                              )
         return fig
-

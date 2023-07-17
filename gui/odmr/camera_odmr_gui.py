@@ -119,7 +119,7 @@ class WidefieldGUI(GUIBase):
     sigRuntimeChanged = QtCore.Signal(float)
     sigAutosaveNumChanged = QtCore.Signal(int)
     sigDoFit = QtCore.Signal(str, object, object, int, int)
-    sigDoImageFit = QtCore.Signal(str, object, object, int, int)
+    sigDoImageFit = QtCore.Signal(str, object, int)
     sigSaveMeasurement = QtCore.Signal(str, list, list)
     sigChangeMeasurementType = QtCore.Signal(str)
 
@@ -544,6 +544,9 @@ class WidefieldGUI(GUIBase):
         self._fitted_image = pg.ImageItem()
         self._mw.image_fit_PlotWidget.addItem(self._fitted_image)
         self._mw.image_fit_PlotWidget.setAspectLocked(True)
+
+        self._fitted_image.setLookupTable(self.my_colors.lut)
+
 
         # Connect the buttons and inputs for the colorbar
         self._mw.xy_cb_manual_RadioButton.clicked.connect(self.update_xy_cb_range)
@@ -1306,15 +1309,8 @@ class WidefieldGUI(GUIBase):
 
     def do_fit(self):
         fit_function = self._mw.fit_methods_ComboBox.getCurrentFit()[0]
-        self.sigDoFit.emit(fit_function, None, None, self._mw.odmr_channel_ComboBox.currentIndex(),
-                           self._mw.fit_range_SpinBox.value())
+        self.sigDoFit.emit(fit_function, None, None, None, self._mw.fit_range_SpinBox.value())
         return
-    
-    def image_fit(self):
-        fit_function = self._mw.fit_methods_ComboBox.getCurrentFit()[0]
-        self.sigDoImageFit.emit(fit_function, None, None, self._mw.odmr_channel_ComboBox.currentIndex(),
-                           self._mw.fit_range_SpinBox.value())
-        pass
 
     def update_fit(self, x_data, y_data, result_str_dict, current_fit):
         """ Update the shown fit. """
@@ -1807,16 +1803,18 @@ class WidefieldGUI(GUIBase):
 
 # Image Fit functions
     
-    # def image_fit(self):
-    
-    #     pass
+    def image_fit(self):
+        fit_function = self._mw.fit_methods_ComboBox.getCurrentFit()[0]
+        self.sigDoImageFit.emit(fit_function, None, self._mw.fit_range_SpinBox.value())        
+    pass
 
     def update_image_fit(self,fitted_img):
         """
         Get the image data from the logic and print it on the window
         """
-        self._fitted_image.setImage(image=fitted_img)
-        self.update_xy_cb_range()
+        # self._fitted_image.setImage(image=fitted_img)
+        self.update_fitted_xy_cb_range()
+
         # levels = (0., 1.)
         # self._image.setImage(image=raw_data_image, levels=levels)
 
@@ -1849,7 +1847,7 @@ class WidefieldGUI(GUIBase):
 
         # Now update image with new color scale, and update colorbar
         self._fitted_image.setImage(image=fitted_xy_image_data, levels=(fit_cb_range[0], fit_cb_range[1]))
-        self.refresh_xy_colorbar()
+        self.refresh_fitted_xy_colorbar()
 
     def get_fitted_xy_cb_range(self):
         """ Determines the cb_min and cb_max values for the xy scan image

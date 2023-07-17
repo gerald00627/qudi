@@ -435,7 +435,7 @@
                <double>0.100000000000000</double>
               </property>
               <property name="value">
-               <double>0.000000000000000</double>
+               <double>10.000000000000000</double>
               </property>
              </widget>
             </item>
@@ -486,7 +486,7 @@
                <double>0.100000000000000</double>
               </property>
               <property name="value">
-               <double>100.000000000000000</double>
+               <double>99.000000000000000</double>
               </property>
              </widget>
             </item>
@@ -1436,14 +1436,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ScienDSpinBox</class>
-   <extends>QDoubleSpinBox</extends>
-   <header>qtwidgets.scientific_spinbox.h</header>
-  </customwidget>
-  <customwidget>
    <class>PlotWidget</class>
    <extends>QGraphicsView</extends>
    <header>pyqtgraph</header>
+  </customwidget>
+  <customwidget>
+   <class>ScienDSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>qtwidgets.scientific_spinbox.h</header>
   </customwidget>
   <customwidget>
    <class>FitSettingsComboBox</class>

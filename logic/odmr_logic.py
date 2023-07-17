@@ -44,6 +44,7 @@ class ODMRLogic(GenericLogic):
     odmrcounter = Connector(interface='ODMRCounterInterface')
     fitlogic = Connector(interface='FitLogic')
     microwave1 = Connector(interface='MicrowaveInterface')
+    microwave2 = Connector(interface='MicrowaveInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
 
@@ -76,6 +77,17 @@ class ODMRLogic(GenericLogic):
     _oversampling = StatusVar('oversampling', default=10)
     _lock_in_active = StatusVar('lock_in_active', default=False)
 
+
+    # status variables
+    # ext. microwave settings
+    __microwave1_power = StatusVar(default=-30.0)
+    __microwave1_freq = StatusVar(default=2870e6)
+    __use_ext_microwave1 = StatusVar(default=False)
+
+    __microwave2_power = StatusVar(default=-30.0)
+    __microwave2_freq = StatusVar(default=2870e6)
+    __use_ext_microwave2 = StatusVar(default=False)
+
     # Internal signals
     sigNextLine = QtCore.Signal()
 
@@ -85,6 +97,10 @@ class ODMRLogic(GenericLogic):
     sigOdmrPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray, np.ndarray)
     sigOdmrFitUpdated = QtCore.Signal(np.ndarray, np.ndarray, dict, str)
     sigOdmrElapsedTimeUpdated = QtCore.Signal(float, int)
+
+    sigExtMicrowave1SettingsUpdated = QtCore.Signal(dict)
+    sigExtMicrowave2SettingsUpdated = QtCore.Signal(dict)
+
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -96,6 +112,7 @@ class ODMRLogic(GenericLogic):
         """
         # Get connectors
         self._mw_device = self.microwave1()
+        self._mw_device2 = self.microwave2()
         self._fit_logic = self.fitlogic()
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
@@ -469,22 +486,75 @@ class ODMRLogic(GenericLogic):
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
-        if self.module_state() == 'locked':
-            self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+        # if self.module_state() == 'locked':
+        #     self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+        # else:
+        #     self.cw_mw_frequency, \
+        #     self.cw_mw_power, \
+        #     mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
+        #     param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+        #     self.sigParameterUpdated.emit(param_dict)
+        #     if mode != 'cw':
+        #         self.log.error('Switching to CW microwave output mode failed.')
+        #     else:
+        #         err_code = self._mw_device.cw_on()
+        #         if err_code < 0:
+        #             self.log.error('Activation of microwave output failed.')
+
+        # mode, is_running = self._mw_device.get_status()
+        # self.sigOutputStateUpdated.emit(mode, is_running)
+
+        self.log.warning('mw_cw_on called')
+        return #mode, is_running
+
+
+    def mw1_cw_on(self):
+        """
+        Switching on the mw1 source in cw mode.
+
+        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+        """
+
+        mw1_power = self.ext_microwave1_settings.get('power1')
+        mw1_freq = self.ext_microwave1_settings.get('frequency1') # in Hz
+        
+        mw1_freq, mw1_power, mode = self._mw_device.set_cw(mw1_power,mw1_freq)
+
+        param_dict = {'cw_mw_frequency': mw1_freq, 'cw_mw_power': mw1_power}
+        self.sigParameterUpdated.emit(param_dict)
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
         else:
-            self.cw_mw_frequency, \
-            self.cw_mw_power, \
-            mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-            param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-            self.sigParameterUpdated.emit(param_dict)
-            if mode != 'cw':
-                self.log.error('Switching to CW microwave output mode failed.')
-            else:
-                err_code = self._mw_device.cw_on()
-                if err_code < 0:
-                    self.log.error('Activation of microwave output failed.')
+            err_code = self._mw_device.cw_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
+        self.sigOutputStateUpdated.emit(mode, is_running)
+        return mode, is_running
+    
+    def mw2_cw_on(self):
+        """
+        Switching on the mw2 source in cw mode.
+
+        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
+        """
+
+        mw2_power = self.ext_microwave2_settings.get('power2')
+        mw2_freq = self.ext_microwave2_settings.get('frequency2') # in Hz
+        
+        mw2_freq, mw2_power, mode = self._mw_device2.set_cw(mw2_power,mw2_freq)
+
+        param_dict = {'cw_mw_frequency': mw2_freq, 'cw_mw_power': mw2_power}
+        self.sigParameterUpdated.emit(param_dict)
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
+        else:
+            err_code = self._mw_device2.cw_on()
+            if err_code < 0:
+                self.log.error('Activation of microwave output failed.')
+
+        mode, is_running = self._mw_device2.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
@@ -667,9 +737,18 @@ class ODMRLogic(GenericLogic):
                 self.module_state.unlock()
                 return -1
 
-            # Set MW mode and turns it on
-            mode = self.mw_sweep_on()
+            # Throw error if both mw are on for CW ODMR
+            if ((self._ODMRLogic__use_ext_microwave1 == False) and 
+                (self._ODMRLogic__use_ext_microwave2 == False)):
+                self.log.error('Measurement started with no MW source')
 
+            # Set MW mode and turns it on
+            if self._ODMRLogic__use_ext_microwave1 == True:
+                self.mw1_cw_on()
+            
+            if self._ODMRLogic__use_ext_microwave2 == True:    
+                self.mw2_cw_on()
+            
             # mode, is_running = self.mw_sweep_on()
             # if not is_running:
             #     self._stop_odmr_counter()
@@ -1171,3 +1250,132 @@ class ODMRLogic(GenericLogic):
             self.save_odmr_data(tag=name_tag)
 
         return self.odmr_plot_x, self.odmr_plot_y, fit_params
+
+    @QtCore.Slot(dict)
+    def set_ext_microwave1_settings(self, settings_dict=None, **kwargs):
+        """
+        Apply new settings to the external microwave1 device.
+        Either accept a settings dictionary as positional argument or keyword arguments.
+        If both are present both are being used by updating the settings_dict with kwargs.
+        The keyword arguments take precedence over the items in settings_dict if there are
+        conflicting names.
+
+        @param settings_dict:
+        @param kwargs:
+        @return:
+        """
+        # Check if microwave1 is running and do nothing if that is the case
+        if self.microwave1().get_status()[1]:
+            self.log.warning('Microwave1 device is running.\nUnable to apply new settings.')
+        else:
+            # Determine complete settings dictionary
+            if not isinstance(settings_dict, dict):
+                settings_dict = kwargs
+            else:
+                settings_dict.update(kwargs)
+
+            # Set parameters if present
+            if 'power1' in settings_dict:
+                self.__microwave1_power = float(settings_dict['power1'])
+            if 'frequency1' in settings_dict:
+                self.__microwave1_freq = float(settings_dict['frequency1'])
+            if 'use_ext_microwave1' in settings_dict:
+                self.__use_ext_microwave1 = bool(settings_dict['use_ext_microwave1'])
+
+            if self.__use_ext_microwave1:
+                # Apply the settings to hardware
+                self.__microwave1_freq, \
+                self.__microwave1_power, \
+                dummy = self.microwave1().set_cw(frequency=self.__microwave1_freq,
+                                                power=self.__microwave1_power)
+
+        # emit update signal for master (GUI or other logic module)
+        self.sigExtMicrowave1SettingsUpdated.emit({'power1': self.__microwave1_power,
+                                                  'frequency1': self.__microwave1_freq,
+                                                  'use_ext_microwave1': self.__use_ext_microwave1})
+        return self.__microwave1_freq, self.__microwave1_power, self.__use_ext_microwave1
+
+    @QtCore.Slot(dict)
+    def set_ext_microwave2_settings(self, settings_dict=None, **kwargs):
+        """
+        Apply new settings to the external microwave2 device.
+        Either accept a settings dictionary as positional argument or keyword arguments.
+        If both are present both are being used by updating the settings_dict with kwargs.
+        The keyword arguments take precedence over the items in settings_dict if there are
+        conflicting names.
+
+        @param settings_dict:
+        @param kwargs:
+        @return:
+        """
+        # Check if microwave is running and do nothing if that is the case
+        if self.microwave2().get_status()[1]:
+            self.log.warning('Microwave2 device is running.\nUnable to apply new settings.')
+        else:
+            # Determine complete settings dictionary
+            if not isinstance(settings_dict, dict):
+                settings_dict = kwargs
+            else:
+                settings_dict.update(kwargs)
+
+            # Set parameters if present
+            if 'power2' in settings_dict:
+                self.__microwave2_power = float(settings_dict['power2'])
+            if 'frequency2' in settings_dict:
+                self.__microwave2_freq = float(settings_dict['frequency2'])
+            if 'use_ext_microwave2' in settings_dict:
+                self.__use_ext_microwave2 = bool(settings_dict['use_ext_microwave2'])
+
+            if self.__use_ext_microwave2:
+                # Apply the settings to hardware
+                self.__microwave2_freq, \
+                self.__microwave2_power, \
+                dummy = self.microwave2().set_cw(frequency=self.__microwave2_freq,
+                                                power=self.__microwave2_power)
+
+        # emit update signal for master (GUI or other logic module)
+        self.sigExtMicrowave2SettingsUpdated.emit({'power2': self.__microwave2_power,
+                                                  'frequency2': self.__microwave2_freq,
+                                                  'use_ext_microwave2': self.__use_ext_microwave2})
+        return self.__microwave2_freq, self.__microwave2_power, self.__use_ext_microwave2
+
+    #######################################################################
+    ###            Ext Microwave source properties                      ###
+    #######################################################################
+
+    @property
+    def ext_microwave1_settings(self):
+        settings_dict = dict()
+        settings_dict['power1'] = float(self.__microwave1_power)
+        settings_dict['frequency1'] = float(self.__microwave1_freq)
+        settings_dict['use_ext_microwave1'] = bool(self.__use_ext_microwave1)
+        return settings_dict
+
+    @property
+    def ext_microwave2_settings(self):
+        settings_dict = dict()
+        settings_dict['power2'] = float(self.__microwave2_power)
+        settings_dict['frequency2'] = float(self.__microwave2_freq)
+        settings_dict['use_ext_microwave2'] = bool(self.__use_ext_microwave2)
+        return settings_dict
+
+    @ext_microwave1_settings.setter
+    def ext_microwave1_settings(self, settings_dict):
+        if isinstance(settings_dict, dict):
+            self.set_ext_microwave1_settings(settings_dict)
+        return
+    
+    @ext_microwave2_settings.setter
+    def ext_microwave2_settings(self, settings_dict):
+        if isinstance(settings_dict, dict):
+            self.set_ext_microwave2_settings(settings_dict)
+        return
+
+    @property
+    def ext_microwave1_constraints(self):
+        return self.microwave1().get_limits()
+
+    @property
+    def ext_microwave2_constraints(self):
+        return self.microwave2().get_limits()
+
